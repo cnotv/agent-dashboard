@@ -1,8 +1,7 @@
 import javascript from '@eslint/js'
 import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
 import typescript from 'typescript-eslint'
-import vue from 'eslint-plugin-vue'
-import vueParser from 'vue-eslint-parser'
 
 const functionalStyle = {
   'no-restricted-syntax': [
@@ -22,29 +21,20 @@ const functionalStyle = {
 
 export default typescript.config(
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      'apps/web/src/components/ui/**',
-      'apps/web/src/lib/utils.ts',
-    ],
+    ignores: ['**/dist/**', '**/node_modules/**'],
   },
   javascript.configs.recommended,
   ...typescript.configs.recommended,
-  ...vue.configs['flat/recommended'],
   {
-    files: ['**/*.ts', '**/*.vue'],
+    files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
-      parser: vueParser,
-      parserOptions: { parser: typescript.parser, extraFileExtensions: ['.vue'], sourceType: 'module' },
       globals: { ...globals.browser, ...globals.node },
     },
-    rules: {
-      ...functionalStyle,
-      'vue/multi-word-component-names': 'off',
-      // Layout of attributes and short elements is a formatter's job, not a correctness rule.
-      'vue/max-attributes-per-line': 'off',
-      'vue/singleline-html-element-content-newline': 'off',
-    },
+    rules: functionalStyle,
+  },
+  {
+    files: ['apps/web/**/*.tsx', 'apps/web/**/*.ts'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: reactHooks.configs.recommended.rules,
   },
 )

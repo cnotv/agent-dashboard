@@ -55,6 +55,12 @@ exists.
 | `AGENT_DASHBOARD_REPOS_FILE`           | `config/repos.json`     |
 | `AGENT_DASHBOARD_MASTER_KEY` / `_FILE` | unset (passphrase mode) |
 
+## UI
+
+React 19 with [Radix Themes](https://www.radix-ui.com/themes) (light and dark follow the
+system) and [TanStack Table](https://tanstack.com/table) for sorting, searching, expanding
+and paging. No Tailwind.
+
 ## Develop
 
 ```sh

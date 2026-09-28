@@ -1,4 +1,5 @@
 import type { GateOverallState, GateState, IssueStatus } from '@agent-dashboard/contracts'
+import type { RadixColor } from './types'
 
 export const issueStatusLabels: Record<IssueStatus, string> = {
   'no-pull-request': 'No pull request',
@@ -9,12 +10,21 @@ export const issueStatusLabels: Record<IssueStatus, string> = {
   approved: 'Approved',
 }
 
-export const gateStateClasses: Record<GateState, string> = {
-  success: 'bg-success/15 text-success border-success/30',
-  failure: 'bg-destructive/15 text-destructive border-destructive/30',
-  pending: 'bg-warning/15 text-warning border-warning/30',
-  neutral: 'bg-muted text-muted-foreground',
-  skipped: 'bg-muted text-muted-foreground',
+export const issueStatusColors: Record<IssueStatus, RadixColor> = {
+  'no-pull-request': 'gray',
+  draft: 'sky',
+  'checks-running': 'amber',
+  'checks-failing': 'red',
+  'ready-for-review': 'indigo',
+  approved: 'green',
+}
+
+export const gateStateColors: Record<GateState, RadixColor> = {
+  success: 'green',
+  failure: 'red',
+  pending: 'amber',
+  neutral: 'gray',
+  skipped: 'gray',
 }
 
 export const gateOverallLabels: Record<GateOverallState, string> = {
@@ -30,3 +40,6 @@ export const parseRepositoryKey = (key: string): { owner: string; name: string }
   const [owner, name, ...extraParts] = key.split('/')
   return owner && name && extraParts.length === 0 ? { owner, name } : null
 }
+
+export const errorMessageOf = (errorOrText: unknown): string =>
+  errorOrText instanceof Error ? errorOrText.message : String(errorOrText)

@@ -91,9 +91,10 @@ line in the body when the change is not on the default route.
   new route.
 - **External data is parsed with zod before use.** GitHub responses, request bodies and
   `config/repos.json` never reach the code as a cast.
-- **The UI is built from the shadcn-vue kit** in `apps/web/src/components/ui/`, copied from the
-  upstream registry and left unmodified apart from import paths. Views compose kit components;
-  no hand-made buttons, dialogs, tables or badges.
+- **The UI is React with Radix Themes.** Views compose Radix Themes components (and the Radix
+  primitives it re-exports through `radix-ui`); no hand-made buttons, dialogs, badges or form
+  controls. Tables are TanStack Table driving `Table` from Radix Themes. No Tailwind: the only
+  app CSS is `apps/web/src/styles.css`, written against the Radix Themes tokens.
 - Types shared by server and web live in `packages/contracts/src/types.ts`.
 
 ## Project facts
@@ -114,4 +115,5 @@ line in the body when the change is not on the default route.
 - [ ] A new route is guarded by the Host and origin middleware and has a test
 - [ ] A new secret kind is listed in `apps/server/src/secrets/definitions.ts` with a tester
 - [ ] A new shared type is in `packages/contracts/src/types.ts`
-- [ ] A new kit component is copied from upstream with only its imports changed
+- [ ] New UI uses Radix Themes components and theme tokens, and was looked at in light, dark
+      and phone widths
