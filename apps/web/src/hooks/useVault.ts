@@ -1,0 +1,35 @@
+import { useCallback, useEffect, useState } from 'react'
+import type { SecretSummary, VaultState } from '@agent-dashboard/contracts'
+import { dashboardApi } from '@/lib/api'
+
+const readVaultSnapshot = () => Promise.all([dashboardApi.readVault(), dashboardApi.listSecrets()])
+
+export const useVault = (onError: (error: unknown) => void) => {
+  const [vaultState, setVaultState] = useState<VaultState | null>(null)
+  const [secrets, setSecrets] = useState<SecretSummary[]>([])
+
+  const applySnapshot = useCallback(([nextVaultState, nextSecrets]: [VaultState, SecretSummary[]]) => {
+    setVaultState(nextVaultState)
+    setSecrets(nextSecrets)
+  }, [])
+
+  useEffect(() => {
+    readVaultSnapshot().then(applySnapshot).catch(onError)
+  }, [applySnapshot, onError])
+
+  const runAndRefresh = async (action: () => Promise<unknown>): Promise<void> => {
+    await action()
+    applySnapshot(await readVaultSnapshot())
+  }
+
+  return {
+    vaultState,
+    secrets,
+    setUp: (passphrase: string) => runAndRefresh(() => dashboardApi.setUpVault(passphrase)),
+    unlock: (passphrase: string) => runAndRefresh(() => dashboardApi.unlockVault(passphrase)),
+    lock: () => runAndRefresh(() => dashboardApi.lockVault()),
+    saveSecret: (name: string, value: string) => runAndRefresh(() => dashboardApi.saveSecret(name, value)),
+    deleteSecret: (name: string) => runAndRefresh(() => dashboardApi.deleteSecret(name)),
+    testSecret: dashboardApi.testSecret,
+  }
+}

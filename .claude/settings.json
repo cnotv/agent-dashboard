@@ -1,0 +1,22 @@
+{
+  "extraKnownMarketplaces": {
+    "cnotv": { "source": { "source": "github", "repo": "cnotv/agent-base" } }
+  },
+  "enabledPlugins": {
+    "base@cnotv": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run view:*)"
+    ]
+  }
+}
