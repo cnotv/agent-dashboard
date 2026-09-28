@@ -1,0 +1,44 @@
+import type { DashboardApi } from './types'
+
+const readErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const errorBody: unknown = await response.json()
+    return typeof errorBody === 'object' && errorBody !== null && 'error' in errorBody && typeof errorBody.error === 'string'
+      ? errorBody.error
+      : `Request failed (${response.status})`
+  } catch {
+    return `Request failed (${response.status})`
+  }
+}
+
+export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
+  const requestJson = async <ResponseBody>(path: string, init: RequestInit = {}): Promise<ResponseBody> => {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
+      headers: { 'content-type': 'application/json', ...init.headers },
+    })
+    if (!response.ok) throw new Error(await readErrorMessage(response))
+    return response.status === 204 ? (undefined as ResponseBody) : ((await response.json()) as ResponseBody)
+  }
+
+  const sendJson = <ResponseBody>(method: string, path: string, body: unknown = {}): Promise<ResponseBody> =>
+    requestJson<ResponseBody>(path, { method, body: JSON.stringify(body) })
+
+  const secretPath = (name: string): string => `/api/secrets/${encodeURIComponent(name)}`
+
+  return {
+    readVault: () => requestJson('/api/vault'),
+    setUpVault: (passphrase) => sendJson('POST', '/api/vault/setup', { passphrase }),
+    unlockVault: (passphrase) => sendJson('POST', '/api/vault/unlock', { passphrase }),
+    lockVault: () => sendJson('POST', '/api/vault/lock'),
+    listSecrets: () => requestJson('/api/secrets'),
+    saveSecret: (name, value) => sendJson('PUT', secretPath(name), { value }),
+    deleteSecret: (name) => sendJson('DELETE', secretPath(name)),
+    testSecret: (name) => sendJson('POST', `${secretPath(name)}/test`),
+    listRepositories: () => requestJson('/api/repositories'),
+    readBoard: (repository, refresh) =>
+      requestJson(
+        `/api/repositories/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/board${refresh ? '?refresh=1' : ''}`,
+      ),
+  }
+}
