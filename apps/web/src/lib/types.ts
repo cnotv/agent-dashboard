@@ -1,4 +1,12 @@
-import type { BoardCard, IssueStatus } from '@agent-dashboard/contracts'
+import type {
+  Board,
+  BoardCard,
+  IssueStatus,
+  RepositoryReference,
+  SecretSummary,
+  SecretTestResult,
+  VaultState,
+} from '@agent-dashboard/contracts'
 
 export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky'
 
@@ -24,4 +32,22 @@ export interface ToastMessage {
 export interface ToastApi {
   notifySuccess: (text: string) => void
   notifyError: (errorOrText: unknown) => void
+}
+
+export interface DashboardApi {
+  readVault: () => Promise<VaultState>
+  setUpVault: (passphrase: string) => Promise<VaultState>
+  unlockVault: (passphrase: string) => Promise<VaultState>
+  lockVault: () => Promise<VaultState>
+  listSecrets: () => Promise<SecretSummary[]>
+  saveSecret: (name: string, value: string) => Promise<void>
+  deleteSecret: (name: string) => Promise<void>
+  testSecret: (name: string) => Promise<SecretTestResult>
+  listRepositories: () => Promise<RepositoryReference[]>
+  readBoard: (repository: RepositoryReference, refresh: boolean) => Promise<Board>
+}
+
+export interface RuntimeConfiguration {
+  isDemoMode: boolean
+  apiBaseUrl: string
 }

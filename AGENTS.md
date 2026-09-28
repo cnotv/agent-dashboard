@@ -106,7 +106,8 @@ line in the body when the change is not on the default route.
 - **Routes:** `/issues`, `/credentials`
 - **Checks:** `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm test`
 - **Docs home:** `README.md`
-- **Preview deploys:** none
+- **Preview deploys:** Netlify builds the UI in demo mode for every pull request
+  (`deploy/netlify` check; the URL is in the Netlify bot comment). No server behind it.
 - **Scoped rules:** none yet
 - **Local skills:** none
 
@@ -115,5 +116,7 @@ line in the body when the change is not on the default route.
 - [ ] A new route is guarded by the Host and origin middleware and has a test
 - [ ] A new secret kind is listed in `apps/server/src/secrets/definitions.ts` with a tester
 - [ ] A new shared type is in `packages/contracts/src/types.ts`
+- [ ] A new API call is implemented in both `apps/web/src/lib/http-api.ts` and the demo API in
+      `apps/web/src/demo/demo-api.ts`
 - [ ] New UI uses Radix Themes components and theme tokens, and was looked at in light, dark
       and phone widths

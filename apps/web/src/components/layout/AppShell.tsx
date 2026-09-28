@@ -1,6 +1,7 @@
 import { DashboardIcon, LockClosedIcon } from '@radix-ui/react-icons'
-import { Box, Flex, Heading, Text } from '@radix-ui/themes'
+import { Box, Callout, Flex, Heading, Text } from '@radix-ui/themes'
 import { NavLink, Outlet, useMatches } from 'react-router'
+import { runtimeConfiguration } from '@/lib/runtime-configuration'
 
 const navigationItems = [
   { title: 'Issues', path: '/issues', Icon: DashboardIcon },
@@ -38,6 +39,14 @@ export const AppShell = () => {
           </Heading>
         </header>
         <main className="app-main">
+          {runtimeConfiguration.isDemoMode && (
+            <Callout.Root variant="surface" mb="5">
+              <Callout.Text>
+                <Text weight="medium">Demo mode.</Text> Sample data and no server: nothing you type leaves this page. Run
+                the dashboard server, or build with VITE_API_BASE_URL pointing at one, to see real repositories.
+              </Callout.Text>
+            </Callout.Root>
+          )}
           <Outlet />
         </main>
       </Box>

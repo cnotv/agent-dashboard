@@ -22,6 +22,14 @@ docker compose up --build
 
 Repositories shown on the board come from `config/repos.json`.
 
+### Static UI only (Netlify)
+
+`netlify.toml` builds just the UI. With `VITE_DEMO_MODE=1` (the Netlify default here) it runs
+on bundled sample data with a banner, and nothing typed into it leaves the page: that is the
+per-pull-request preview. To use a static UI with a real server instead, build it with
+`VITE_API_BASE_URL=https://your-dashboard-server` and without demo mode; the server side of
+that (accepting the UI's origin, sign-in) arrives with cloud mode.
+
 ## Credentials
 
 Open **Credentials** and add a GitHub token (fine-grained, read access to issues, pull
@@ -54,6 +62,8 @@ exists.
 | `AGENT_DASHBOARD_DATA_DIR`             | `data`                  |
 | `AGENT_DASHBOARD_REPOS_FILE`           | `config/repos.json`     |
 | `AGENT_DASHBOARD_MASTER_KEY` / `_FILE` | unset (passphrase mode) |
+| `VITE_DEMO_MODE` (UI build)            | unset                   |
+| `VITE_API_BASE_URL` (UI build)         | unset (same origin)     |
 
 ## UI
 
