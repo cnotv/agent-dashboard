@@ -59,6 +59,6 @@ jobs:
           done
           curl --silent --fail http://127.0.0.1:4317/api/vault
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: attacker.example' http://127.0.0.1:4317/api/vault)" = "403"
-          curl --silent --fail http://127.0.0.1:4317/issues | grep -q '<div id="app">'
+          curl --silent --fail http://127.0.0.1:4317/issues | grep -q '<div id="root">'
       - if: failure()
         run: docker logs dashboard
