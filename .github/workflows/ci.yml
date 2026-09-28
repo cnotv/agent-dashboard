@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint --max-warnings 0
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t agent-dashboard:ci .
+      - name: Start the image and check it answers only as a loopback host
+        run: |
+          docker run -d --name dashboard -p 127.0.0.1:4317:4317 agent-dashboard:ci
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:4317/api/health; then break; fi
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:4317/api/vault
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: attacker.example' http://127.0.0.1:4317/api/vault)" = "403"
+          curl --silent --fail http://127.0.0.1:4317/issues | grep -q '<div id="app">'
+      - if: failure()
+        run: docker logs dashboard

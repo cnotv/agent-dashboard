@@ -1,0 +1,19 @@
+services:
+  dashboard:
+    build: .
+    image: agent-dashboard:local
+    # Published on loopback only: the dashboard has no sign-in yet, so nothing outside this
+    # machine may reach it.
+    ports:
+      - "127.0.0.1:4317:4317"
+    volumes:
+      - dashboard-data:/data
+      - ./config/repos.json:/app/config/repos.json:ro
+    environment:
+      # Leave unset to use a passphrase you enter after each start, or set it to a
+      # base64-encoded 32-byte key: openssl rand -base64 32
+      AGENT_DASHBOARD_MASTER_KEY: ${AGENT_DASHBOARD_MASTER_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  dashboard-data:
