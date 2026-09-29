@@ -25,9 +25,13 @@ jobs:
       DEPLOY_DIRECTORY: ${{ vars.DEPLOY_DIRECTORY || 'agent-dashboard' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
+      # The two SSH steps hold the server key and the app secret, so they are pinned to the
+      # exact commit of their release rather than a tag that could be moved.
       - name: Copy the sources to the server
-        uses: appleboy/scp-action@v1.0.0
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USERNAME }}
@@ -39,7 +43,7 @@ jobs:
       # The server builds the image itself, as generative-art's deploy does, so no registry
       # holds a copy of this private code.
       - name: Write the settings and start the new version
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           AGENT_DASHBOARD_DOMAIN: ${{ vars.AGENT_DASHBOARD_DOMAIN }}
           AGENT_DASHBOARD_ALLOWED_USERS: ${{ vars.AGENT_DASHBOARD_ALLOWED_USERS }}
