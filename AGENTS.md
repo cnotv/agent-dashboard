@@ -95,7 +95,9 @@ line in the body when the change is not on the default route.
   does not stop DNS rebinding; keep the guard in front of any new route.
 - **In cloud mode every `/api` route needs a signed-in session**, except the ones listed in
   `publicApiPaths` in `apps/server/src/auth/auth-routes.ts`. Add to that list only what a
-  signed-out browser must reach to sign in.
+  signed-out browser must reach to sign in. The routes in `ingestApiPaths`
+  (`apps/server/src/activity/activity-routes.ts`) skip the session because agents, not
+  browsers, call them; each needs an ingest token instead, and nothing there may read data.
 - **GitHub user tokens stay in memory.** Sessions are never persisted; a restart signs people
   out rather than a token reaching the disk.
 - **External data is parsed with zod before use.** GitHub responses, request bodies and
@@ -114,7 +116,7 @@ line in the body when the change is not on the default route.
 - **Production:** `pnpm build && pnpm start`, or `docker compose up` (published on 127.0.0.1);
   in the cloud, `docker-compose.cloud.yml` on one private port behind the server's existing
   reverse proxy, deployed by `.github/workflows/deploy.yml`
-- **Routes:** `/issues`, `/credentials`
+- **Routes:** `/sessions` (default), `/issues`, `/usage`, `/credentials`
 - **Checks:** `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm test`
 - **Container smoke test** (what CI runs per mode): `cp .github/ci/<mode>.env .env`,
   `docker compose --file <compose file> up --build --detach --wait`, then
@@ -133,5 +135,8 @@ line in the body when the change is not on the default route.
 - [ ] A new shared type is in `packages/contracts/src/types.ts`
 - [ ] A new API call is implemented in both `apps/web/src/lib/http-api.ts` and the demo API in
       `apps/web/src/demo/demo-api.ts`
+- [ ] A chart follows the validated palette in `apps/web/src/styles.css` (`--chart-*`), has a
+      legend for two or more series, a hover and focus tooltip, and its values in a table or
+      label as well
 - [ ] New UI uses Radix Themes components and theme tokens, and was looked at in light, dark
       and phone widths

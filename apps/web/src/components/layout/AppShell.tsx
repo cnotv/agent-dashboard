@@ -1,4 +1,4 @@
-import { DashboardIcon, LockClosedIcon } from '@radix-ui/react-icons'
+import { ActivityLogIcon, BarChartIcon, DashboardIcon, LockClosedIcon } from '@radix-ui/react-icons'
 import { Box, Callout, Flex, Heading, Text } from '@radix-ui/themes'
 import { NavLink, Outlet, useMatches } from 'react-router'
 import { useSession } from '@/hooks/useSession'
@@ -8,7 +8,9 @@ import { SidebarAccount } from './SidebarAccount'
 import { SignInScreen } from './SignInScreen'
 
 const navigationItems = [
+  { title: 'Sessions', path: '/sessions', Icon: ActivityLogIcon },
   { title: 'Issues', path: '/issues', Icon: DashboardIcon },
+  { title: 'Usage', path: '/usage', Icon: BarChartIcon },
   { title: 'Credentials', path: '/credentials', Icon: LockClosedIcon },
 ]
 

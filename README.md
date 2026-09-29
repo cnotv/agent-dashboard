@@ -1,8 +1,9 @@
 # agent-dashboard
 
-A dashboard for coding-agent work across repositories: the issues, whether each has a pull
-request, and that pull request's check gates — with credentials saved from the UI and stored
-encrypted. Sessions (Claude Code, Codex), pull request screenshots and videos, and the shared
+A dashboard for coding-agent work across repositories: the Claude Code and Codex sessions
+running now, the issues, whether each has a pull request, that pull request's check gates,
+and the tokens spent per repository and pull request — with credentials saved from the UI
+and stored encrypted. Starting sessions, pull request screenshots and videos, and the shared
 agent instructions from [agent-base](https://github.com/cnotv/agent-base) follow in later
 milestones.
 
@@ -129,11 +130,33 @@ sees the last four characters only. The key comes from one of two places:
 | Passphrase  | Leave `AGENT_DASHBOARD_MASTER_KEY` unset; set a passphrase in the UI and enter it after every restart | Anything reachable from another machine: a stolen disk reveals nothing |
 | Environment | `AGENT_DASHBOARD_MASTER_KEY=$(openssl rand -base64 32)`, or `AGENT_DASHBOARD_MASTER_KEY_FILE`         | A machine you already trust, or a server you redeploy often            |
 
+## Sessions and usage
+
+**Sessions** (the default page) charts every session whose hooks report here: when it was
+working, waiting for you or idle, and a table with its branch, issue and tokens. **Usage**
+adds up tokens across all repositories, then by repository, pull request or branch, day and
+model. It counts tokens only; subscription sessions have no per-token price to show.
+
+Both are fed by the machines running Claude Code, not read from them:
+
+1. Install the `base` plugin from agent-base; its hook posts each session event to
+   `/api/events`.
+2. In **Credentials, Connect Claude Code**, create a token for the machine and merge the
+   snippet it shows into that machine's `~/.claude/settings.json`. It sets the hook's
+   `AGENT_DASHBOARD_URL` and `AGENT_DASHBOARD_TOKEN`, and turns on Claude Code's OpenTelemetry
+   metrics, exported to `/api/telemetry/v1/metrics`. It has to be the user settings file:
+   Claude Code ignores telemetry settings in a repository's `.claude/settings.json`.
+
+The token is shown once and stored as a hash. It can only send events and metrics, never
+read anything, and **Revoke** cuts one machine off. A session silent for six hours counts as
+inactive, since a closed terminal never reports that it ended.
+
 ## Access
 
 Locally, the server only listens on loopback and rejects requests whose `Host` header is not
 a loopback name, and mutations from another origin, so a web page elsewhere cannot reach it
-through DNS rebinding. Cloud mode (`AGENT_DASHBOARD_MODE=cloud`) answers only its own domain,
+through DNS rebinding. The two ingest routes, `/api/events` and `/api/telemetry/v1/metrics`,
+take an ingest token instead of a sign-in, in both modes. Cloud mode (`AGENT_DASHBOARD_MODE=cloud`) answers only its own domain,
 only over https, and only to a signed-in allowlisted GitHub account; it refuses to start
 without all three configured.
 
