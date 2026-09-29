@@ -48,11 +48,11 @@ const resolvePublicUrl = (mode: DashboardMode, value: string | undefined, port: 
 }
 
 const resolveGitHubSignIn = (sources: SettingsSources, publicUrl: URL): SettingResult<GitHubSignInSettings | null> => {
-  const clientId = sources.environment.GITHUB_APP_CLIENT_ID || null
-  const clientSecret = readSecretSetting(sources, 'GITHUB_APP_CLIENT_SECRET')
+  const clientId = sources.environment.AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID || null
+  const clientSecret = readSecretSetting(sources, 'AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET')
   if (clientId === null && clientSecret === null) return { ok: true, value: null }
   if (clientId === null || clientSecret === null) {
-    return { ok: false, reason: 'Set both GITHUB_APP_CLIENT_ID and GITHUB_APP_CLIENT_SECRET, or neither' }
+    return { ok: false, reason: 'Set both AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID and AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET, or neither' }
   }
   const allowedLogins = parseLoginList(sources.environment.AGENT_DASHBOARD_ALLOWED_USERS)
   if (allowedLogins.length === 0) {
@@ -88,7 +88,7 @@ export const resolveRuntimeSettings = (sources: SettingsSources): RuntimeSetting
   const signInResult = resolveGitHubSignIn(sources, publicUrl)
   if (!signInResult.ok) return signInResult
   if (mode === 'cloud' && signInResult.value === null) {
-    return { ok: false, reason: 'Cloud mode needs GitHub sign-in: set GITHUB_APP_CLIENT_ID and GITHUB_APP_CLIENT_SECRET' }
+    return { ok: false, reason: 'Cloud mode needs GitHub sign-in: set AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID and AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET' }
   }
 
   return {

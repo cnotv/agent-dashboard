@@ -12,8 +12,8 @@ const resolveWith = (environment: Record<string, string | undefined>) =>
 const cloudEnvironment = {
   AGENT_DASHBOARD_MODE: 'cloud',
   AGENT_DASHBOARD_PUBLIC_URL: 'https://dash.example.com',
-  GITHUB_APP_CLIENT_ID: 'Iv23example',
-  GITHUB_APP_CLIENT_SECRET_FILE: '/run/secrets/github-app-client-secret',
+  AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: 'Iv23example',
+  AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET_FILE: '/run/secrets/github-app-client-secret',
   AGENT_DASHBOARD_ALLOWED_USERS: 'cnotv, friend',
 }
 
@@ -39,7 +39,7 @@ describe('resolveRuntimeSettings', () => {
       ok: false,
       reason: expect.stringContaining('https'),
     })
-    expect(resolveWith({ ...cloudEnvironment, GITHUB_APP_CLIENT_ID: '', GITHUB_APP_CLIENT_SECRET_FILE: '' })).toEqual({
+    expect(resolveWith({ ...cloudEnvironment, AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: '', AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET_FILE: '' })).toEqual({
       ok: false,
       reason: expect.stringContaining('sign-in'),
     })
@@ -73,12 +73,12 @@ describe('resolveRuntimeSettings', () => {
   })
 
   it('refuses half a GitHub App configuration', () => {
-    expect(resolveWith({ GITHUB_APP_CLIENT_ID: 'Iv23example' })).toEqual({ ok: false, reason: expect.stringContaining('both') })
+    expect(resolveWith({ AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: 'Iv23example' })).toEqual({ ok: false, reason: expect.stringContaining('both') })
   })
 
   it('offers optional sign-in in local mode', () => {
     expect(
-      resolveWith({ GITHUB_APP_CLIENT_ID: 'Iv23example', GITHUB_APP_CLIENT_SECRET: 'secret', AGENT_DASHBOARD_ALLOWED_USERS: 'cnotv' }),
+      resolveWith({ AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: 'Iv23example', AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET: 'secret', AGENT_DASHBOARD_ALLOWED_USERS: 'cnotv' }),
     ).toEqual({
       ok: true,
       settings: expect.objectContaining({

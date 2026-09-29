@@ -52,9 +52,11 @@ Create the App once at <https://github.com/settings/apps/new>:
 6. **Install App** on your account, for the repositories in `config/repos.json`. The board can
    only read repositories the App is installed on.
 
-Then set `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET` (or `_FILE`) and
-`AGENT_DASHBOARD_ALLOWED_USERS`, the comma-separated GitHub logins that may sign in. Locally,
-sign-in is optional and a **Sign in with GitHub** button appears in the sidebar.
+Then set `AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID`, `AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET`
+(or `_FILE`) and `AGENT_DASHBOARD_ALLOWED_USERS`, the comma-separated GitHub logins that may
+sign in. The names carry the `AGENT_DASHBOARD_` prefix because GitHub refuses repository
+variables and secrets that start with `GITHUB_`. Locally, sign-in is optional and a **Sign in
+with GitHub** button appears in the sidebar.
 
 Sessions are kept in the server's memory only, so no GitHub token is ever written to disk. A
 restart or a deploy signs everyone out, and signing in again is one click, which GitHub
@@ -86,25 +88,25 @@ until `AGENT_DASHBOARD_DOMAIN` is set. What it needs:
   with `ss -tlnp` on the server before the first deploy.
 - **Repository variables** (Settings, Secrets and variables, Actions, Variables):
 
-  | Variable                          | Value                                                                 |
-  | --------------------------------- | --------------------------------------------------------------------- |
-  | `AGENT_DASHBOARD_DOMAIN`          | the host name only, for example `dash.example.com`                    |
-  | `GITHUB_APP_CLIENT_ID`            | from the GitHub App                                                   |
-  | `AGENT_DASHBOARD_ALLOWED_USERS`   | for example `cnotv`                                                   |
-  | `AGENT_DASHBOARD_PUBLISH_ADDRESS` | optional, defaults to `127.0.0.1`; `172.17.0.1` for a proxy in Docker |
-  | `AGENT_DASHBOARD_PUBLISH_PORT`    | optional, defaults to `4317`                                          |
-  | `DEPLOY_DIRECTORY`                | optional, defaults to `agent-dashboard` in the SSH user's home        |
+  | Variable                               | Value                                                                 |
+  | -------------------------------------- | --------------------------------------------------------------------- |
+  | `AGENT_DASHBOARD_DOMAIN`               | the host name only, for example `dash.example.com`                    |
+  | `AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID` | from the GitHub App                                                   |
+  | `AGENT_DASHBOARD_ALLOWED_USERS`        | for example `cnotv`                                                   |
+  | `AGENT_DASHBOARD_PUBLISH_ADDRESS`      | optional, defaults to `127.0.0.1`; `172.17.0.1` for a proxy in Docker |
+  | `AGENT_DASHBOARD_PUBLISH_PORT`         | optional, defaults to `4317`                                          |
+  | `DEPLOY_DIRECTORY`                     | optional, defaults to `agent-dashboard` in the SSH user's home        |
 
 - **Repository secrets**:
 
-  | Secret                       | Value                                                        |
-  | ---------------------------- | ------------------------------------------------------------ |
-  | `HETZNER_HOST`               | the server's address                                         |
-  | `HETZNER_USERNAME`           | the SSH user, who can run `docker`                           |
-  | `HETZNER_SSH_KEY`            | a private key that user accepts                              |
-  | `HETZNER_PORT`               | optional, defaults to 22                                     |
-  | `GITHUB_APP_CLIENT_SECRET`   | from the GitHub App                                          |
-  | `AGENT_DASHBOARD_MASTER_KEY` | optional; leave it out to unlock the vault with a passphrase |
+  | Secret                                     | Value                                                        |
+  | ------------------------------------------ | ------------------------------------------------------------ |
+  | `HETZNER_HOST`                             | the server's address                                         |
+  | `HETZNER_USERNAME`                         | the SSH user, who can run `docker`                           |
+  | `HETZNER_SSH_KEY`                          | a private key that user accepts                              |
+  | `HETZNER_PORT`                             | optional, defaults to 22                                     |
+  | `AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET` | from the GitHub App                                          |
+  | `AGENT_DASHBOARD_MASTER_KEY`               | optional; leave it out to unlock the vault with a passphrase |
 
 The workflow writes these into `.env` in the deploy directory, readable by the SSH user only.
 Without a master key the vault asks for its passphrase after every deploy; that only holds up
@@ -137,20 +139,20 @@ without all three configured.
 
 ## Settings
 
-| Variable                               | Default                                                   |
-| -------------------------------------- | --------------------------------------------------------- |
-| `AGENT_DASHBOARD_MODE`                 | `local` (or `cloud`)                                      |
-| `PORT`                                 | `4317`                                                    |
-| `AGENT_DASHBOARD_HOST`                 | `127.0.0.1`, `0.0.0.0` in cloud mode                      |
-| `AGENT_DASHBOARD_PUBLIC_URL`           | `http://localhost:<PORT>`; required, https, in cloud mode |
-| `GITHUB_APP_CLIENT_ID`                 | unset (no sign-in)                                        |
-| `GITHUB_APP_CLIENT_SECRET` / `_FILE`   | unset                                                     |
-| `AGENT_DASHBOARD_ALLOWED_USERS`        | unset; required with sign-in                              |
-| `AGENT_DASHBOARD_DATA_DIR`             | `data`                                                    |
-| `AGENT_DASHBOARD_REPOS_FILE`           | `config/repos.json`                                       |
-| `AGENT_DASHBOARD_MASTER_KEY` / `_FILE` | unset (passphrase mode)                                   |
-| `VITE_DEMO_MODE` (UI build)            | unset                                                     |
-| `VITE_API_BASE_URL` (UI build)         | unset (same origin)                                       |
+| Variable                                             | Default                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| `AGENT_DASHBOARD_MODE`                               | `local` (or `cloud`)                                      |
+| `PORT`                                               | `4317`                                                    |
+| `AGENT_DASHBOARD_HOST`                               | `127.0.0.1`, `0.0.0.0` in cloud mode                      |
+| `AGENT_DASHBOARD_PUBLIC_URL`                         | `http://localhost:<PORT>`; required, https, in cloud mode |
+| `AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID`               | unset (no sign-in)                                        |
+| `AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET` / `_FILE` | unset                                                     |
+| `AGENT_DASHBOARD_ALLOWED_USERS`                      | unset; required with sign-in                              |
+| `AGENT_DASHBOARD_DATA_DIR`                           | `data`                                                    |
+| `AGENT_DASHBOARD_REPOS_FILE`                         | `config/repos.json`                                       |
+| `AGENT_DASHBOARD_MASTER_KEY` / `_FILE`               | unset (passphrase mode)                                   |
+| `VITE_DEMO_MODE` (UI build)                          | unset                                                     |
+| `VITE_API_BASE_URL` (UI build)                       | unset (same origin)                                       |
 
 ## UI
 

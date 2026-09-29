@@ -73,8 +73,8 @@ jobs:
           docker run -d --name dashboard-cloud -p 127.0.0.1:4318:4317 \
             -e AGENT_DASHBOARD_MODE=cloud \
             -e AGENT_DASHBOARD_PUBLIC_URL=https://dash.example.com \
-            -e GITHUB_APP_CLIENT_ID=Iv23ci \
-            -e GITHUB_APP_CLIENT_SECRET=ci-secret \
+            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=Iv23ci \
+            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=ci-secret \
             -e AGENT_DASHBOARD_ALLOWED_USERS=cnotv \
             agent-dashboard:ci
           for attempt in $(seq 1 30); do
