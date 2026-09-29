@@ -62,27 +62,38 @@ completes without asking twice.
 
 ## Deploy to the cloud
 
-`docker-compose.cloud.yml` runs the dashboard behind [Caddy](https://caddyserver.com), which
-serves https and gets the certificate for your domain by itself. In cloud mode every `/api`
-route except health and sign-in answers 401 without a session, and only requests for the
-domain's host name are answered at all.
+`docker-compose.cloud.yml` runs the dashboard and publishes it on one port, `4317` by
+default, on a private address. HTTPS comes from the reverse proxy already on the server,
+which forwards the domain to that port; the deployment itself takes no other port, and never
+80 or 443. In cloud mode every `/api` route except health and sign-in answers 401 without a
+session, only requests for the domain's host name are answered at all, and the app sets its
+own security headers (HSTS, `nosniff`, `X-Frame-Options: DENY`) whatever proxy is in front.
 
 The `Deploy` workflow copies the sources to a server over SSH and builds the image there, as
 generative-art's deploy does, on every push to `main` once the checks pass. It stays idle
 until `AGENT_DASHBOARD_DOMAIN` is set. What it needs:
 
-- **The server**: Docker with the compose plugin, ports 80 and 443 free and open, and a DNS
-  `A` record for the domain pointing at it. If something already serves 80 and 443 there, drop
-  the `caddy` service and proxy the domain to the `dashboard` container from that server
-  instead.
+- **The server**: Docker with the compose plugin, a DNS `A` record for the domain pointing at
+  it, and a reverse proxy with a certificate for the domain, forwarding to the published port
+  and passing the `Host` header through unchanged (the default in Nginx Proxy Manager, Caddy
+  and Traefik).
+- **Where the proxy reaches the dashboard**: a proxy running on the host itself uses
+  `http://127.0.0.1:4317`, the default. A proxy running in Docker (Nginx Proxy Manager, for
+  one) cannot see the host's `127.0.0.1`; set `AGENT_DASHBOARD_PUBLISH_ADDRESS` to the Docker
+  bridge address, usually `172.17.0.1` (`ip -4 addr show docker0`), and forward to
+  `http://172.17.0.1:4317`. Either way the port is not reachable from the internet.
+- **A port that is free**: `4317` unless `AGENT_DASHBOARD_PUBLISH_PORT` says otherwise; check
+  with `ss -tlnp` on the server before the first deploy.
 - **Repository variables** (Settings, Secrets and variables, Actions, Variables):
 
-  | Variable                        | Value                                                          |
-  | ------------------------------- | -------------------------------------------------------------- |
-  | `AGENT_DASHBOARD_DOMAIN`        | the host name only, for example `dash.example.com`             |
-  | `GITHUB_APP_CLIENT_ID`          | from the GitHub App                                            |
-  | `AGENT_DASHBOARD_ALLOWED_USERS` | for example `cnotv`                                            |
-  | `DEPLOY_DIRECTORY`              | optional, defaults to `agent-dashboard` in the SSH user's home |
+  | Variable                          | Value                                                                 |
+  | --------------------------------- | --------------------------------------------------------------------- |
+  | `AGENT_DASHBOARD_DOMAIN`          | the host name only, for example `dash.example.com`                    |
+  | `GITHUB_APP_CLIENT_ID`            | from the GitHub App                                                   |
+  | `AGENT_DASHBOARD_ALLOWED_USERS`   | for example `cnotv`                                                   |
+  | `AGENT_DASHBOARD_PUBLISH_ADDRESS` | optional, defaults to `127.0.0.1`; `172.17.0.1` for a proxy in Docker |
+  | `AGENT_DASHBOARD_PUBLISH_PORT`    | optional, defaults to `4317`                                          |
+  | `DEPLOY_DIRECTORY`                | optional, defaults to `agent-dashboard` in the SSH user's home        |
 
 - **Repository secrets**:
 

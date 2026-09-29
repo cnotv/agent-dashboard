@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { getCookie } from 'hono/cookie'
+import { secureHeaders } from 'hono/secure-headers'
 import { z } from 'zod'
 import type { Board } from '@agent-dashboard/contracts'
 import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
@@ -26,6 +27,13 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   const sessionCookieName = authCookieNamesFor(auth.secureCookies).session
   const boardCache = new Map<string, { board: Board; storedAt: number }>()
   const app = new Hono<AppEnvironment>()
+
+  // Set here rather than in the reverse proxy, so they hold whichever proxy is in front.
+  // Browsers ignore HSTS over plain http, so it is only sent when the dashboard is behind https.
+  app.use(
+    '*',
+    secureHeaders({ xFrameOptions: 'DENY', strictTransportSecurity: auth.secureCookies ? 'max-age=31536000' : false }),
+  )
 
   app.use('/api/*', async (context, next) => {
     const hostHeader = context.req.header('host')

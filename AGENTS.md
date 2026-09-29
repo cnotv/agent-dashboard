@@ -108,7 +108,8 @@ line in the body when the change is not on the default route.
 - **Dev server:** `pnpm dev` — API on `http://localhost:4317`, UI on `http://localhost:5318`
   with `/api` proxied
 - **Production:** `pnpm build && pnpm start`, or `docker compose up` (published on 127.0.0.1);
-  in the cloud, `docker-compose.cloud.yml` behind Caddy, deployed by `.github/workflows/deploy.yml`
+  in the cloud, `docker-compose.cloud.yml` on one private port behind the server's existing
+  reverse proxy, deployed by `.github/workflows/deploy.yml`
 - **Routes:** `/issues`, `/credentials`
 - **Checks:** `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm test`
 - **Docs home:** `README.md`

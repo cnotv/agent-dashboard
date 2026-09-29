@@ -55,6 +55,20 @@ describe('request guards', () => {
     expect(response.status).toBe(403)
   })
 
+  it('sends security headers, without HSTS over plain http', async () => {
+    const { app } = createTestApp()
+    const response = await app.request(getRequest('/api/health'))
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(response.headers.get('x-frame-options')).toBe('DENY')
+    expect(response.headers.get('strict-transport-security')).toBeNull()
+  })
+
+  it('sends HSTS behind https', async () => {
+    const { app } = createTestApp({}, { secureCookies: true })
+    const response = await app.request(getRequest('/api/health'))
+    expect(response.headers.get('strict-transport-security')).toBe('max-age=31536000')
+  })
+
   it('rejects a mutation that is not JSON', async () => {
     const { app } = createTestApp()
     const response = await app.request(
