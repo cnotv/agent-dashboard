@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
+import { createActivityStore } from './activity/activity-store.ts'
+import { createIngestTokenStore } from './activity/ingest-tokens.ts'
 import { createApp } from './app/create-app.ts'
 import { createGitHubAuthClient } from './auth/github-auth.ts'
 import { createSessionStore } from './auth/session-store.ts'
@@ -48,6 +50,11 @@ const app = createApp({
         : { settings: settings.githubSignIn, client: createGitHubAuthClient(settings.githubSignIn) },
     signInRequired: settings.signInRequired,
     secureCookies: settings.secureCookies,
+    now: Date.now,
+  },
+  activity: {
+    activityStore: createActivityStore(database),
+    ingestTokens: createIngestTokenStore(database, Date.now),
     now: Date.now,
   },
   repositories: loadRepositories(settings.repositoriesFile),

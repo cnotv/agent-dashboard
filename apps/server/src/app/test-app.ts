@@ -1,5 +1,7 @@
 import { DatabaseSync } from 'node:sqlite'
 import boardResponseFixture from '../github/fixtures/board-response.json' with { type: 'json' }
+import { createActivityStore } from '../activity/activity-store.ts'
+import { createIngestTokenStore } from '../activity/ingest-tokens.ts'
 import { createSessionStore } from '../auth/session-store.ts'
 import type { AuthDependencies } from '../auth/types.ts'
 import { generateKeyMaterial } from '../secrets/crypto.ts'
@@ -10,8 +12,14 @@ import type { AppDependencies } from './types.ts'
 
 export const testHost = 'localhost:4317'
 
-export const createTestApp = (overrides: Partial<AppDependencies> = {}, authOverrides: Partial<AuthDependencies> = {}) => {
+export const createTestApp = (
+  overrides: Partial<AppDependencies> = {},
+  authOverrides: Partial<AuthDependencies> = {},
+  clock: { now: number } = { now: 0 },
+) => {
   const database = new DatabaseSync(':memory:')
+  const activityStore = createActivityStore(database)
+  const ingestTokens = createIngestTokenStore(database, () => clock.now)
   const vault = createVault(database, { mode: 'environment', environmentKey: generateKeyMaterial() })
   const receivedTokens: string[] = []
   const app = createApp({
@@ -24,6 +32,7 @@ export const createTestApp = (overrides: Partial<AppDependencies> = {}, authOver
       now: () => 0,
       ...authOverrides,
     },
+    activity: { activityStore, ingestTokens, now: () => clock.now },
     repositories: [{ owner: 'cnotv', name: 'generative-art' }],
     secretDefinitions,
     testSecret: async () => ({ ok: true, status: 200, message: 'The provider accepted the key' }),
@@ -36,7 +45,7 @@ export const createTestApp = (overrides: Partial<AppDependencies> = {}, authOver
     now: () => 0,
     ...overrides,
   })
-  return { app, vault, database, receivedTokens }
+  return { app, vault, database, receivedTokens, activityStore, ingestTokens }
 }
 
 export const jsonRequest = (method: string, path: string, body: unknown, extraHeaders: Record<string, string> = {}) =>
