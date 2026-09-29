@@ -51,46 +51,33 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
+  # Starts the same compose files the deployments use, once per mode, and checks them from
+  # outside the container the way a browser or the proxy would reach them.
   docker:
+    name: docker (${{ matrix.mode }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - mode: local
+            compose-file: docker-compose.yml
+          - mode: cloud
+            compose-file: docker-compose.cloud.yml
+    env:
+      COMPOSE_FILE: ${{ matrix.compose-file }}
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - run: docker build -t agent-dashboard:ci .
-      - name: Start the image and check it answers only as a loopback host
-        run: |
-          docker run -d --name dashboard -p 127.0.0.1:4317:4317 agent-dashboard:ci
-          for attempt in $(seq 1 30); do
-            if curl --silent --fail http://127.0.0.1:4317/api/health; then break; fi
-            sleep 1
-          done
-          curl --silent --fail http://127.0.0.1:4317/api/vault
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: attacker.example' http://127.0.0.1:4317/api/vault)" = "403"
-          curl --silent --fail http://127.0.0.1:4317/issues | grep -q '<div id="root">'
-          docker exec dashboard node --disable-warning=ExperimentalWarning apps/server/src/healthcheck.ts
-      # Placeholders, not the real settings: this container never talks to GitHub and is thrown
-      # away with the runner. The real values live in the repository settings and reach the
-      # server only through the Deploy workflow.
-      - name: Start the image in cloud mode and check everything but sign-in needs a session
-        run: |
-          docker run -d --name dashboard-cloud -p 127.0.0.1:4318:4317 \
-            -e AGENT_DASHBOARD_MODE=cloud \
-            -e AGENT_DASHBOARD_PUBLIC_URL=https://dash.example.com \
-            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=ci-placeholder-client-id \
-            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=ci-placeholder-not-a-secret \
-            -e AGENT_DASHBOARD_ALLOWED_USERS=ci-placeholder-user \
-            agent-dashboard:ci
-          for attempt in $(seq 1 30); do
-            if curl --silent --fail -H 'Host: dash.example.com' http://127.0.0.1:4318/api/health; then break; fi
-            sleep 1
-          done
-          curl --silent --fail -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/session | grep -q '"signInRequired":true'
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/vault)" = "401"
-          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: 127.0.0.1' http://127.0.0.1:4318/api/health)" = "403"
-          curl --silent --output /dev/null --write-out '%{redirect_url}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/github/start | grep -q '^https://github.com/login/oauth/authorize?client_id=ci-placeholder-client-id'
-          docker exec dashboard-cloud node --disable-warning=ExperimentalWarning apps/server/src/healthcheck.ts
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Use the CI settings for ${{ matrix.mode }} mode
+        run: cp .github/ci/${{ matrix.mode }}.env .env
+      - name: Build and start, waiting for the healthcheck
+        run: docker compose up --build --detach --wait --wait-timeout 90
+      - name: Smoke test
+        run: node --env-file=.env apps/server/src/ops/smoke-test.ts ${{ matrix.mode }}
       - if: failure()
-        run: |
-          docker logs dashboard || true
-          docker logs dashboard-cloud || true
+        run: docker compose logs

@@ -36,6 +36,6 @@ RUN mkdir -p /data && chown 1000:1000 /data
 USER 1000:1000
 VOLUME ["/data"]
 EXPOSE 4317
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD ["node", "--disable-warning=ExperimentalWarning", "apps/server/src/healthcheck.ts"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["node", "--disable-warning=ExperimentalWarning", "apps/server/src/ops/healthcheck.ts"]
 CMD ["node", "--disable-warning=ExperimentalWarning", "apps/server/src/main.ts"]

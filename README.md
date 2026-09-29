@@ -169,6 +169,11 @@ pnpm dev                          # API on 4317, UI on 5318
 pnpm lint --max-warnings 0
 pnpm typecheck
 pnpm test
+
+# The container check CI runs, here for local mode; cloud mode uses docker-compose.cloud.yml
+cp .github/ci/local.env .env
+docker compose up --build --detach --wait
+node --env-file=.env apps/server/src/ops/smoke-test.ts local
 ```
 
 Agent instructions are in `AGENTS.md`.

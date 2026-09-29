@@ -28,22 +28,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # The two SSH steps hold the server key and the app secret, so they are pinned to the
-      # exact commit of their release rather than a tag that could be moved.
-      - name: Copy the sources to the server
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
-        with:
-          host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USERNAME }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          port: ${{ secrets.HETZNER_PORT || '22' }}
-          source: Dockerfile,.dockerignore,docker-compose.cloud.yml,package.json,pnpm-lock.yaml,pnpm-workspace.yaml,tsconfig.base.json,apps,packages,config
-          target: ${{ env.DEPLOY_DIRECTORY }}
-
-      # The server builds the image itself, as generative-art's deploy does, so no registry
-      # holds a copy of this private code.
-      - name: Write the settings and start the new version
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+      # Written on the runner and copied with the sources, readable by the SSH user only. Every
+      # value comes from the repository settings.
+      - name: Write the server settings
         env:
           AGENT_DASHBOARD_DOMAIN: ${{ vars.AGENT_DASHBOARD_DOMAIN }}
           AGENT_DASHBOARD_PUBLISH_ADDRESS: ${{ vars.AGENT_DASHBOARD_PUBLISH_ADDRESS || '127.0.0.1' }}
@@ -52,24 +39,49 @@ jobs:
           AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: ${{ vars.AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID }}
           AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET: ${{ secrets.AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET }}
           AGENT_DASHBOARD_MASTER_KEY: ${{ secrets.AGENT_DASHBOARD_MASTER_KEY }}
+        run: |
+          umask 077
+          cat > .env <<EOF
+          AGENT_DASHBOARD_DOMAIN=$AGENT_DASHBOARD_DOMAIN
+          AGENT_DASHBOARD_PUBLISH_ADDRESS=$AGENT_DASHBOARD_PUBLISH_ADDRESS
+          AGENT_DASHBOARD_PUBLISH_PORT=$AGENT_DASHBOARD_PUBLISH_PORT
+          AGENT_DASHBOARD_ALLOWED_USERS=$AGENT_DASHBOARD_ALLOWED_USERS
+          AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=$AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID
+          AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=$AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET
+          AGENT_DASHBOARD_MASTER_KEY=$AGENT_DASHBOARD_MASTER_KEY
+          EOF
+
+      # The two SSH steps hold the server key and the app secret, so they are pinned to the
+      # exact commit of their release rather than a tag that could be moved.
+      - name: Copy the sources and settings to the server
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USERNAME }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           port: ${{ secrets.HETZNER_PORT || '22' }}
-          envs: DEPLOY_DIRECTORY,AGENT_DASHBOARD_DOMAIN,AGENT_DASHBOARD_PUBLISH_ADDRESS,AGENT_DASHBOARD_PUBLISH_PORT,AGENT_DASHBOARD_ALLOWED_USERS,AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID,AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET,AGENT_DASHBOARD_MASTER_KEY
+          source: .env,Dockerfile,.dockerignore,docker-compose.cloud.yml,package.json,pnpm-lock.yaml,pnpm-workspace.yaml,tsconfig.base.json,apps,packages,config
+          target: ${{ env.DEPLOY_DIRECTORY }}
+
+      # The server builds the image itself, as generative-art's deploy does, so no registry
+      # holds a copy of this private code. --wait fails the deploy if the new version never
+      # becomes healthy.
+      - name: Start the new version
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USERNAME }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.HETZNER_PORT || '22' }}
+          envs: DEPLOY_DIRECTORY
           script: |
             set -eu
             cd "$DEPLOY_DIRECTORY"
-            umask 077
-            {
-              printf 'AGENT_DASHBOARD_DOMAIN=%s\n' "$AGENT_DASHBOARD_DOMAIN"
-              printf 'AGENT_DASHBOARD_PUBLISH_ADDRESS=%s\n' "$AGENT_DASHBOARD_PUBLISH_ADDRESS"
-              printf 'AGENT_DASHBOARD_PUBLISH_PORT=%s\n' "$AGENT_DASHBOARD_PUBLISH_PORT"
-              printf 'AGENT_DASHBOARD_ALLOWED_USERS=%s\n' "$AGENT_DASHBOARD_ALLOWED_USERS"
-              printf 'AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=%s\n' "$AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID"
-              printf 'AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=%s\n' "$AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET"
-              printf 'AGENT_DASHBOARD_MASTER_KEY=%s\n' "$AGENT_DASHBOARD_MASTER_KEY"
-            } > .env
-            docker compose -f docker-compose.cloud.yml up -d --build --remove-orphans
-            docker image prune -f
+            chmod 600 .env
+            docker compose --file docker-compose.cloud.yml up --detach --build --remove-orphans --wait --wait-timeout 120
+            docker image prune --force
+
+      - name: Check the dashboard answers at its domain, through the proxy
+        env:
+          AGENT_DASHBOARD_DOMAIN: ${{ vars.AGENT_DASHBOARD_DOMAIN }}
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors "https://$AGENT_DASHBOARD_DOMAIN/api/health"

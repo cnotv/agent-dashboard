@@ -112,6 +112,9 @@ line in the body when the change is not on the default route.
   reverse proxy, deployed by `.github/workflows/deploy.yml`
 - **Routes:** `/issues`, `/credentials`
 - **Checks:** `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm test`
+- **Container smoke test** (what CI runs per mode): `cp .github/ci/<mode>.env .env`,
+  `docker compose --file <compose file> up --build --detach --wait`, then
+  `node --env-file=.env apps/server/src/ops/smoke-test.ts <mode>`
 - **Docs home:** `README.md`
 - **Preview deploys:** Netlify builds the UI in demo mode for every pull request
   (`deploy/netlify` check; the URL is in the Netlify bot comment). No server behind it.
