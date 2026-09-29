@@ -4,7 +4,7 @@ export const secretDefinitions: SecretDefinitionWithTester[] = [
   {
     name: 'github-token',
     label: 'GitHub token',
-    description: 'Reads issues, pull requests, check runs and workflow artifacts.',
+    description: 'Reads issues, pull requests, check runs and workflow artifacts when nobody is signed in with GitHub.',
     tester: { url: 'https://api.github.com/user', credentialHeader: 'bearer', extraHeaders: { 'User-Agent': 'agent-dashboard' } },
   },
   {

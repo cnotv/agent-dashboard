@@ -20,6 +20,14 @@ describe('createDemoApi', () => {
     expect((await demoApi.listSecrets()).find((secret) => secret.name === 'openrouter-api-key')?.isSet).toBe(false)
   })
 
+  it('is signed in as a demo user with no GitHub sign-in to offer', async () => {
+    expect(await createDemoApi().readSession()).toEqual({
+      signInRequired: false,
+      signInAvailable: false,
+      user: { login: 'demo', avatarUrl: '' },
+    })
+  })
+
   it('starts fresh for every instance', async () => {
     const firstApi = createDemoApi()
     await firstApi.deleteSecret('github-token')

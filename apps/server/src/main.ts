@@ -5,6 +5,8 @@ import { DatabaseSync } from 'node:sqlite'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { createApp } from './app/create-app.ts'
+import { createGitHubAuthClient } from './auth/github-auth.ts'
+import { createSessionStore } from './auth/session-store.ts'
 import { createGithubGraphqlFetcher } from './github/board.ts'
 import { loadRepositories } from './repos/load-repositories.ts'
 import { resolveRuntimeSettings } from './runtime/settings.ts'
@@ -17,7 +19,7 @@ const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url))
 
 const settingsResult = resolveRuntimeSettings({
   environment: process.env,
-  readMasterKeyFile: (filePath) => readFileSync(filePath, 'utf8'),
+  readSecretFile: (filePath) => readFileSync(filePath, 'utf8'),
   defaultRepositoriesFile: join(workspaceRoot, 'config/repos.json'),
   defaultWebDistDirectory: join(workspaceRoot, 'apps/web/dist'),
 })
@@ -38,6 +40,16 @@ const vault = createVault(database, {
 
 const app = createApp({
   vault,
+  auth: {
+    sessionStore: createSessionStore(Date.now),
+    githubSignIn:
+      settings.githubSignIn === null
+        ? null
+        : { settings: settings.githubSignIn, client: createGitHubAuthClient(settings.githubSignIn) },
+    signInRequired: settings.signInRequired,
+    secureCookies: settings.secureCookies,
+    now: Date.now,
+  },
   repositories: loadRepositories(settings.repositoriesFile),
   secretDefinitions,
   testSecret: testSecretAgainstProvider,
@@ -52,7 +64,10 @@ app.use('/*', serveStatic({ root: webRoot }))
 app.get('*', serveStatic({ path: join(webRoot, 'index.html') }))
 
 const server = serve({ fetch: app.fetch, hostname: settings.host, port: settings.port }, (address) => {
-  process.stdout.write(`agent-dashboard listening on http://localhost:${address.port} (vault: ${vault.readState().mode})\n`)
+  const signIn = settings.githubSignIn === null ? 'off' : settings.signInRequired ? 'required' : 'optional'
+  process.stdout.write(
+    `agent-dashboard (${settings.mode}) on port ${address.port}, open ${settings.publicUrl} (vault: ${vault.readState().mode}, GitHub sign-in: ${signIn})\n`,
+  )
 })
 
 const shutDown = (): void => {

@@ -43,3 +43,9 @@ export const parseRepositoryKey = (key: string): { owner: string; name: string }
 
 export const errorMessageOf = (errorOrText: unknown): string =>
   errorOrText instanceof Error ? errorOrText.message : String(errorOrText)
+
+export const signInErrorMessages: Record<string, string> = {
+  expired: 'That sign-in link expired or was opened in another browser. Start again.',
+  'not-allowed': 'This GitHub account is not on the list of people who may use this dashboard.',
+  failed: 'GitHub did not complete the sign-in. Try again.',
+}

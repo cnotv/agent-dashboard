@@ -27,6 +27,9 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
   const secretPath = (name: string): string => `/api/secrets/${encodeURIComponent(name)}`
 
   return {
+    signInUrl: `${apiBaseUrl}/api/auth/github/start`,
+    readSession: () => requestJson('/api/auth/session'),
+    signOut: () => sendJson('POST', '/api/auth/sign-out'),
     readVault: () => requestJson('/api/vault'),
     setUpVault: (passphrase) => sendJson('POST', '/api/vault/setup', { passphrase }),
     unlockVault: (passphrase) => sendJson('POST', '/api/vault/unlock', { passphrase }),

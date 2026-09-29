@@ -1,43 +1,8 @@
-import { DatabaseSync } from 'node:sqlite'
 import { describe, expect, it } from 'vitest'
-import { generateKeyMaterial } from '../secrets/crypto.ts'
-import { secretDefinitions } from '../secrets/definitions.ts'
-import { createVault } from '../secrets/vault.ts'
-import boardResponseFixture from '../github/fixtures/board-response.json' with { type: 'json' }
-import { createApp } from './create-app.ts'
-import type { AppDependencies } from './types.ts'
+import { createTestApp, getRequest, jsonRequest, testHost } from './test-app.ts'
 
 const sampleToken = 'ghp_exampleTokenValue1234567890abcd'
-const host = 'localhost:4317'
-
-const createTestApp = (overrides: Partial<AppDependencies> = {}) => {
-  const vault = createVault(new DatabaseSync(':memory:'), { mode: 'environment', environmentKey: generateKeyMaterial() })
-  const receivedTokens: string[] = []
-  const app = createApp({
-    vault,
-    repositories: [{ owner: 'cnotv', name: 'generative-art' }],
-    secretDefinitions,
-    testSecret: async () => ({ ok: true, status: 200, message: 'The provider accepted the key' }),
-    createGraphqlFetcher: (token) => async () => {
-      receivedTokens.push(token)
-      return boardResponseFixture
-    },
-    allowedHostNames: ['localhost', '127.0.0.1'],
-    boardCacheMilliseconds: 60_000,
-    now: () => 0,
-    ...overrides,
-  })
-  return { app, vault, receivedTokens }
-}
-
-const jsonRequest = (method: string, path: string, body: unknown, extraHeaders: Record<string, string> = {}) =>
-  new Request(`http://${host}${path}`, {
-    method,
-    headers: { host, 'content-type': 'application/json', ...extraHeaders },
-    body: JSON.stringify(body),
-  })
-
-const getRequest = (path: string) => new Request(`http://${host}${path}`, { headers: { host } })
+const host = testHost
 
 describe('secrets routes', () => {
   it('stores a secret and never returns its value from any route', async () => {
@@ -88,6 +53,20 @@ describe('request guards', () => {
       jsonRequest('PUT', '/api/secrets/github-token', { value: sampleToken }, { origin: 'https://attacker.example' }),
     )
     expect(response.status).toBe(403)
+  })
+
+  it('sends security headers, without HSTS over plain http', async () => {
+    const { app } = createTestApp()
+    const response = await app.request(getRequest('/api/health'))
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+    expect(response.headers.get('x-frame-options')).toBe('DENY')
+    expect(response.headers.get('strict-transport-security')).toBeNull()
+  })
+
+  it('sends HSTS behind https', async () => {
+    const { app } = createTestApp({}, { secureCookies: true })
+    const response = await app.request(getRequest('/api/health'))
+    expect(response.headers.get('strict-transport-security')).toBe('max-age=31536000')
   })
 
   it('rejects a mutation that is not JSON', async () => {

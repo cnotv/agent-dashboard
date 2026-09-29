@@ -4,10 +4,18 @@ import { isAllowedHostHeader, isSameOriginRequest, resolveRuntimeSettings } from
 const resolveWith = (environment: Record<string, string | undefined>) =>
   resolveRuntimeSettings({
     environment,
-    readMasterKeyFile: () => 'key-from-file',
+    readSecretFile: (filePath) => (filePath.includes('github') ? 'secret-from-file\n' : 'key-from-file'),
     defaultRepositoriesFile: '/repo/config/repos.json',
     defaultWebDistDirectory: '/repo/apps/web/dist',
   })
+
+const cloudEnvironment = {
+  AGENT_DASHBOARD_MODE: 'cloud',
+  AGENT_DASHBOARD_PUBLIC_URL: 'https://dash.example.com',
+  AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: 'Iv23example',
+  AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET_FILE: '/run/secrets/github-app-client-secret',
+  AGENT_DASHBOARD_ALLOWED_USERS: 'cnotv, friend',
+}
 
 describe('resolveRuntimeSettings', () => {
   it('defaults to local mode on loopback', () => {
@@ -25,8 +33,60 @@ describe('resolveRuntimeSettings', () => {
     expect(resolveWith({ AGENT_DASHBOARD_HOST: '0.0.0.0', AGENT_DASHBOARD_PUBLISHED_ON_LOOPBACK: '1' }).ok).toBe(true)
   })
 
-  it('refuses cloud mode until sign-in exists', () => {
-    expect(resolveWith({ AGENT_DASHBOARD_MODE: 'cloud' }).ok).toBe(false)
+  it('refuses cloud mode without an https address and GitHub sign-in', () => {
+    expect(resolveWith({ AGENT_DASHBOARD_MODE: 'cloud' })).toEqual({ ok: false, reason: expect.stringContaining('PUBLIC_URL') })
+    expect(resolveWith({ ...cloudEnvironment, AGENT_DASHBOARD_PUBLIC_URL: 'http://dash.example.com' })).toEqual({
+      ok: false,
+      reason: expect.stringContaining('https'),
+    })
+    expect(resolveWith({ ...cloudEnvironment, AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: '', AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET_FILE: '' })).toEqual({
+      ok: false,
+      reason: expect.stringContaining('sign-in'),
+    })
+  })
+
+  it('runs cloud mode on every interface, requiring sign-in and accepting only its public host name', () => {
+    expect(resolveWith(cloudEnvironment)).toEqual({
+      ok: true,
+      settings: expect.objectContaining({
+        mode: 'cloud',
+        host: '0.0.0.0',
+        publicUrl: 'https://dash.example.com',
+        allowedHostNames: ['dash.example.com'],
+        signInRequired: true,
+        secureCookies: true,
+        githubSignIn: {
+          clientId: 'Iv23example',
+          clientSecret: 'secret-from-file',
+          callbackUrl: 'https://dash.example.com/api/auth/github/callback',
+          allowedLogins: ['cnotv', 'friend'],
+        },
+      }),
+    })
+  })
+
+  it('needs an allowlist whenever sign-in is configured', () => {
+    expect(resolveWith({ ...cloudEnvironment, AGENT_DASHBOARD_ALLOWED_USERS: ' , ' })).toEqual({
+      ok: false,
+      reason: expect.stringContaining('AGENT_DASHBOARD_ALLOWED_USERS'),
+    })
+  })
+
+  it('refuses half a GitHub App configuration', () => {
+    expect(resolveWith({ AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: 'Iv23example' })).toEqual({ ok: false, reason: expect.stringContaining('both') })
+  })
+
+  it('offers optional sign-in in local mode', () => {
+    expect(
+      resolveWith({ AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: 'Iv23example', AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET: 'secret', AGENT_DASHBOARD_ALLOWED_USERS: 'cnotv' }),
+    ).toEqual({
+      ok: true,
+      settings: expect.objectContaining({
+        signInRequired: false,
+        secureCookies: false,
+        githubSignIn: expect.objectContaining({ callbackUrl: 'http://localhost:4317/api/auth/github/callback' }),
+      }),
+    })
   })
 
   it('reads the master key from a file', () => {

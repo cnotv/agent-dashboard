@@ -31,8 +31,11 @@ COPY --from=build /app/packages/contracts ./packages/contracts
 COPY --from=build /app/apps/server ./apps/server
 COPY --from=build /app/apps/web/dist ./apps/web/dist
 
-RUN mkdir -p /data && chown node:node /data
-USER node
+# 1000 is the image's `node` user; a numeric id resolves the same on every host.
+RUN mkdir -p /data && chown 1000:1000 /data
+USER 1000:1000
 VOLUME ["/data"]
 EXPOSE 4317
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=3 \
+  CMD ["node", "--disable-warning=ExperimentalWarning", "apps/server/src/ops/healthcheck.ts"]
 CMD ["node", "--disable-warning=ExperimentalWarning", "apps/server/src/main.ts"]

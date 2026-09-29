@@ -90,9 +90,14 @@ line in the body when the change is not on the default route.
 - **Credentials never leave the server in clear.** No route returns a secret value, no log line
   or error carries one (errors go through the redactor), and values reach child processes
   only through their environment, never their arguments or a file.
-- **Every request is checked for a loopback Host header, and mutations for a same-origin JSON
-  body.** Loopback binding alone does not stop DNS rebinding; keep the guard in front of any
-  new route.
+- **Every request is checked for an allowed Host header (loopback names locally, the public
+  host name in cloud mode), and mutations for a same-origin JSON body.** Loopback binding alone
+  does not stop DNS rebinding; keep the guard in front of any new route.
+- **In cloud mode every `/api` route needs a signed-in session**, except the ones listed in
+  `publicApiPaths` in `apps/server/src/auth/auth-routes.ts`. Add to that list only what a
+  signed-out browser must reach to sign in.
+- **GitHub user tokens stay in memory.** Sessions are never persisted; a restart signs people
+  out rather than a token reaching the disk.
 - **External data is parsed with zod before use.** GitHub responses, request bodies and
   `config/repos.json` never reach the code as a cast.
 - **The UI is React with Radix Themes.** Views compose Radix Themes components (and the Radix
@@ -106,9 +111,14 @@ line in the body when the change is not on the default route.
 - **Install:** `pnpm install`
 - **Dev server:** `pnpm dev` — API on `http://localhost:4317`, UI on `http://localhost:5318`
   with `/api` proxied
-- **Production:** `pnpm build && pnpm start`, or `docker compose up` (published on 127.0.0.1)
+- **Production:** `pnpm build && pnpm start`, or `docker compose up` (published on 127.0.0.1);
+  in the cloud, `docker-compose.cloud.yml` on one private port behind the server's existing
+  reverse proxy, deployed by `.github/workflows/deploy.yml`
 - **Routes:** `/issues`, `/credentials`
 - **Checks:** `pnpm lint --max-warnings 0`, `pnpm typecheck`, `pnpm test`
+- **Container smoke test** (what CI runs per mode): `cp .github/ci/<mode>.env .env`,
+  `docker compose --file <compose file> up --build --detach --wait`, then
+  `node --env-file=.env apps/server/src/ops/smoke-test.ts <mode>`
 - **Docs home:** `README.md`
 - **Preview deploys:** Netlify builds the UI in demo mode for every pull request
   (`deploy/netlify` check; the URL is in the Netlify bot comment). No server behind it.
@@ -117,7 +127,8 @@ line in the body when the change is not on the default route.
 
 ### Done checklist
 
-- [ ] A new route is guarded by the Host and origin middleware and has a test
+- [ ] A new route is guarded by the Host and origin middleware, needs a session in cloud mode,
+      and has a test
 - [ ] A new secret kind is listed in `apps/server/src/secrets/definitions.ts` with a tester
 - [ ] A new shared type is in `packages/contracts/src/types.ts`
 - [ ] A new API call is implemented in both `apps/web/src/lib/http-api.ts` and the demo API in

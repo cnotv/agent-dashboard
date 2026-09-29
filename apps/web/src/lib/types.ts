@@ -4,6 +4,7 @@ import type {
   IssueStatus,
   RepositoryReference,
   SecretSummary,
+  SessionState,
   SecretTestResult,
   VaultState,
 } from '@agent-dashboard/contracts'
@@ -35,6 +36,9 @@ export interface ToastApi {
 }
 
 export interface DashboardApi {
+  signInUrl: string
+  readSession: () => Promise<SessionState>
+  signOut: () => Promise<void>
   readVault: () => Promise<VaultState>
   setUpVault: (passphrase: string) => Promise<VaultState>
   unlockVault: (passphrase: string) => Promise<VaultState>

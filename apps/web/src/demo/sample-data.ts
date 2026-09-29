@@ -1,4 +1,6 @@
-import type { RepositoryReference, SecretSummary } from '@agent-dashboard/contracts'
+import type { RepositoryReference, SecretSummary, SignedInUser } from '@agent-dashboard/contracts'
+
+export const demoUser: SignedInUser = { login: 'demo', avatarUrl: '' }
 
 export const sampleRepositories: RepositoryReference[] = [
   { owner: 'cnotv', name: 'example' },
@@ -9,7 +11,7 @@ export const sampleSecrets: SecretSummary[] = [
   {
     name: 'github-token',
     label: 'GitHub token',
-    description: 'Reads issues, pull requests, check runs and workflow artifacts.',
+    description: 'Reads issues, pull requests, check runs and workflow artifacts when nobody is signed in with GitHub.',
     isSet: true,
     lastFour: 'demo',
     updatedAt: '2026-09-28T00:00:00Z',
