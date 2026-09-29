@@ -1,12 +1,13 @@
-import type { SecretSummary, VaultState } from '@agent-dashboard/contracts'
+import type { SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
 import type { DashboardApi } from '@/lib/types'
 import { sampleBoardColumns } from './sample-board'
-import { sampleRepositories, sampleSecrets } from './sample-data'
+import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
 // Demo mode has no server: everything below lives in this page and is gone on reload, so a
 // value typed into the credentials dialog never leaves the browser.
 export const createDemoApi = (): DashboardApi => {
   const demoVaultState: VaultState = { mode: 'environment', initialised: true, unlocked: true }
+  const demoSessionState: SessionState = { signInRequired: false, signInAvailable: false, user: demoUser }
   const demoMemory: { secrets: SecretSummary[] } = { secrets: sampleSecrets.map((secret) => ({ ...secret })) }
 
   const replaceSecret = (name: string, update: Partial<SecretSummary>): void => {
@@ -14,6 +15,9 @@ export const createDemoApi = (): DashboardApi => {
   }
 
   return {
+    signInUrl: '#',
+    readSession: async () => demoSessionState,
+    signOut: async () => undefined,
     readVault: async () => demoVaultState,
     setUpVault: async () => demoVaultState,
     unlockVault: async () => demoVaultState,

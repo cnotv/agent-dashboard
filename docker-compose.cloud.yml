@@ -1,0 +1,36 @@
+# The cloud deployment: the dashboard reachable only through Caddy, which serves https for
+# AGENT_DASHBOARD_DOMAIN. Every other setting comes from .env, which the deploy workflow
+# writes; see "Deploy to the cloud" in the README.
+services:
+  dashboard:
+    build: .
+    image: agent-dashboard:cloud
+    env_file: .env
+    environment:
+      AGENT_DASHBOARD_MODE: cloud
+      AGENT_DASHBOARD_HOST: 0.0.0.0
+      AGENT_DASHBOARD_PUBLIC_URL: https://${AGENT_DASHBOARD_DOMAIN:?set AGENT_DASHBOARD_DOMAIN in .env}
+    volumes:
+      - dashboard-data:/data
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      AGENT_DASHBOARD_DOMAIN: ${AGENT_DASHBOARD_DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - dashboard
+    restart: unless-stopped
+
+volumes:
+  dashboard-data:
+  caddy-data:
+  caddy-config:

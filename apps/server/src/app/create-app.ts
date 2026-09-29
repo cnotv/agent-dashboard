@@ -1,11 +1,13 @@
 import { Hono } from 'hono'
+import { getCookie } from 'hono/cookie'
 import { z } from 'zod'
 import type { Board } from '@agent-dashboard/contracts'
+import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
 import { fetchRepositoryBoard } from '../github/board.ts'
 import { findRepository } from '../repos/load-repositories.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
 import { createRedactor } from '../secrets/redact.ts'
-import type { AppDependencies } from './types.ts'
+import type { AppDependencies, AppEnvironment } from './types.ts'
 
 const passphraseBodySchema = z.object({ passphrase: z.string().min(1) })
 const secretBodySchema = z.object({ value: z.string().min(1).max(4096) })
@@ -19,10 +21,11 @@ const readJsonBody = async (request: Request): Promise<unknown> => {
   }
 }
 
-export const createApp = (dependencies: AppDependencies): Hono => {
-  const { vault, repositories, secretDefinitions } = dependencies
+export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> => {
+  const { vault, auth, repositories, secretDefinitions } = dependencies
+  const sessionCookieName = authCookieNamesFor(auth.secureCookies).session
   const boardCache = new Map<string, { board: Board; storedAt: number }>()
-  const app = new Hono()
+  const app = new Hono<AppEnvironment>()
 
   app.use('/api/*', async (context, next) => {
     const hostHeader = context.req.header('host')
@@ -37,10 +40,22 @@ export const createApp = (dependencies: AppDependencies): Hono => {
     return next()
   })
 
+  app.use('/api/*', async (context, next) => {
+    const session = auth.sessionStore.readSession(getCookie(context, sessionCookieName))
+    context.set('session', session)
+    if (auth.signInRequired && session === null && !publicApiPaths.includes(context.req.path)) {
+      return context.json({ error: 'Sign in with GitHub first' }, 401)
+    }
+    return next()
+  })
+
   app.onError((error, context) => {
-    const redact = createRedactor(vault.readAllSecretValues())
+    const session = context.get('session')
+    const redact = createRedactor([...vault.readAllSecretValues(), ...(session ? [session.githubToken] : [])])
     return context.json({ error: redact(error.message) }, 400)
   })
+
+  app.route('/api/auth', createAuthRoutes(auth))
 
   app.get('/api/health', (context) => context.json({ ok: true }))
 
@@ -103,14 +118,18 @@ export const createApp = (dependencies: AppDependencies): Hono => {
   app.get('/api/repositories/:owner/:name/board', async (context) => {
     const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
     if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
-    const cacheKey = `${repository.owner}/${repository.name}`
+    const session = context.get('session')
+    // Each signed-in user sees the board through their own token, so the cache is per reader.
+    const cacheKey = `${session?.user.login ?? '(stored token)'}:${repository.owner}/${repository.name}`
     const cachedBoard = boardCache.get(cacheKey)
     const wantsFresh = context.req.query('refresh') === '1'
     if (cachedBoard && !wantsFresh && dependencies.now() - cachedBoard.storedAt < dependencies.boardCacheMilliseconds) {
       return context.json(cachedBoard.board)
     }
-    const githubToken = vault.readSecretValue('github-token')
-    if (githubToken === null) return context.json({ error: 'Save a GitHub token under Credentials first' }, 412)
+    const githubToken = session?.githubToken ?? vault.readSecretValue('github-token')
+    if (githubToken === null) {
+      return context.json({ error: 'Sign in with GitHub, or save a GitHub token under Credentials' }, 412)
+    }
     const board = await fetchRepositoryBoard(dependencies.createGraphqlFetcher(githubToken), repository)
     boardCache.set(cacheKey, { board, storedAt: dependencies.now() })
     return context.json(board)

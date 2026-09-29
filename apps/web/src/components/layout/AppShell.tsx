@@ -1,7 +1,11 @@
 import { DashboardIcon, LockClosedIcon } from '@radix-ui/react-icons'
 import { Box, Callout, Flex, Heading, Text } from '@radix-ui/themes'
 import { NavLink, Outlet, useMatches } from 'react-router'
+import { useSession } from '@/hooks/useSession'
+import { useToast } from '@/hooks/useToast'
 import { runtimeConfiguration } from '@/lib/runtime-configuration'
+import { SidebarAccount } from './SidebarAccount'
+import { SignInScreen } from './SignInScreen'
 
 const navigationItems = [
   { title: 'Issues', path: '/issues', Icon: DashboardIcon },
@@ -16,6 +20,11 @@ export const AppShell = () => {
     .map((match) => readPageTitle(match.handle))
     .filter((title): title is string => title !== null)
     .at(-1)
+  const { notifyError } = useToast()
+  const { sessionState, signOut, signInUrl } = useSession(notifyError)
+
+  if (sessionState === null) return null
+  if (sessionState.signInRequired && sessionState.user === null) return <SignInScreen signInUrl={signInUrl} />
 
   return (
     <div className="app-shell">
@@ -23,7 +32,7 @@ export const AppShell = () => {
         <Text as="div" size="2" weight="bold" className="app-sidebar-title">
           Agent dashboard
         </Text>
-        <Flex direction="column" gap="1">
+        <Flex direction="column" gap="1" className="app-nav-list">
           {navigationItems.map(({ title, path, Icon }) => (
             <NavLink key={path} to={path} className="app-nav-link">
               <Icon />
@@ -31,6 +40,13 @@ export const AppShell = () => {
             </NavLink>
           ))}
         </Flex>
+        <SidebarAccount
+          sessionState={sessionState}
+          signInUrl={signInUrl}
+          onSignOut={() => {
+            signOut().catch(notifyError)
+          }}
+        />
       </nav>
       <Box className="app-content">
         <header className="app-header">

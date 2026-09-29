@@ -111,3 +111,14 @@ export interface SecretTestResult {
 export interface ApiError {
   error: string
 }
+
+export interface SignedInUser {
+  login: string
+  avatarUrl: string
+}
+
+export interface SessionState {
+  signInRequired: boolean
+  signInAvailable: boolean
+  user: SignedInUser | null
+}

@@ -1,9 +1,9 @@
 name: CI
 
+# Pushes to main run these checks through the deploy workflow, which deploys only once they pass.
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
@@ -12,9 +12,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -24,9 +24,9 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -36,9 +36,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -48,7 +48,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -t agent-dashboard:ci .
       - name: Start the image and check it answers only as a loopback host
         run: |
@@ -60,5 +60,24 @@ jobs:
           curl --silent --fail http://127.0.0.1:4317/api/vault
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: attacker.example' http://127.0.0.1:4317/api/vault)" = "403"
           curl --silent --fail http://127.0.0.1:4317/issues | grep -q '<div id="root">'
+      - name: Start the image in cloud mode and check everything but sign-in needs a session
+        run: |
+          docker run -d --name dashboard-cloud -p 127.0.0.1:4318:4317 \
+            -e AGENT_DASHBOARD_MODE=cloud \
+            -e AGENT_DASHBOARD_PUBLIC_URL=https://dash.example.com \
+            -e GITHUB_APP_CLIENT_ID=Iv23ci \
+            -e GITHUB_APP_CLIENT_SECRET=ci-secret \
+            -e AGENT_DASHBOARD_ALLOWED_USERS=cnotv \
+            agent-dashboard:ci
+          for attempt in $(seq 1 30); do
+            if curl --silent --fail -H 'Host: dash.example.com' http://127.0.0.1:4318/api/health; then break; fi
+            sleep 1
+          done
+          curl --silent --fail -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/session | grep -q '"signInRequired":true'
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/vault)" = "401"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: 127.0.0.1' http://127.0.0.1:4318/api/health)" = "403"
+          curl --silent --output /dev/null --write-out '%{redirect_url}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/github/start | grep -q '^https://github.com/login/oauth/authorize?client_id=Iv23ci'
       - if: failure()
-        run: docker logs dashboard
+        run: |
+          docker logs dashboard || true
+          docker logs dashboard-cloud || true

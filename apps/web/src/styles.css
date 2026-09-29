@@ -19,6 +19,7 @@ body {
 .app-sidebar {
   position: sticky;
   top: 0;
+  box-sizing: border-box;
   height: 100vh;
   padding: var(--space-4) var(--space-3);
   display: flex;
@@ -52,6 +53,22 @@ body {
 .app-nav-link.active {
   background: var(--accent-a4);
   color: var(--accent-12);
+}
+
+.sidebar-account {
+  margin-top: auto;
+  padding: 0 var(--space-2);
+  min-width: 0;
+}
+
+.sign-in-screen {
+  min-height: 100vh;
+  background: var(--gray-2);
+}
+
+.sign-in-card {
+  width: 100%;
+  max-width: 400px;
 }
 
 .app-content {
@@ -121,8 +138,16 @@ body {
     border-bottom: 1px solid var(--gray-a4);
   }
 
-  .app-sidebar > div:last-child {
+  .app-nav-list {
     flex-direction: row;
+  }
+
+  .sidebar-account {
+    margin-left: auto;
+  }
+
+  .sidebar-account-label {
+    display: none;
   }
 
   .app-header,

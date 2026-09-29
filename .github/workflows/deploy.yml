@@ -1,0 +1,67 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: checks
+    # Nothing to deploy to until the domain is set; see "Deploy to the cloud" in the README.
+    if: vars.AGENT_DASHBOARD_DOMAIN != ''
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_DIRECTORY: ${{ vars.DEPLOY_DIRECTORY || 'agent-dashboard' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Copy the sources to the server
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USERNAME }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.HETZNER_PORT || '22' }}
+          source: Dockerfile,.dockerignore,docker-compose.cloud.yml,deploy,package.json,pnpm-lock.yaml,pnpm-workspace.yaml,tsconfig.base.json,apps,packages,config
+          target: ${{ env.DEPLOY_DIRECTORY }}
+
+      # The server builds the image itself, as generative-art's deploy does, so no registry
+      # holds a copy of this private code.
+      - name: Write the settings and start the new version
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          AGENT_DASHBOARD_DOMAIN: ${{ vars.AGENT_DASHBOARD_DOMAIN }}
+          AGENT_DASHBOARD_ALLOWED_USERS: ${{ vars.AGENT_DASHBOARD_ALLOWED_USERS }}
+          GITHUB_APP_CLIENT_ID: ${{ vars.GITHUB_APP_CLIENT_ID }}
+          GITHUB_APP_CLIENT_SECRET: ${{ secrets.GITHUB_APP_CLIENT_SECRET }}
+          AGENT_DASHBOARD_MASTER_KEY: ${{ secrets.AGENT_DASHBOARD_MASTER_KEY }}
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USERNAME }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          port: ${{ secrets.HETZNER_PORT || '22' }}
+          envs: DEPLOY_DIRECTORY,AGENT_DASHBOARD_DOMAIN,AGENT_DASHBOARD_ALLOWED_USERS,GITHUB_APP_CLIENT_ID,GITHUB_APP_CLIENT_SECRET,AGENT_DASHBOARD_MASTER_KEY
+          script: |
+            set -eu
+            cd "$DEPLOY_DIRECTORY"
+            umask 077
+            {
+              printf 'AGENT_DASHBOARD_DOMAIN=%s\n' "$AGENT_DASHBOARD_DOMAIN"
+              printf 'AGENT_DASHBOARD_ALLOWED_USERS=%s\n' "$AGENT_DASHBOARD_ALLOWED_USERS"
+              printf 'GITHUB_APP_CLIENT_ID=%s\n' "$GITHUB_APP_CLIENT_ID"
+              printf 'GITHUB_APP_CLIENT_SECRET=%s\n' "$GITHUB_APP_CLIENT_SECRET"
+              printf 'AGENT_DASHBOARD_MASTER_KEY=%s\n' "$AGENT_DASHBOARD_MASTER_KEY"
+            } > .env
+            docker compose -f docker-compose.cloud.yml up -d --build --remove-orphans
+            docker image prune -f
