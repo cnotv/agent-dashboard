@@ -68,14 +68,18 @@ jobs:
           curl --silent --fail http://127.0.0.1:4317/api/vault
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: attacker.example' http://127.0.0.1:4317/api/vault)" = "403"
           curl --silent --fail http://127.0.0.1:4317/issues | grep -q '<div id="root">'
+          docker exec dashboard node --disable-warning=ExperimentalWarning apps/server/src/healthcheck.ts
+      # Placeholders, not the real settings: this container never talks to GitHub and is thrown
+      # away with the runner. The real values live in the repository settings and reach the
+      # server only through the Deploy workflow.
       - name: Start the image in cloud mode and check everything but sign-in needs a session
         run: |
           docker run -d --name dashboard-cloud -p 127.0.0.1:4318:4317 \
             -e AGENT_DASHBOARD_MODE=cloud \
             -e AGENT_DASHBOARD_PUBLIC_URL=https://dash.example.com \
-            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=Iv23ci \
-            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=ci-secret \
-            -e AGENT_DASHBOARD_ALLOWED_USERS=cnotv \
+            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=ci-placeholder-client-id \
+            -e AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=ci-placeholder-not-a-secret \
+            -e AGENT_DASHBOARD_ALLOWED_USERS=ci-placeholder-user \
             agent-dashboard:ci
           for attempt in $(seq 1 30); do
             if curl --silent --fail -H 'Host: dash.example.com' http://127.0.0.1:4318/api/health; then break; fi
@@ -84,7 +88,8 @@ jobs:
           curl --silent --fail -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/session | grep -q '"signInRequired":true'
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/vault)" = "401"
           test "$(curl --silent --output /dev/null --write-out '%{http_code}' -H 'Host: 127.0.0.1' http://127.0.0.1:4318/api/health)" = "403"
-          curl --silent --output /dev/null --write-out '%{redirect_url}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/github/start | grep -q '^https://github.com/login/oauth/authorize?client_id=Iv23ci'
+          curl --silent --output /dev/null --write-out '%{redirect_url}' -H 'Host: dash.example.com' http://127.0.0.1:4318/api/auth/github/start | grep -q '^https://github.com/login/oauth/authorize?client_id=ci-placeholder-client-id'
+          docker exec dashboard-cloud node --disable-warning=ExperimentalWarning apps/server/src/healthcheck.ts
       - if: failure()
         run: |
           docker logs dashboard || true
