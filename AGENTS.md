@@ -66,10 +66,10 @@ an exploratory prototype, which still owes them before the pull request is marke
   `git push --force-with-lease`, never `--force`, never `git pull`.
 - **Commit subjects never reference an issue number.** Write `<type>: <summary>`; the branch
   carries the number and the pull request body carries `Closes #<issue-number>`.
-- **Pull request titles lead with the issue number**: `<type>(#<issue-number>): <summary>`,
-  for example `feat(#6): GitHub sign-in and a cloud deployment behind the server's proxy`.
-  GitHub turns the number into a link to the issue. This is for the title only; commits keep
-  the rule above.
+- **Pull request titles end with the issue number**: `<type>: <summary> (#<issue-number>)`,
+  for example `feat: GitHub sign-in and a cloud deployment (#6)`. GitHub links it, and a
+  squash merge appends the pull request number, so `main` reads `… (#6) (#7)`. This is for
+  the title only; commits keep the rule above.
 
 ### Pull request evidence
 
