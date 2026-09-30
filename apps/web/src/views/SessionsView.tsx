@@ -2,9 +2,11 @@ import { Callout, Flex, Grid, SegmentedControl } from '@radix-ui/themes'
 import { useSearchParams } from 'react-router'
 import type { AgentSessionState } from '@agent-dashboard/contracts'
 import { StatTile } from '@/components/charts/StatTile'
+import { SessionStartsList } from '@/components/sessions/SessionStartsList'
 import { SessionTimeline } from '@/components/sessions/SessionTimeline'
 import { SessionsTable } from '@/components/sessions/SessionsTable'
 import { useSessionsOverview } from '@/hooks/useActivity'
+import { useSessionStarts } from '@/hooks/useSessionStarts'
 import { formatCompactCount } from '@/lib/presentation'
 
 const windowChoices = [
@@ -16,11 +18,12 @@ const windowChoices = [
 const windowHoursFrom = (value: string | null): number =>
   Number(windowChoices.find((choice) => choice.value === value)?.value ?? 24)
 
-/** The Sessions page: counts by state, the timeline of running sessions and the sessions table. */
+/** The Sessions page: the starts from the board, counts by state, the timeline of running sessions and the sessions table. */
 export const SessionsView = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const windowHours = windowHoursFrom(searchParams.get('hours'))
   const { resource: overview, errorMessage, isStale } = useSessionsOverview(windowHours)
+  const { resource: sessionStarts } = useSessionStarts()
 
   const countInState = (state: AgentSessionState): number => overview?.sessions.filter((session) => session.state === state).length ?? 0
   const windowTokens = overview?.sessions.reduce((sum, session) => sum + session.tokens.total, 0) ?? 0
@@ -46,6 +49,8 @@ export const SessionsView = () => {
           <Callout.Text>{errorMessage}</Callout.Text>
         </Callout.Root>
       )}
+
+      {sessionStarts && sessionStarts.length > 0 && <SessionStartsList starts={sessionStarts} />}
 
       {overview && (
         <>

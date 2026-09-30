@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { bodyLimit } from 'hono/body-limit'
 import { createMiddleware } from 'hono/factory'
 import { z } from 'zod'
+import { bearerTokenOf, limitTo, readJsonBody } from '../app/http.ts'
 import type { AppEnvironment } from '../app/types.ts'
 import { buildSessionsOverview, buildUsageReport, type PullRequestFinder } from './aggregate.ts'
 import { agentEventFrom, tokenUsagePointsFrom } from './ingest.ts'
@@ -15,24 +15,10 @@ export const ingestApiPaths = ['/api/events', '/api/telemetry/v1/metrics']
 const hourMilliseconds = 60 * 60_000
 const createTokenBodySchema = z.object({ label: z.string().trim().min(1).max(80) })
 
-const readJsonBody = async (request: Request): Promise<unknown> => {
-  try {
-    return await request.json()
-  } catch {
-    return null
-  }
-}
-
-const bearerTokenOf = (authorizationHeader: string | undefined): string | undefined =>
-  authorizationHeader?.startsWith('Bearer ') ? authorizationHeader.slice('Bearer '.length).trim() : undefined
-
 const clampedNumber = (value: string | undefined, fallback: number, minimum: number, maximum: number): number => {
   const parsed = Number(value ?? fallback)
   return Number.isFinite(parsed) ? Math.min(maximum, Math.max(minimum, Math.round(parsed))) : fallback
 }
-
-const limitTo = (maxSize: number) =>
-  bodyLimit({ maxSize, onError: (context) => context.json({ error: 'The body is too large' }, 413) })
 
 /**
  * Builds the routes Claude Code and Codex report to: hook events and OTLP token metrics, each behind an ingest token.
@@ -41,7 +27,7 @@ const limitTo = (maxSize: number) =>
 export const createIngestRoutes = ({ activityStore, ingestTokens, now }: ActivityDependencies) => {
   const routes = new Hono<AppEnvironment>()
   const requireIngestToken = createMiddleware(async (context, next) =>
-    ingestTokens.verifyToken(bearerTokenOf(context.req.header('authorization')))
+    ingestTokens.verifyToken(bearerTokenOf(context.req.header('authorization'))) !== null
       ? next()
       : context.json({ error: 'Send a valid ingest token' }, 401),
   )

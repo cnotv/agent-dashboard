@@ -1,7 +1,8 @@
 import type {
+  SessionStart,
   AgentSessionState,
   AgentSessionSummary,
-  IngestTokenSummary,
+  MachineTokenSummary,
   SessionTimelineSegment,
   SessionsOverview,
   TokenTotals,
@@ -193,6 +194,43 @@ export const sampleUsageReport = (days: number, now: number): UsageReport => {
   }
 }
 
-export const sampleIngestTokens: IngestTokenSummary[] = [
+export const sampleIngestTokens: MachineTokenSummary[] = [
   { tokenId: 'demo-laptop', label: 'Laptop', createdAt: '2026-09-20T09:00:00Z', lastUsedAt: '2026-09-29T08:40:00Z' },
+]
+
+export const sampleRunnerTokens: MachineTokenSummary[] = [
+  { tokenId: 'demo-runner', label: 'Mac mini', createdAt: '2026-09-30T09:00:00Z', lastUsedAt: '2026-09-30T13:00:00Z' },
+]
+
+export const sampleSessionStarts: SessionStart[] = [
+  {
+    startId: 'demo-start-cloud',
+    repository: { owner: 'cnotv', name: 'example' },
+    issueNumber: 12,
+    workflow: 'feature',
+    target: 'cloud-routine',
+    permissionMode: 'auto',
+    note: '',
+    state: 'started',
+    runnerLabel: null,
+    sessionUrl: 'https://claude.ai/code',
+    message: null,
+    createdAt: '2026-09-30T12:10:00Z',
+    updatedAt: '2026-09-30T12:10:02Z',
+  },
+  {
+    startId: 'demo-start-laptop',
+    repository: { owner: 'cnotv', name: 'example' },
+    issueNumber: 7,
+    workflow: 'fix',
+    target: 'laptop-remote-control',
+    permissionMode: 'auto',
+    note: 'Only the physics step.',
+    state: 'started',
+    runnerLabel: 'Mac mini',
+    sessionUrl: null,
+    message: 'Open "example #7 fix" in the Claude app; on the laptop, tmux attach -t agent-example-demo',
+    createdAt: '2026-09-30T11:40:00Z',
+    updatedAt: '2026-09-30T11:40:05Z',
+  },
 ]

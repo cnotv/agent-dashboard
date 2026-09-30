@@ -1,16 +1,21 @@
 import type {
   AgentSessionState,
   Board,
-  CreatedIngestToken,
-  IngestTokenSummary,
+  CreatedMachineToken,
+  MachineTokenSummary,
   MediaKind,
+  MachineTokenKind,
   NetlifyStatus,
   PullRequestSummary,
   RepositoryReference,
+  RoutineSettings,
   SecretSummary,
   SessionState,
   SecretTestResult,
   SessionsOverview,
+  SessionStart,
+  SessionStartRequest,
+  StartOptions,
   UsageReport,
   VaultState,
 } from '@agent-dashboard/contracts'
@@ -24,6 +29,16 @@ export interface GateRingSegment {
   gateCount: number
   startFraction: number
   lengthFraction: number
+}
+
+export interface StartTargetAvailability {
+  isAvailable: boolean
+  hint: string | null
+}
+
+export interface RunnerSetupInput {
+  dashboardUrl: string
+  runnerToken: string
 }
 
 export type ToastTone = 'success' | 'error'
@@ -60,9 +75,15 @@ export interface DashboardApi {
   enableNetlify: (repository: RepositoryReference) => Promise<NetlifyStatus>
   readSessions: (hours: number) => Promise<SessionsOverview>
   readUsage: (days: number) => Promise<UsageReport>
-  listIngestTokens: () => Promise<IngestTokenSummary[]>
-  createIngestToken: (label: string) => Promise<CreatedIngestToken>
-  revokeIngestToken: (tokenId: string) => Promise<void>
+  listMachineTokens: (kind: MachineTokenKind) => Promise<MachineTokenSummary[]>
+  createMachineToken: (kind: MachineTokenKind, label: string) => Promise<CreatedMachineToken>
+  revokeMachineToken: (kind: MachineTokenKind, tokenId: string) => Promise<void>
+  readStartOptions: (repository: RepositoryReference) => Promise<StartOptions>
+  listSessionStarts: () => Promise<SessionStart[]>
+  startSession: (request: SessionStartRequest) => Promise<SessionStart>
+  readRoutineSettings: (repository: RepositoryReference) => Promise<RoutineSettings>
+  saveRoutineSettings: (repository: RepositoryReference, routineId: string, token: string) => Promise<void>
+  deleteRoutineSettings: (repository: RepositoryReference) => Promise<void>
 }
 
 export type ChartedSessionState = Extract<AgentSessionState, 'working' | 'waiting' | 'idle'>

@@ -1,7 +1,16 @@
-import type { IngestTokenSummary, NetlifyStatus, RepositoryReference, SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
+import type {
+  MachineTokenKind,
+  MachineTokenSummary,
+  NetlifyStatus,
+  RepositoryReference,
+  SecretSummary,
+  SessionStart,
+  SessionState,
+  VaultState,
+} from '@agent-dashboard/contracts'
 import { repositoryKey } from '@/lib/presentation'
 import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'
-import { sampleIngestTokens, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
+import { sampleIngestTokens, sampleRunnerTokens, sampleSessionStarts, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
 import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
@@ -21,12 +30,16 @@ export const createDemoApi = (): DashboardApi => {
   const demoSessionState: SessionState = { signInRequired: false, signInAvailable: false, user: demoUser }
   const demoMemory: {
     secrets: SecretSummary[]
-    ingestTokens: IngestTokenSummary[]
+    machineTokens: Record<MachineTokenKind, MachineTokenSummary[]>
+    sessionStarts: SessionStart[]
+    routineRepositoryKeys: Set<string>
     pullRequestOutcomes: Map<number, DemoPullRequestOutcome>
     netlifyRepositoryKeys: Set<string>
   } = {
     secrets: sampleSecrets.map((secret) => ({ ...secret })),
-    ingestTokens: sampleIngestTokens.map((ingestToken) => ({ ...ingestToken })),
+    machineTokens: { ingest: sampleIngestTokens.map((token) => ({ ...token })), runner: sampleRunnerTokens.map((token) => ({ ...token })) },
+    sessionStarts: sampleSessionStarts.map((start) => ({ ...start })),
+    routineRepositoryKeys: new Set(['cnotv/example']),
     pullRequestOutcomes: new Map(),
     netlifyRepositoryKeys: new Set(['cnotv/example']),
   }
@@ -68,14 +81,44 @@ export const createDemoApi = (): DashboardApi => {
     },
     readSessions: async (hours) => sampleSessionsOverview(hours, Date.now()),
     readUsage: async (days) => sampleUsageReport(days, Date.now()),
-    listIngestTokens: async () => demoMemory.ingestTokens,
-    createIngestToken: async (label) => {
-      const summary = { tokenId: `demo-${demoMemory.ingestTokens.length + 1}`, label, createdAt: new Date().toISOString(), lastUsedAt: null }
-      demoMemory.ingestTokens = [...demoMemory.ingestTokens, summary]
-      return { summary, token: 'adt_demo-only-this-token-does-not-work-anywhere' }
+    listMachineTokens: async (kind) => demoMemory.machineTokens[kind],
+    createMachineToken: async (kind, label) => {
+      const summary = { tokenId: `demo-${kind}-${demoMemory.machineTokens[kind].length + 1}`, label, createdAt: new Date().toISOString(), lastUsedAt: null }
+      demoMemory.machineTokens = { ...demoMemory.machineTokens, [kind]: [...demoMemory.machineTokens[kind], summary] }
+      return { summary, token: `${kind === 'ingest' ? 'adt' : 'adr'}_demo-only-this-token-does-not-work-anywhere` }
     },
-    revokeIngestToken: async (tokenId) => {
-      demoMemory.ingestTokens = demoMemory.ingestTokens.filter((ingestToken) => ingestToken.tokenId !== tokenId)
+    revokeMachineToken: async (kind, tokenId) => {
+      demoMemory.machineTokens = { ...demoMemory.machineTokens, [kind]: demoMemory.machineTokens[kind].filter((token) => token.tokenId !== tokenId) }
+    },
+    readStartOptions: async (repository) => ({
+      runners: [{ label: 'Mac mini', lastSeenAt: new Date().toISOString(), isOnline: true }],
+      routineConfigured: demoMemory.routineRepositoryKeys.has(repositoryKey(repository)),
+    }),
+    listSessionStarts: async () => demoMemory.sessionStarts,
+    startSession: async (request) => {
+      const now = new Date().toISOString()
+      const start: SessionStart = {
+        ...request,
+        startId: `demo-start-${demoMemory.sessionStarts.length + 1}`,
+        state: 'started',
+        runnerLabel: request.target === 'cloud-routine' ? null : 'Mac mini',
+        sessionUrl: null,
+        message: 'Demo mode: nothing was started',
+        createdAt: now,
+        updatedAt: now,
+      }
+      demoMemory.sessionStarts = [start, ...demoMemory.sessionStarts]
+      return start
+    },
+    readRoutineSettings: async (repository) => {
+      const configured = demoMemory.routineRepositoryKeys.has(repositoryKey(repository))
+      return { configured, routineId: configured ? 'trig_01DemoRoutine' : null }
+    },
+    saveRoutineSettings: async (repository) => {
+      demoMemory.routineRepositoryKeys = new Set([...demoMemory.routineRepositoryKeys, repositoryKey(repository)])
+    },
+    deleteRoutineSettings: async (repository) => {
+      demoMemory.routineRepositoryKeys = new Set([...demoMemory.routineRepositoryKeys].filter((key) => key !== repositoryKey(repository)))
     },
     pullRequestMediaUrl: (_repository, _pullRequest, kind) => demoMediaUrls[kind],
   }

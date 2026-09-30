@@ -184,6 +184,47 @@ GitHub App installations, so the new site is linked through the installation tha
 Netlify site of the same GitHub owner already uses. The first repository of an owner is linked
 once in Netlify itself; the button works for the rest.
 
+## Start a session from the board
+
+Every card has a **Start** button (the play icon), so work can be started from the phone. Pick a
+workflow from agent-base's `start` router (suggested from the issue's labels), add a note if the
+issue leaves something out, and pick where it runs:
+
+| Where                              | What happens                                                                                                             | Needs                                   |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| Laptop, steered from the phone     | The runner starts `claude --remote-control` in tmux, in a fresh worktree of the repository; open it in the Claude app    | The laptop runner, and tmux 3.2 or later |
+| Laptop, unattended                 | The runner starts `claude -p` in a fresh worktree with the permission mode you pick; its hooks report it here             | The laptop runner                       |
+| Claude cloud, sent from the laptop | The runner runs `claude --cloud` in its clone and reports the claude.ai link back                                        | The laptop runner, logged in to claude.ai |
+| Claude cloud routine               | The dashboard fires the repository's routine through the routines API; works with the laptop off                          | A routine for the repository            |
+
+Each start's session opens with `/workflow:start <workflow> <issue link>`, then the note. **Sessions**
+lists the starts, with the session's link or what the runner said.
+
+### The laptop runner
+
+The server cannot reach into the laptop, so the laptop asks. Under **Credentials, Laptop runner**,
+create a runner for the machine and paste the commands it shows into Terminal: they download the
+runner from `/api/runner/script` and install it as a login agent, so it starts with the Mac and
+restarts if it stops (its log is `~/agent-dashboard/runner.log`). It needs Node 22.18 or later,
+git and Claude Code, logged in; `brew install tmux` for sessions steered from the phone.
+
+It asks for work every five seconds with its own runner token, which can only take and report
+starts, never read anything else. It accepts only a known workflow, target and permission mode
+and a repository in `owner/name` form; it clones under `~/agent-dashboard/repos` with your own git
+credentials, and every command is an argument list, never a shell string. **Revoke** cuts it off.
+
+Without the dashboard, `claude remote-control --spawn worktree` on the laptop is Claude Code's
+own way to start sessions from the Claude app; the runner adds the board's issues and workflows.
+
+### Claude cloud routines
+
+For starts with the laptop off, create one routine per repository at
+[claude.ai/code/routines](https://claude.ai/code/routines) with that repository selected, give it
+the prompt shown under **Credentials, Claude cloud routines** (the routine only sees the fired text
+as untrusted until its own prompt says to follow it), add an **API** trigger, and save the
+routine's id and token there. The token can fire that routine and nothing else, and is stored in the
+vault. Routines allow 30 runs an hour each.
+
 ## Merge and close
 
 A board card with a pull request has **Merge** and **Close** buttons, each asking for

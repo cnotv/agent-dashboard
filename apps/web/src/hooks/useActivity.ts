@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { CreatedIngestToken, IngestTokenSummary } from '@agent-dashboard/contracts'
+import type { CreatedMachineToken, MachineTokenKind, MachineTokenSummary } from '@agent-dashboard/contracts'
 import { dashboardApi } from '@/lib/api'
 import { usePolledResource } from './usePolledResource'
 
@@ -23,29 +23,30 @@ export const useUsageReport = (days: number) =>
   usePolledResource(`usage-${days}`, () => dashboardApi.readUsage(days), usagePollMilliseconds)
 
 /**
- * Loads the ingest tokens and creates or revokes them, reloading the list after each.
+ * Loads one kind of machine token and creates or revokes them, reloading the list after each.
+ * @param kind Ingest tokens report sessions; runner tokens claim sessions to start.
  * @param onError Called when the list cannot be read.
  * @returns The tokens and the create and revoke actions.
  */
-export const useIngestTokens = (onError: (error: unknown) => void) => {
-  const [ingestTokens, setIngestTokens] = useState<IngestTokenSummary[]>([])
+export const useMachineTokens = (kind: MachineTokenKind, onError: (error: unknown) => void) => {
+  const [machineTokens, setMachineTokens] = useState<MachineTokenSummary[]>([])
 
-  const reload = useCallback(() => dashboardApi.listIngestTokens().then(setIngestTokens), [])
+  const reload = useCallback(() => dashboardApi.listMachineTokens(kind).then(setMachineTokens), [kind])
 
   useEffect(() => {
     reload().catch(onError)
   }, [reload, onError])
 
-  const createIngestToken = async (label: string): Promise<CreatedIngestToken> => {
-    const createdToken = await dashboardApi.createIngestToken(label)
+  const createMachineToken = async (label: string): Promise<CreatedMachineToken> => {
+    const createdToken = await dashboardApi.createMachineToken(kind, label)
     await reload()
     return createdToken
   }
 
-  const revokeIngestToken = async (tokenId: string): Promise<void> => {
-    await dashboardApi.revokeIngestToken(tokenId)
+  const revokeMachineToken = async (tokenId: string): Promise<void> => {
+    await dashboardApi.revokeMachineToken(kind, tokenId)
     await reload()
   }
 
-  return { ingestTokens, createIngestToken, revokeIngestToken }
+  return { machineTokens, createMachineToken, revokeMachineToken }
 }

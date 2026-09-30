@@ -1,15 +1,17 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import boardResponseFixture from '../github/fixtures/board-response.json' with { type: 'json' }
 import { createActivityStore } from '../activity/activity-store.ts'
-import { createIngestTokenStore } from '../activity/ingest-tokens.ts'
+import { createMachineTokenStore } from '../machine-tokens/machine-token-store.ts'
 import { createSessionStore } from '../auth/session-store.ts'
 import type { AuthDependencies } from '../auth/types.ts'
 import { generateKeyMaterial } from '../secrets/crypto.ts'
 import { secretDefinitions } from '../secrets/definitions.ts'
 import { createVault } from '../secrets/vault.ts'
+import { createRoutineStore, createSessionStartStore } from '../session-starts/start-store.ts'
 import { createApp } from './create-app.ts'
 import type { AppDependencies, ReceivedRestRequest } from './types.ts'
 
@@ -31,7 +33,7 @@ const pullRequestBodyHtmlFixture = {
  * @param authOverrides Auth settings to replace, such as requiring sign-in.
  * @param clock The time the activity routes see; a test moves it by changing now.
  * @param restResponses The answer the fake GitHub REST API gives for each path; any other path is a 404.
- * @returns The app, its vault, database and activity stores, and the tokens and REST requests GitHub received.
+ * @returns The app, its vault, database, activity and start stores, the runner tokens, the routines fired, and the tokens and REST requests GitHub received.
  */
 export const createTestApp = (
   overrides: Partial<AppDependencies> = {},
@@ -41,8 +43,11 @@ export const createTestApp = (
 ) => {
   const database = new DatabaseSync(':memory:')
   const activityStore = createActivityStore(database)
-  const ingestTokens = createIngestTokenStore(database, () => clock.now)
+  const ingestTokens = createMachineTokenStore(database, () => clock.now, 'ingest')
   const vault = createVault(database, { mode: 'environment', environmentKey: generateKeyMaterial() })
+  const runnerTokens = createMachineTokenStore(database, () => clock.now, 'runner')
+  const startStore = createSessionStartStore(database, () => clock.now)
+  const firedRoutines: { routineId: string; routineToken: string; text: string }[] = []
   const receivedTokens: string[] = []
   const receivedRestRequests: ReceivedRestRequest[] = []
   const app = createApp({
@@ -56,6 +61,16 @@ export const createTestApp = (
       ...authOverrides,
     },
     activity: { activityStore, ingestTokens, now: () => clock.now },
+    sessionStarts: {
+      startStore,
+      routineStore: createRoutineStore(database),
+      runnerTokens,
+      fireRoutine: async (routineId, routineToken, text) => {
+        firedRoutines.push({ routineId, routineToken, text })
+        return { ok: true, sessionUrl: 'https://claude.ai/code/session_01Fired' }
+      },
+      runnerScriptPath: fileURLToPath(new URL('../../../runner/src/runner.ts', import.meta.url)),
+    },
     repositories: [{ owner: 'cnotv', name: 'generative-art' }],
     secretDefinitions,
     testSecret: async () => ({ ok: true, status: 200, message: 'The provider accepted the key' }),
@@ -72,10 +87,10 @@ export const createTestApp = (
     mediaCacheDirectory: mkdtempSync(join(tmpdir(), 'agent-dashboard-media-')),
     allowedHostNames: ['localhost', '127.0.0.1'],
     boardCacheMilliseconds: 60_000,
-    now: () => 0,
+    now: () => clock.now,
     ...overrides,
   })
-  return { app, vault, database, receivedTokens, receivedRestRequests, activityStore, ingestTokens }
+  return { app, vault, database, receivedTokens, receivedRestRequests, activityStore, ingestTokens, runnerTokens, startStore, firedRoutines }
 }
 
 /**

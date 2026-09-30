@@ -4,6 +4,7 @@ import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashbo
 import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'
 import { PullRequestMedia } from './PullRequestMedia'
+import { StartSessionDialog } from './StartSessionDialog'
 
 interface BoardCardItemProps {
   card: BoardCard
@@ -49,7 +50,8 @@ const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
 
 /**
  * One board card: every issue its pull request works on, then the pull request, and one row of
- * icons for its checks, merge conflict, deploy preview, screenshot, video, merge and close.
+ * icons: Start, then the pull request's checks, merge conflict, deploy preview, screenshot,
+ * video, merge and close.
  */
 export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
@@ -72,8 +74,13 @@ export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardC
               #{card.pullRequest.number} {card.pullRequest.title}
             </Link>
           </Flex>
-          <Separator size="4" />
-          <Flex className="card-icon-row" gap="2" align="center">
+        </>
+      )}
+      <Separator size="4" />
+      <Flex className="card-icon-row" gap="2" align="center">
+        <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} />
+        {card.pullRequest && (
+          <>
             <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
             {card.pullRequest.mergeable === 'CONFLICTING' && (
               <Tooltip content="Merge conflict">
@@ -87,9 +94,9 @@ export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardC
             <PreviewButton previewUrl={card.pullRequest.previewUrl} />
             <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
             <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
-          </Flex>
-        </>
-      )}
+          </>
+        )}
+      </Flex>
     </Flex>
   </Card>
 )

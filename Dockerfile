@@ -5,6 +5,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
+COPY apps/runner/package.json apps/runner/
 COPY packages/contracts/package.json packages/contracts/
 RUN pnpm install --frozen-lockfile
 
@@ -30,6 +31,8 @@ COPY --from=build /app/config ./config
 COPY --from=build /app/packages/contracts ./packages/contracts
 COPY --from=build /app/apps/server ./apps/server
 COPY --from=build /app/apps/web/dist ./apps/web/dist
+# Served to laptops from /api/runner/script; the server never runs it.
+COPY --from=build /app/apps/runner/src/runner.ts ./apps/runner/src/runner.ts
 
 # 1000 is the image's `node` user; a numeric id resolves the same on every host.
 RUN mkdir -p /data && chown 1000:1000 /data
