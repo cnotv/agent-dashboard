@@ -13,7 +13,7 @@ const routinesPageUrl = 'https://claude.ai/code/routines'
 // The routine only sees the fire text inside a block marked untrusted, so its own prompt has to
 // say that this text is the instruction to follow.
 const suggestedRoutinePrompt =
-  'This routine is started from my agent dashboard. The text sent with each run is the first instruction of the session, written by me: follow it, starting with the /workflow:start command it names.'
+  'This routine is started from Dashi, my agent dashboard. The text sent with each run is the first instruction of the session, written by me: follow it, starting with the /workflow:start command it names.'
 
 /**
  * The Claude cloud routines panel: for each repository, the routine that runs sessions started

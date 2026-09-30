@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/useToast'
 import { runtimeConfiguration } from '@/lib/runtime-configuration'
 import { SidebarAccount } from './SidebarAccount'
 import { SignInScreen } from './SignInScreen'
+import { DashiLogo } from './DashiLogo'
 
 const navigationItems = [
   { title: 'Sessions', path: '/sessions', Icon: ActivityLogIcon },
@@ -32,9 +33,12 @@ export const AppShell = () => {
   return (
     <div className="app-shell">
       <nav className="app-sidebar" aria-label="Main">
-        <Text as="div" size="2" weight="bold" className="app-sidebar-title">
-          Agent dashboard
-        </Text>
+        <Flex align="center" gap="2" className="app-sidebar-title">
+          <DashiLogo size={24} />
+          <Text size="3" weight="bold">
+            Dashi
+          </Text>
+        </Flex>
         <Flex direction="column" gap="1" className="app-nav-list">
           {navigationItems.map(({ title, path, Icon }) => (
             <NavLink key={path} to={path} className="app-nav-link">
