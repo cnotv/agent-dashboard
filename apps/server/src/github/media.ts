@@ -20,6 +20,11 @@ const markdownKinds = (body: string): MediaKind[] => [
   ...[...body.matchAll(bareVideoFilePattern)].map(() => 'video' as const),
 ]
 
+/**
+ * Tells whether a pull request body holds an image and a video, the way GitHub would render it.
+ * @param body The body as written, in markdown.
+ * @returns Whether it has an image and whether it has a video.
+ */
 export const mediaPresenceFromMarkdown = (body: string): PullRequestMedia => {
   const kinds = markdownKinds(body)
   return { hasImage: kinds.includes('image'), hasVideo: kinds.includes('video') }
@@ -37,7 +42,13 @@ const decodeAttribute = (value: string): string => value.replace(/&(amp|quot|#39
 
 const isEmojiImage = (tag: string): boolean => /\bclass\s*=\s*["'][^"']*\bemoji\b/i.test(tag)
 
-// Reads GitHub's own rendering of the body (bodyHTML), whose attachment links are already signed.
+/**
+ * Finds the first image or video in a rendered body, skipping emoji.
+ * Reads GitHub's own rendering of the body (bodyHTML), whose attachment links are already signed.
+ * @param bodyHtml The body as GitHub renders it.
+ * @param kind Whether to find an image or a video.
+ * @returns The signed link, or null when there is none on GitHub's own hosts.
+ */
 export const mediaUrlFromBodyHtml = (bodyHtml: string, kind: MediaKind): string | null =>
   [...bodyHtml.matchAll(htmlSourcePattern)]
     .filter(([tag = '', tagName = '', url = '']) => !isEmojiImage(tag) && kindOfTag(tagName, url) === kind)

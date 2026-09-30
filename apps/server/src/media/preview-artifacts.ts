@@ -10,6 +10,11 @@ export const previewContentTypes: Record<MediaKind, string> = { image: 'image/pn
 
 const maximumArtifactBytes = 50 * 1024 * 1024
 
+/**
+ * Picks the newest unexpired pr-preview artifact of each commit from GitHub's artifact list.
+ * @param rawList The artifact list as GitHub sent it.
+ * @returns The artifact id for each commit SHA, empty for an unexpected answer.
+ */
 export const latestPreviewArtifactBySha = (rawList: unknown): PreviewArtifactsBySha => {
   const parsedList = previewArtifactListSchema.safeParse(rawList)
   if (!parsedList.success) return new Map()
@@ -19,7 +24,13 @@ export const latestPreviewArtifactBySha = (rawList: unknown): PreviewArtifactsBy
     .reduce((bySha, artifact) => bySha.set(artifact.workflow_run?.head_sha ?? '', artifact.id), new Map<string, number>())
 }
 
-// A board still loads when the token cannot read Actions: the recordings are extra, not the board.
+/**
+ * Lists a repository's pr-preview recordings by commit.
+ * A board still loads when the token cannot read Actions: the recordings are extra, not the board.
+ * @param fetchGithub The REST caller.
+ * @param repository The repository.
+ * @returns The artifact id for each commit SHA, empty when the token cannot read Actions.
+ */
 export const fetchPreviewArtifacts = async (
   fetchGithub: GithubRestFetcher,
   repository: RepositoryReference,
@@ -34,6 +45,12 @@ export const fetchPreviewArtifacts = async (
   }
 }
 
+/**
+ * Marks every card whose pull request head has a recording as having both a screenshot and a video.
+ * @param board The board from GitHub.
+ * @param artifactsBySha The recordings by commit.
+ * @returns The board with media marked.
+ */
 export const withPreviewMedia = (board: Board, artifactsBySha: PreviewArtifactsBySha): Board => ({
   ...board,
   columns: board.columns.map((column) => ({
@@ -46,6 +63,11 @@ export const withPreviewMedia = (board: Board, artifactsBySha: PreviewArtifactsB
   })),
 })
 
+/**
+ * Takes the screenshot and the video out of a recording's zip.
+ * @param zipBytes The zip GitHub served.
+ * @returns The two files, each null when missing or too large.
+ */
 export const extractPreviewFiles = (zipBytes: Uint8Array): PreviewFiles => {
   const wantedNames = Object.values(previewFileNames)
   // The sizes come from the zip's own directory, so a file that would inflate past the cap is
@@ -56,6 +78,13 @@ export const extractPreviewFiles = (zipBytes: Uint8Array): PreviewFiles => {
   return { image: files[previewFileNames.image] ?? null, video: files[previewFileNames.video] ?? null }
 }
 
+/**
+ * Downloads a recording's zip and takes its two files out.
+ * @param fetchGithub The REST caller.
+ * @param repository The repository.
+ * @param artifactId The artifact to download.
+ * @returns The screenshot and the video; throws when GitHub refuses or the zip is too large.
+ */
 export const downloadPreviewFiles = async (
   fetchGithub: GithubRestFetcher,
   repository: RepositoryReference,

@@ -6,8 +6,11 @@ const closeDelayMilliseconds = 300
 
 const isMouse = (pointerEvent: PointerEvent): boolean => pointerEvent.pointerType === 'mouse'
 
-// Opens a popover while a mouse rests on its trigger or its content. Touch and pen are left to
-// the click that already toggles it, since they have no hover.
+/**
+ * Opens a popover while a mouse rests on its trigger or its content. Touch and pen are left to
+ * the click that already toggles it, since they have no hover.
+ * @returns The open state, its setter, and the pointer handlers for the trigger and the content.
+ */
 export const useHoverOpen = () => {
   const [isOpen, setIsOpen] = useState(false)
   const timerRef = useRef<number | undefined>(undefined)

@@ -62,6 +62,13 @@ export const fetchRepositoryBoard = async (fetchGraphql: GraphqlFetcher, reposit
   return buildBoard(repository, issues.nodes.map(mapIssueNode), pullRequests.nodes.map(mapPullRequestNode), new Date().toISOString())
 }
 
+/**
+ * Reads GitHub's own rendering of a pull request body, whose attachment links are signed for the reader.
+ * @param fetchGraphql The GraphQL caller, holding the reader's token.
+ * @param repository The repository.
+ * @param pullRequestNumber The pull request number.
+ * @returns The body as HTML, or null when the pull request does not exist.
+ */
 export const fetchPullRequestBodyHtml = async (
   fetchGraphql: GraphqlFetcher,
   repository: RepositoryReference,

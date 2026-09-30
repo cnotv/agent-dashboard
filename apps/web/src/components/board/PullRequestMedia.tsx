@@ -106,6 +106,7 @@ interface PullRequestMediaProps {
   pullRequest: PullRequestSummary
 }
 
+/** The screenshot and video buttons at the foot of a board card. */
 export const PullRequestMedia = ({ repository, pullRequest }: PullRequestMediaProps) => (
   <Flex gap="3" align="center">
     <MediaButton
