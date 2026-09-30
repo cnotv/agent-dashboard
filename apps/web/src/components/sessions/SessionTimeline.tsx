@@ -47,6 +47,7 @@ const TimelineBarMark = ({ bar }: { bar: TimelineBar }) => (
   </Tooltip>
 )
 
+/** The timeline of running sessions: one lane per session, coloured by state, with a tooltip on every stretch. */
 export const SessionTimeline = ({ overview, isStale }: { overview: SessionsOverview; isStale: boolean }) => {
   const { lanes, ticks } = layoutSessionTimeline(overview, formatTickTime)
 

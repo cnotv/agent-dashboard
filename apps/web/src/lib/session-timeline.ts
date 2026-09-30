@@ -8,23 +8,50 @@ const chartedStates: ChartedSessionState[] = ['working', 'waiting', 'idle']
 
 export const sessionStateOrder: Record<AgentSessionState, number> = { working: 0, waiting: 1, idle: 2, inactive: 3, ended: 4 }
 
+/**
+ * Tells whether a state is one the timeline draws: working, waiting or idle.
+ * @param state The session state.
+ * @returns True for a charted state.
+ */
 export const isChartedState = (state: AgentSessionState): state is ChartedSessionState =>
   chartedStates.some((chartedState) => chartedState === state)
 
+/**
+ * Tells whether a session is still running.
+ * @param session The session.
+ * @returns True when it is working, waiting or idle.
+ */
 export const isOngoing = (session: AgentSessionSummary): boolean => isChartedState(session.state)
 
 const shortSessionId = (sessionId: string): string => sessionId.slice(0, 8)
 
+/**
+ * Names a session by its repository, or by its short id when it has none.
+ * @param session The session.
+ * @returns The label.
+ */
 export const sessionLabel = (session: AgentSessionSummary): string =>
   session.repository === null ? `Session ${shortSessionId(session.sessionId)}` : session.repository.name
 
+/**
+ * The second line under a session's name: its branch, or its short id.
+ * @param session The session.
+ * @returns The detail.
+ */
 export const sessionDetail = (session: AgentSessionSummary): string => session.branch ?? shortSessionId(session.sessionId)
 
 const percentOf = (milliseconds: number, windowStart: number, windowLength: number): number =>
   Math.min(100, Math.max(0, ((milliseconds - windowStart) / windowLength) * 100))
 
-// The step is the smallest one that keeps the axis to a handful of labels, and every tick sits
-// on a whole hour so the labels read as clock times.
+/**
+ * Places whole-hour ticks along the timeline's axis.
+ * The step is the smallest one that keeps the axis to a handful of labels, and every tick sits
+ * on a whole hour so the labels read as clock times.
+ * @param windowStartedAt Where the axis starts.
+ * @param generatedAt Where it ends, which is now.
+ * @param formatTime Writes a tick's time; injected so tests do not depend on the time zone.
+ * @returns The ticks, each with its position as a percentage.
+ */
 export const buildTimeTicks = (
   windowStartedAt: string,
   generatedAt: string,
@@ -43,6 +70,12 @@ export const buildTimeTicks = (
   })
 }
 
+/**
+ * Lays out the timeline: one lane per running session, each stretch placed as a share of the window.
+ * @param overview The sessions overview from the server.
+ * @param formatTime Writes a tick's time.
+ * @returns The lanes and the axis ticks.
+ */
 export const layoutSessionTimeline = (
   overview: SessionsOverview,
   formatTime: (isoTime: string) => string,

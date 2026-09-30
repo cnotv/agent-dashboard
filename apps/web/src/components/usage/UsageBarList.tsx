@@ -19,6 +19,7 @@ interface UsageBarListProps {
   isStale: boolean
 }
 
+/** Horizontal bars of token totals, labelled with the value and its share of the whole. */
 export const UsageBarList = ({ title, rows, grandTotal, isStale }: UsageBarListProps) => {
   const largestTotal = Math.max(1, ...rows.map((row) => row.total))
   return (

@@ -34,6 +34,10 @@ const clampedNumber = (value: string | undefined, fallback: number, minimum: num
 const limitTo = (maxSize: number) =>
   bodyLimit({ maxSize, onError: (context) => context.json({ error: 'The body is too large' }, 413) })
 
+/**
+ * Builds the routes Claude Code and Codex report to: hook events and OTLP token metrics, each behind an ingest token.
+ * @returns The routes, mounted under /api.
+ */
 export const createIngestRoutes = ({ activityStore, ingestTokens, now }: ActivityDependencies) => {
   const routes = new Hono<AppEnvironment>()
   const requireIngestToken = createMiddleware(async (context, next) =>
@@ -69,6 +73,11 @@ export const createIngestRoutes = ({ activityStore, ingestTokens, now }: Activit
   return routes
 }
 
+/**
+ * Builds the routes the dashboard reads sessions and usage from, and manages ingest tokens with.
+ * @param findPullRequest Finds the open pull request of a branch, so usage can be shown per pull request.
+ * @returns The routes, mounted under /api.
+ */
 export const createActivityRoutes = (
   { activityStore, ingestTokens, now }: ActivityDependencies,
   findPullRequest: PullRequestFinder,

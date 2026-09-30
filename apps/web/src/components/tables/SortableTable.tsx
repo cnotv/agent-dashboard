@@ -10,6 +10,7 @@ interface SortableTableProps<Row extends RowData> {
   numericColumnIds: string[]
 }
 
+/** A TanStack table on Radix Table with sortable headings and right-aligned numeric columns. */
 export const SortableTable = <Row extends RowData>({ columns, rows, rowKeyOf, numericColumnIds }: SortableTableProps<Row>) => {
   const table = useTable({
     features: sortableTableFeatures,

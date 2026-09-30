@@ -66,6 +66,11 @@ const toStoredSession = (row: Record<string, unknown>): StoredSession => {
 const seriesKeyOf = (point: TokenUsagePoint): string =>
   [point.sessionId, point.model, point.tokenType, point.seriesStart].join('|')
 
+/**
+ * Creates the store of session events and token usage on a SQLite database.
+ * @param database The database; its tables are created when missing.
+ * @returns The activity store.
+ */
 export const createActivityStore = (database: DatabaseSync): ActivityStore => {
   createSchema(database)
   const upsertSession = database.prepare(`

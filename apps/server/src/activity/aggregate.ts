@@ -18,14 +18,29 @@ import type { StoredEvent, StoredSession, StoredTokenSample } from './types.ts'
 // sent SessionEnd: a closed laptop or a killed terminal never does.
 export const inactiveAfterMilliseconds = 6 * 60 * 60_000
 
+/**
+ * Starts a token count at zero for every type.
+ * @returns Totals of zero.
+ */
 export const emptyTokenTotals = (): TokenTotals => ({ input: 0, output: 0, cacheRead: 0, cacheCreation: 0, total: 0 })
 
+/**
+ * Adds up token samples by type.
+ * @param samples The samples to add up.
+ * @returns The totals per type and overall.
+ */
 export const sumTokens = (samples: StoredTokenSample[]): TokenTotals =>
   samples.reduce(
     (totals, sample) => ({ ...totals, [sample.tokenType]: totals[sample.tokenType] + sample.tokens, total: totals.total + sample.tokens }),
     emptyTokenTotals(),
   )
 
+/**
+ * Tells what a session is doing now, counting one that has been silent too long as inactive.
+ * @param session The stored session.
+ * @param now The current time in milliseconds.
+ * @returns The state to show.
+ */
 export const effectiveState = (session: StoredSession, now: number): AgentSessionState =>
   session.state !== 'ended' && now - Date.parse(session.lastEventAt) > inactiveAfterMilliseconds ? 'inactive' : session.state
 
@@ -35,8 +50,15 @@ const groupBy = <Item>(items: Item[], keyOf: (item: Item) => string): Map<string
 const latest = (first: string, second: string): string => (first > second ? first : second)
 const earliest = (first: string, second: string): string => (first < second ? first : second)
 
-// Each event starts a stretch of its state that lasts until the next event. The last one runs
-// until now, or until the session is taken for inactive; an ended session draws nothing after it.
+/**
+ * Turns session events into stretches of working, waiting and idle for the timeline chart.
+ * Each event starts a stretch of its state that lasts until the next event. The last one runs
+ * until now, or until the session is taken for inactive; an ended session draws nothing after it.
+ * @param events The events inside the window, oldest first.
+ * @param windowStartedAt Where the chart starts; stretches are clipped to it.
+ * @param now The current time in milliseconds.
+ * @returns One segment per stretch.
+ */
 export const buildTimeline = (events: StoredEvent[], windowStartedAt: string, now: number): SessionTimelineSegment[] =>
   [...groupBy(events, (event) => event.sessionId).values()].flatMap((sessionEvents) =>
     sessionEvents
@@ -53,6 +75,15 @@ export const buildTimeline = (events: StoredEvent[], windowStartedAt: string, no
 
 const stateOrder: Record<AgentSessionState, number> = { working: 0, waiting: 1, idle: 2, inactive: 3, ended: 4 }
 
+/**
+ * Builds the Sessions page: each session active in the window, with its state and tokens, and the timeline.
+ * @param sessions Every stored session.
+ * @param events The events inside the window.
+ * @param samples The token samples inside the window.
+ * @param windowStartedAt Where the window starts.
+ * @param now The current time in milliseconds.
+ * @returns The sessions, running ones first, and the timeline.
+ */
 export const buildSessionsOverview = (
   sessions: StoredSession[],
   events: StoredEvent[],
@@ -93,6 +124,15 @@ const byTotalDescending = <Row extends { tokens: TokenTotals }>(first: Row, seco
 
 export type PullRequestFinder = (repository: RepositoryReference, branch: string) => number | null
 
+/**
+ * Adds up token usage for all repositories, then by repository, by pull request or branch, by day and by model.
+ * @param sessions Every stored session, to place each sample.
+ * @param samples The token samples inside the period.
+ * @param findPullRequest Finds the open pull request of a branch.
+ * @param windowStartedAt Where the period starts.
+ * @param now The current time in milliseconds.
+ * @returns The usage report.
+ */
 export const buildUsageReport = (
   sessions: StoredSession[],
   samples: StoredTokenSample[],

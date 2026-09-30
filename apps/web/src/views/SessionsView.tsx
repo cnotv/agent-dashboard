@@ -16,6 +16,7 @@ const windowChoices = [
 const windowHoursFrom = (value: string | null): number =>
   Number(windowChoices.find((choice) => choice.value === value)?.value ?? 24)
 
+/** The Sessions page: counts by state, the timeline of running sessions and the sessions table. */
 export const SessionsView = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const windowHours = windowHoursFrom(searchParams.get('hours'))

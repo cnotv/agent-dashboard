@@ -71,6 +71,7 @@ const sessionColumns = (now: number) =>
     }),
   ])
 
+/** Every session in the window as a sortable table. */
 export const SessionsTable = ({ sessions, now }: { sessions: AgentSessionSummary[]; now: number }) => (
   <Card size="1">
     <SortableTable

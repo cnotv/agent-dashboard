@@ -7,8 +7,15 @@ interface PolledResult<Resource> {
   errorMessage: string | null
 }
 
-// Keeps the last good value while the next one loads, so a chart holds its frame on refetch
-// instead of flashing empty.
+/**
+ * Loads a resource, reloads it on an interval, and keeps the last good value while the next one loads.
+ * Keeps the last good value while the next one loads, so a chart holds its frame on refetch
+ * instead of flashing empty.
+ * @param requestKey Changes whenever the request does, so an answer for an older request is marked stale.
+ * @param loadResource Loads the resource.
+ * @param pollMilliseconds How often to reload, or null to load once.
+ * @returns The resource, any error, and whether it belongs to an older request.
+ */
 export const usePolledResource = <Resource>(
   requestKey: string,
   loadResource: () => Promise<Resource>,
