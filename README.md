@@ -122,7 +122,7 @@ and add a GitHub token (fine-grained, read access to issues, checks and actions 
 repositories in `config/repos.json`, and write access to contents and pull requests for Merge
 and Close). API keys for
 Anthropic, OpenAI and OpenRouter are stored the same way, for sessions that are not on a
-subscription.
+subscription, and so is a Netlify personal access token for the board's Netlify button.
 
 Values are encrypted with AES-256-GCM before they reach the SQLite database, each bound to its
 own name. The browser can add, replace, test and remove a value, but never reads one back; it
@@ -157,6 +157,28 @@ Both are fed by the machines running Claude Code, not read from them:
 The token is shown once and stored as a hash. It can only send events and metrics, never
 read anything, and **Revoke** cuts one machine off. A session silent for six hours counts as
 inactive, since a closed terminal never reports that it ended.
+
+## Board cards
+
+Each open pull request gets one card, listing every issue it closes (by a `Closes #n` line or
+by its `<type>/<n>-description` branch). An issue without a pull request has a card of its own.
+
+Checks show as a ring with one coloured arc per state: red failed, amber running, green passed,
+grey skipped or neutral. The passed count sits beside it, and hovering it lists every check
+with its state and a link to its run. When Netlify reports a deploy preview for the pull
+request, **Preview** opens it.
+
+## Netlify
+
+The button at the top of the board is green, and opens the site in Netlify, when a Netlify
+site builds the selected repository. Otherwise **Enable Netlify** creates one after a
+confirmation. The site builds the default branch, posts a deploy preview on each pull request,
+and takes its build command and folder from the repository's `netlify.toml`.
+
+It needs a Netlify personal access token under **Credentials**. Netlify's API cannot list its
+GitHub App installations, so the new site is linked through the installation that another
+Netlify site of the same GitHub owner already uses. The first repository of an owner is linked
+once in Netlify itself; the button works for the rest.
 
 ## Merge and close
 

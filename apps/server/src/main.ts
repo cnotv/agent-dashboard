@@ -11,6 +11,7 @@ import { createGitHubAuthClient } from './auth/github-auth.ts'
 import { createSessionStore } from './auth/session-store.ts'
 import { createGithubGraphqlFetcher } from './github/board.ts'
 import { createGithubRestFetcher } from './github/rest.ts'
+import { createNetlifyFetcher } from './netlify/rest.ts'
 import { loadRepositories } from './repos/load-repositories.ts'
 import { resolveRuntimeSettings } from './runtime/settings.ts'
 import { parseEncodedKey } from './secrets/crypto.ts'
@@ -63,6 +64,7 @@ const app = createApp({
   testSecret: testSecretAgainstProvider,
   createGraphqlFetcher: createGithubGraphqlFetcher,
   createGithubRestFetcher,
+  createNetlifyFetcher,
   mediaCacheDirectory: join(settings.dataDirectory, 'pr-media'),
   allowedHostNames: settings.allowedHostNames,
   boardCacheMilliseconds: 60_000,

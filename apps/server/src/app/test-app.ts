@@ -68,6 +68,7 @@ export const createTestApp = (
       receivedRestRequests.push({ path, ...request })
       return restResponses[path] ?? new Response('{}', { status: 404 })
     },
+    createNetlifyFetcher: () => async () => new Response('{}', { status: 404 }),
     mediaCacheDirectory: mkdtempSync(join(tmpdir(), 'agent-dashboard-media-')),
     allowedHostNames: ['localhost', '127.0.0.1'],
     boardCacheMilliseconds: 60_000,

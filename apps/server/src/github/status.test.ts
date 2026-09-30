@@ -35,6 +35,7 @@ const makePullRequest = (overrides: Partial<PullRequestSummary>): PullRequestSum
     body: '',
     updatedAt: '2026-09-02T00:00:00Z',
     media: { hasImage: false, hasVideo: false },
+    previewUrl: null,
     ...overrides,
     gates,
     gateSummary: summariseGates(gates),
@@ -111,6 +112,7 @@ describe('buildBoardCards', () => {
     const cards = buildBoardCards([makeIssue(5, [10])], [makePullRequest({ headRefName: 'some-branch' })])
     expect(cards).toHaveLength(1)
     expect(cards[0]?.pullRequest?.number).toBe(10)
+    expect(cards[0]?.issues.map((issue) => issue.number)).toEqual([5])
   })
 
   it('links a pull request by its branch name', () => {
@@ -120,10 +122,16 @@ describe('buildBoardCards', () => {
 
   it('keeps pull requests without an issue as their own cards', () => {
     const cards = buildBoardCards([makeIssue(3)], [makePullRequest({ headRefName: 'claude/something' })])
-    expect(cards.map((card) => [card.issue?.number ?? null, card.pullRequest?.number ?? null])).toEqual([
-      [3, null],
-      [null, 10],
+    expect(cards.map((card) => [card.issues.map((issue) => issue.number), card.pullRequest?.number ?? null])).toEqual([
+      [[], 10],
+      [[3], null],
     ])
+  })
+
+  it('gives a pull request that closes several issues one card listing them all', () => {
+    const cards = buildBoardCards([makeIssue(4, [10]), makeIssue(5, [10])], [makePullRequest({ headRefName: 'feat/4-thing' })])
+    expect(cards).toHaveLength(1)
+    expect(cards[0]?.issues.map((issue) => issue.number)).toEqual([4, 5])
   })
 
   it('prefers the most recently updated pull request for an issue', () => {
@@ -134,7 +142,8 @@ describe('buildBoardCards', () => {
         makePullRequest({ number: 11, updatedAt: '2026-09-03T00:00:00Z' }),
       ],
     )
-    expect(cards[0]?.pullRequest?.number).toBe(11)
+    expect(cards.find((card) => card.issues.length > 0)?.pullRequest?.number).toBe(11)
+    expect(cards.find((card) => card.pullRequest?.number === 10)?.issues).toEqual([])
   })
 })
 

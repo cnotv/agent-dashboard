@@ -59,6 +59,8 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
         headSha: pullRequest.headSha,
       }),
     closePullRequest: (repository, pullRequest) => sendJson('POST', `${repositoryPath(repository)}/pulls/${pullRequest.number}/close`),
+    readNetlifyStatus: (repository) => requestJson(`${repositoryPath(repository)}/netlify`),
+    enableNetlify: (repository) => sendJson('POST', `${repositoryPath(repository)}/netlify`),
     pullRequestMediaUrl: (repository, pullRequest, kind) =>
       `${apiBaseUrl}${repositoryPath(repository)}/pulls/${pullRequest.number}/media/${kind}${pullRequest.headSha ? `?sha=${encodeURIComponent(pullRequest.headSha)}` : ''}`,
   }

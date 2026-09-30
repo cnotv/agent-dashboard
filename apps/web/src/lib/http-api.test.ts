@@ -49,4 +49,5 @@ const samplePullRequest: PullRequestSummary = {
   gates: [],
   gateSummary: { passed: 0, failed: 0, pending: 0, total: 0, overallState: 'none' },
   media: { hasImage: true, hasVideo: true },
+  previewUrl: null,
 }

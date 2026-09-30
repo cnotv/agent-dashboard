@@ -46,6 +46,7 @@ export interface PullRequestSummary {
   gates: CheckGate[]
   gateSummary: GateSummary
   media: PullRequestMedia
+  previewUrl: string | null
 }
 
 export interface IssueLabel {
@@ -71,7 +72,7 @@ export type IssueStatus =
   | 'approved'
 
 export interface BoardCard {
-  issue: IssueSummary | null
+  issues: IssueSummary[]
   pullRequest: PullRequestSummary | null
   status: IssueStatus
 }
@@ -86,6 +87,11 @@ export interface Board {
   columns: BoardColumn[]
   fetchedAt: string
 }
+
+export type NetlifyStatus =
+  | { state: 'active'; siteName: string; siteUrl: string; adminUrl: string }
+  | { state: 'inactive' }
+  | { state: 'missing-token' }
 
 export type VaultMode = 'environment' | 'passphrase'
 

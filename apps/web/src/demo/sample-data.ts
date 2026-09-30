@@ -40,4 +40,12 @@ export const sampleSecrets: SecretSummary[] = [
     lastFour: null,
     updatedAt: null,
   },
+  {
+    name: 'netlify-token',
+    label: 'Netlify token',
+    description: 'Shows whether Netlify builds a repository, and creates the site from the Issues board when it does not.',
+    isSet: true,
+    lastFour: 'demo',
+    updatedAt: '2026-09-28T00:00:00Z',
+  },
 ]

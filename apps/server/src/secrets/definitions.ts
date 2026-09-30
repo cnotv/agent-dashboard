@@ -25,4 +25,10 @@ export const secretDefinitions: SecretDefinitionWithTester[] = [
     description: 'Routes Claude or Codex sessions through OpenRouter models.',
     tester: { url: 'https://openrouter.ai/api/v1/key', credentialHeader: 'bearer', extraHeaders: {} },
   },
+  {
+    name: 'netlify-token',
+    label: 'Netlify token',
+    description: 'Shows whether Netlify builds a repository, and creates the site from the Issues board when it does not.',
+    tester: { url: 'https://api.netlify.com/api/v1/user', credentialHeader: 'bearer', extraHeaders: { 'User-Agent': 'agent-dashboard' } },
+  },
 ]

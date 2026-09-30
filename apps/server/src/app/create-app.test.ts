@@ -251,3 +251,56 @@ describe('merge and close', () => {
     expect((await app.request(crossOrigin)).status).toBe(403)
   })
 })
+
+describe('netlify routes', () => {
+  const netlifyPath = '/api/repositories/cnotv/generative-art/netlify'
+  const netlifyToken = 'nfp_exampleNetlifyToken9876'
+  const site = {
+    name: 'cnotv-generative-art',
+    ssl_url: 'https://cnotv-generative-art.netlify.app',
+    url: 'http://cnotv-generative-art.netlify.app',
+    admin_url: 'https://app.netlify.com/projects/cnotv-generative-art',
+    build_settings: { provider: 'github', repo_path: 'cnotv/generative-art', installation_id: 55 },
+  }
+
+  it('asks for a token before reaching Netlify', async () => {
+    const { app } = createTestApp()
+    expect(await (await app.request(getRequest(netlifyPath))).json()).toEqual({ state: 'missing-token' })
+    expect((await app.request(jsonRequest('POST', netlifyPath, {}))).status).toBe(412)
+  })
+
+  it('shows the site that builds the repository, without the token', async () => {
+    const receivedTokens: string[] = []
+    const { app, vault } = createTestApp({
+      createNetlifyFetcher: (token) => async () => {
+        receivedTokens.push(token)
+        return Response.json([site])
+      },
+    })
+    vault.saveSecret('netlify-token', netlifyToken)
+    const responseText = await (await app.request(getRequest(netlifyPath))).text()
+    expect(JSON.parse(responseText)).toEqual({
+      state: 'active',
+      siteName: site.name,
+      siteUrl: site.ssl_url,
+      adminUrl: site.admin_url,
+    })
+    expect(responseText).not.toContain(netlifyToken)
+    expect(receivedTokens).toEqual([netlifyToken])
+  })
+
+  it('reports a repository no site builds as inactive', async () => {
+    const { app, vault } = createTestApp({ createNetlifyFetcher: () => async () => Response.json([]) })
+    vault.saveSecret('netlify-token', netlifyToken)
+    expect(await (await app.request(getRequest(netlifyPath))).json()).toEqual({ state: 'inactive' })
+  })
+
+  it('passes on why a site could not be created', async () => {
+    const { app, vault } = createTestApp({ createNetlifyFetcher: () => async () => Response.json([]) })
+    vault.saveSecret('netlify-token', netlifyToken)
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(jsonRequest('POST', netlifyPath, {}))
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ error: expect.stringContaining('Link one in Netlify once') })
+  })
+})
