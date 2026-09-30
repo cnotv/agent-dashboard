@@ -10,4 +10,8 @@ const subscribeToColorScheme = (onChange: () => void): (() => void) => {
 
 const readColorScheme = (): 'light' | 'dark' => (window.matchMedia(darkSchemeQuery).matches ? 'dark' : 'light')
 
+/**
+ * Follows the system's light or dark preference as it changes.
+ * @returns The current scheme.
+ */
 export const useColorScheme = (): 'light' | 'dark' => useSyncExternalStore(subscribeToColorScheme, readColorScheme)

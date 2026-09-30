@@ -10,9 +10,14 @@ import type { AuthCookieNames, AuthDependencies, GitHubSignIn, SignInFailure } f
 const maximumSessionMilliseconds = 8 * 60 * 60_000
 const pendingSignInSeconds = 10 * 60
 
-// The __Host- prefix makes the browser refuse the cookie unless it is Secure, host-only and
-// path-wide, so a sibling subdomain cannot plant or read it. Plain http on localhost cannot
-// carry a Secure cookie in every browser, so local runs go without the prefix.
+/**
+ * Names the session and pending sign-in cookies for this deployment.
+ * The __Host- prefix makes the browser refuse the cookie unless it is Secure, host-only and
+ * path-wide, so a sibling subdomain cannot plant or read it. Plain http on localhost cannot
+ * carry a Secure cookie in every browser, so local runs go without the prefix.
+ * @param secureCookies Whether the dashboard is served over https.
+ * @returns The two cookie names.
+ */
 export const authCookieNamesFor = (secureCookies: boolean): AuthCookieNames => {
   const prefix = secureCookies ? '__Host-' : ''
   return { session: `${prefix}agent_dashboard_session`, pendingSignIn: `${prefix}agent_dashboard_sign_in` }
@@ -22,6 +27,10 @@ export const publicApiPaths = ['/api/health', '/api/auth/session', '/api/auth/gi
 
 const signInFailedPath = (failure: SignInFailure): string => `/?sign-in-error=${failure}`
 
+/**
+ * Builds the /api/auth routes: the session read, the GitHub sign-in start and callback, and sign-out.
+ * @returns The routes, mounted under /api/auth.
+ */
 export const createAuthRoutes = ({ sessionStore, githubSignIn, signInRequired, secureCookies, now }: AuthDependencies) => {
   const cookieNames = authCookieNamesFor(secureCookies)
   const cookieOptions = { httpOnly: true, secure: secureCookies, sameSite: 'Lax', path: '/' } as const

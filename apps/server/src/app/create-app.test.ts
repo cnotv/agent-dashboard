@@ -167,7 +167,7 @@ describe('pull request recordings', () => {
   })
 
   it('serves the newest recording of the head commit from this origin, downloading it once', async () => {
-    const { app, vault, receivedRestPaths } = createTestApp({}, {}, { now: 0 }, recordingResponses())
+    const { app, vault, receivedRestRequests } = createTestApp({}, {}, { now: 0 }, recordingResponses())
     vault.saveSecret('github-token', sampleToken)
     const videoResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/video?sha=fedc9876'))
     expect(videoResponse.status).toBe(200)
@@ -176,7 +176,9 @@ describe('pull request recordings', () => {
     expect(new Uint8Array(await videoResponse.arrayBuffer())).toEqual(recordedVideo)
     const imageResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/image?sha=fedc9876'))
     expect(new Uint8Array(await imageResponse.arrayBuffer())).toEqual(recordedScreenshot)
-    expect(receivedRestPaths.filter((path) => path.endsWith('/zip'))).toEqual(['/repos/cnotv/generative-art/actions/artifacts/12/zip'])
+    expect(receivedRestRequests.filter((request) => request.path.endsWith('/zip')).map((request) => request.path)).toEqual([
+      '/repos/cnotv/generative-art/actions/artifacts/12/zip',
+    ])
   })
 
   it('falls back to the body when the commit has no recording', async () => {
@@ -185,5 +187,67 @@ describe('pull request recordings', () => {
     const response = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/7/media/video?sha=0123abcd'))
     expect(response.status).toBe(302)
     expect(response.headers.get('location')).toBe(signedVideoUrl)
+  })
+})
+
+describe('merge and close', () => {
+  const pullPath = '/repos/cnotv/generative-art/pulls/7'
+  const headSha = 'a'.repeat(40)
+  const mergeRequest = (body: unknown = { title: 'feat: marbles (#6)', headSha }) =>
+    jsonRequest('POST', '/api/repositories/cnotv/generative-art/pulls/7/merge', body)
+
+  it('squash-merges pinned to the head commit, titled with the pull request number', async () => {
+    const { app, vault, receivedRestRequests } = createTestApp({}, {}, { now: 0 }, { [`${pullPath}/merge`]: Response.json({ merged: true }) })
+    vault.saveSecret('github-token', sampleToken)
+    expect((await app.request(mergeRequest())).status).toBe(204)
+    expect(receivedRestRequests).toContainEqual({
+      path: `${pullPath}/merge`,
+      method: 'PUT',
+      body: { merge_method: 'squash', commit_title: 'feat: marbles (#6) (#7)', sha: headSha },
+    })
+  })
+
+  it('closes a pull request without merging it', async () => {
+    const { app, vault, receivedRestRequests } = createTestApp({}, {}, { now: 0 }, { [pullPath]: Response.json({ state: 'closed' }) })
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(jsonRequest('POST', '/api/repositories/cnotv/generative-art/pulls/7/close', {}))
+    expect(response.status).toBe(204)
+    expect(receivedRestRequests).toContainEqual({ path: pullPath, method: 'PATCH', body: { state: 'closed' } })
+  })
+
+  it("passes on GitHub's reason when it refuses", async () => {
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, {
+      [`${pullPath}/merge`]: Response.json({ message: 'Head branch was modified' }, { status: 409 }),
+    })
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(mergeRequest())
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ error: 'Head branch was modified' })
+  })
+
+  it('says which permission is missing when GitHub forbids the write', async () => {
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, {
+      [pullPath]: Response.json({ message: 'Resource not accessible by integration' }, { status: 403 }),
+    })
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(jsonRequest('POST', '/api/repositories/cnotv/generative-art/pulls/7/close', {}))
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: expect.stringContaining('write access to pull requests and contents') })
+  })
+
+  it('refuses a malformed head commit, and a repository that is not configured', async () => {
+    const { app, vault } = createTestApp()
+    vault.saveSecret('github-token', sampleToken)
+    expect((await app.request(mergeRequest({ title: 'x', headSha: 'not-a-sha' }))).status).toBe(400)
+    const otherRepository = jsonRequest('POST', '/api/repositories/someone/else/pulls/7/merge', { title: 'x', headSha })
+    expect((await app.request(otherRepository)).status).toBe(404)
+  })
+
+  it('refuses a merge sent from another origin', async () => {
+    const { app } = createTestApp()
+    const crossOrigin = jsonRequest('POST', '/api/repositories/cnotv/generative-art/pulls/7/merge', { title: 'x', headSha }, {
+      origin: 'https://attacker.example',
+    })
+    expect((await app.request(crossOrigin)).status).toBe(403)
   })
 })

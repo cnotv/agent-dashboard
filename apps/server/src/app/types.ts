@@ -1,8 +1,7 @@
 import type { RepositoryReference } from '@agent-dashboard/contracts'
 import type { ActivityDependencies } from '../activity/types.ts'
 import type { AuthDependencies, DashboardSession } from '../auth/types.ts'
-import type { GraphqlFetcher } from '../github/types.ts'
-import type { GithubRestFetcher } from '../media/types.ts'
+import type { GithubRestFetcher, GithubRestRequest, GraphqlFetcher } from '../github/types.ts'
 import type { SecretDefinitionWithTester, SecretTestRunner, Vault } from '../secrets/types.ts'
 
 export interface AppDependencies {
@@ -22,4 +21,8 @@ export interface AppDependencies {
 
 export interface AppEnvironment {
   Variables: { session: DashboardSession | null }
+}
+
+export interface ReceivedRestRequest extends GithubRestRequest {
+  path: string
 }

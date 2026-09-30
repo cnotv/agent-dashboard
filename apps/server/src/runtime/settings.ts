@@ -64,6 +64,11 @@ const resolveGitHubSignIn = (sources: SettingsSources, publicUrl: URL): SettingR
   }
 }
 
+/**
+ * Reads and checks every setting from the environment, refusing combinations that would be unsafe.
+ * @param sources The environment and the default paths.
+ * @returns The settings, or the reason the server must not start.
+ */
 export const resolveRuntimeSettings = (sources: SettingsSources): RuntimeSettingsResult => {
   const { environment } = sources
   const modeResult = resolveMode(environment.AGENT_DASHBOARD_MODE)
@@ -110,14 +115,26 @@ export const resolveRuntimeSettings = (sources: SettingsSources): RuntimeSetting
   }
 }
 
-// Rejecting unknown Host headers is what stops a web page on another origin from reaching
-// this server through DNS rebinding, since loopback binding alone does not.
+/**
+ * Tells whether a request's Host header names this server.
+ * Rejecting unknown Host headers is what stops a web page on another origin from reaching
+ * this server through DNS rebinding, since loopback binding alone does not.
+ * @param hostHeader The Host header, with or without a port.
+ * @param allowedHostNames Loopback names locally, the public host name in cloud mode.
+ * @returns True when the host is allowed.
+ */
 export const isAllowedHostHeader = (hostHeader: string | undefined, allowedHostNames: string[]): boolean => {
   if (hostHeader === undefined) return false
   const hostName = hostHeader.startsWith('[') ? hostHeader.slice(0, hostHeader.indexOf(']') + 1) : hostHeader.split(':')[0]
   return hostName !== undefined && allowedHostNames.includes(hostName)
 }
 
+/**
+ * Tells whether a mutation comes from the dashboard's own page. A request with no Origin is not from a page at all.
+ * @param originHeader The Origin header, if any.
+ * @param hostHeader The Host header.
+ * @returns True when the origin matches the host or is absent.
+ */
 export const isSameOriginRequest = (originHeader: string | undefined, hostHeader: string | undefined): boolean => {
   if (originHeader === undefined) return true
   try {

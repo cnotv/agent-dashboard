@@ -1,0 +1,111 @@
+import { AlertDialog, Button, Flex, Tooltip } from '@radix-ui/themes'
+import { useState } from 'react'
+import type { PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import { useToast } from '@/hooks/useToast'
+import { dashboardApi } from '@/lib/api'
+
+interface PullRequestActionsProps {
+  repository: RepositoryReference
+  pullRequest: PullRequestSummary
+  onChanged: () => void
+}
+
+// The reason merging is off, or null when GitHub may be asked; GitHub still has the last word on
+// checks and reviews, and its refusal is shown as it gives it.
+const mergeBlockerOf = (pullRequest: PullRequestSummary): string | null => {
+  if (pullRequest.isDraft) return 'A draft cannot be merged; mark it ready on GitHub first'
+  if (pullRequest.mergeable === 'CONFLICTING') return 'It has merge conflicts'
+  if (pullRequest.headSha === null) return 'Its head commit is not known yet; refresh the board'
+  return null
+}
+
+/**
+ * The Merge and Close buttons at the foot of a board card. Each asks for confirmation, because
+ * both act on GitHub at once and neither is undone from here; afterwards the board reloads.
+ */
+export const PullRequestActions = ({ repository, pullRequest, onChanged }: PullRequestActionsProps) => {
+  const toast = useToast()
+  const [isWorking, setIsWorking] = useState(false)
+  const mergeBlocker = mergeBlockerOf(pullRequest)
+
+  const run = async (action: () => Promise<void>, doneMessage: string): Promise<void> => {
+    setIsWorking(true)
+    try {
+      await action()
+      toast.notifySuccess(doneMessage)
+      onChanged()
+    } catch (actionError) {
+      toast.notifyError(actionError)
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  return (
+    <Flex gap="2" align="center">
+      <AlertDialog.Root>
+        <Tooltip content={mergeBlocker ?? 'Squash and merge on GitHub'}>
+          <span>
+            <AlertDialog.Trigger>
+              <Button size="1" variant="soft" color="green" disabled={mergeBlocker !== null || isWorking}>
+                Merge
+              </Button>
+            </AlertDialog.Trigger>
+          </span>
+        </Tooltip>
+        <AlertDialog.Content maxWidth="440px">
+          <AlertDialog.Title>Merge #{pullRequest.number}?</AlertDialog.Title>
+          <AlertDialog.Description size="2">
+            Squash-merges &ldquo;{pullRequest.title}&rdquo; into the default branch. GitHub refuses it if the branch
+            moved since the board was loaded, or if its checks or reviews do not allow it yet.
+          </AlertDialog.Description>
+          <Flex gap="3" mt="4" justify="end">
+            <AlertDialog.Cancel>
+              <Button variant="soft" color="gray">
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action>
+              <Button
+                color="green"
+                onClick={() => void run(() => dashboardApi.mergePullRequest(repository, pullRequest), `#${pullRequest.number} merged`)}
+              >
+                Merge
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+
+      <AlertDialog.Root>
+        <AlertDialog.Trigger>
+          <Button size="1" variant="ghost" color="red" disabled={isWorking}>
+            Close
+          </Button>
+        </AlertDialog.Trigger>
+        <AlertDialog.Content maxWidth="440px">
+          <AlertDialog.Title>Close #{pullRequest.number}?</AlertDialog.Title>
+          <AlertDialog.Description size="2">
+            Closes &ldquo;{pullRequest.title}&rdquo; without merging it. The branch stays, so it can be reopened on
+            GitHub.
+          </AlertDialog.Description>
+          <Flex gap="3" mt="4" justify="end">
+            <AlertDialog.Cancel>
+              <Button variant="soft" color="gray">
+                Cancel
+              </Button>
+            </AlertDialog.Cancel>
+            <AlertDialog.Action>
+              <Button
+                color="red"
+                onClick={() => void run(() => dashboardApi.closePullRequest(repository, pullRequest), `#${pullRequest.number} closed`)}
+              >
+                Close pull request
+              </Button>
+            </AlertDialog.Action>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </Flex>
+  )
+}

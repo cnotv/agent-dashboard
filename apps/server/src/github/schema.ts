@@ -120,3 +120,5 @@ export const boardQuery = `
     }
   }
 `
+
+export const githubErrorSchema = z.object({ message: z.string() })

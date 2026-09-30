@@ -3,6 +3,10 @@ import type { Board, RepositoryReference } from '@agent-dashboard/contracts'
 import { dashboardApi } from '@/lib/api'
 import { errorMessageOf, repositoryKey } from '@/lib/presentation'
 
+/**
+ * Loads the configured repositories once.
+ * @returns The repositories and any load error.
+ */
 export const useRepositories = () => {
   const [repositories, setRepositories] = useState<RepositoryReference[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -23,6 +27,11 @@ interface BoardResult {
   errorMessage: string | null
 }
 
+/**
+ * Loads a repository's board and reloads it on demand, ignoring answers for a repository no longer selected.
+ * @param repository The selected repository, or null before one is known.
+ * @returns The board, any load error, whether it is loading, and refresh.
+ */
 export const useBoard = (repository: RepositoryReference | null) => {
   const requestKey = repository === null ? null : repositoryKey(repository)
   const [result, setResult] = useState<BoardResult>({ requestKey: null, board: null, errorMessage: null })

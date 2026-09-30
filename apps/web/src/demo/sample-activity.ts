@@ -119,6 +119,12 @@ const summaryOf = (sample: SampleSession, now: number): AgentSessionSummary => {
   }
 }
 
+/**
+ * Builds demo sessions and their timeline relative to now, so demo mode always looks current.
+ * @param hours The window asked for.
+ * @param now The current time in milliseconds.
+ * @returns The demo sessions overview.
+ */
 export const sampleSessionsOverview = (hours: number, now: number): SessionsOverview => {
   const windowStartedAt = new Date(now - hours * hourMilliseconds).toISOString()
   const summaries = sampleSessions.map((sample) => summaryOf(sample, now)).filter((session) => session.lastEventAt >= windowStartedAt)
@@ -138,6 +144,12 @@ export const sampleSessionsOverview = (hours: number, now: number): SessionsOver
 // A repeatable weekly rhythm rather than random numbers, so every reload shows the same chart.
 const dailyScale = [0.2, 1, 0.85, 1.3, 0.7, 1.1, 0]
 
+/**
+ * Builds a demo usage report with a fixed weekly rhythm, so every reload shows the same chart.
+ * @param days The period asked for.
+ * @param now The current time in milliseconds.
+ * @returns The demo usage report.
+ */
 export const sampleUsageReport = (days: number, now: number): UsageReport => {
   const windowStartedAt = new Date(now - days * dayMilliseconds).toISOString()
   const byDay = Array.from({ length: days }, (_, dayIndex) => {

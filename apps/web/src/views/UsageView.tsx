@@ -36,6 +36,7 @@ const modelRows = (report: UsageReport): UsageBarRow[] =>
     total: usage.tokens.total,
   }))
 
+/** The Usage page: tokens for all repositories, then by day, repository, model and pull request. */
 export const UsageView = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const periodDays = periodDaysFrom(searchParams.get('days'))

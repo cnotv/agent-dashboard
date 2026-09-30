@@ -16,6 +16,12 @@ const toSummary = (row: Record<string, unknown>): IngestTokenSummary => ({
   lastUsedAt: typeof row.last_used_at === 'string' ? row.last_used_at : null,
 })
 
+/**
+ * Creates the store of ingest tokens, keeping only a hash of each.
+ * @param database The database; its table is created when missing.
+ * @param now The clock, for creation and last-use times.
+ * @returns The ingest token store.
+ */
 export const createIngestTokenStore = (database: DatabaseSync, now: () => number): IngestTokenStore => {
   database.exec(`
     CREATE TABLE IF NOT EXISTS ingest_tokens (

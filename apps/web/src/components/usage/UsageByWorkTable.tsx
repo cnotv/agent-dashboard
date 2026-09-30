@@ -88,6 +88,7 @@ const workColumns = (grandTotal: number) =>
     }),
   ])
 
+/** Token usage per pull request or branch as a sortable table, linking each issue and pull request. */
 export const UsageByWorkTable = ({ rows, grandTotal }: { rows: UsageByWork[]; grandTotal: number }) => (
   <Card size="1">
     <Flex direction="column" gap="2">

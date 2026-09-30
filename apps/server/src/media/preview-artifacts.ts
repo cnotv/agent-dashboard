@@ -1,7 +1,8 @@
 import { unzipSync } from 'fflate'
 import type { Board, MediaKind, RepositoryReference } from '@agent-dashboard/contracts'
 import { previewArtifactListSchema } from './schema.ts'
-import type { GithubRestFetcher, PreviewArtifactsBySha, PreviewFiles } from './types.ts'
+import type { GithubRestFetcher } from '../github/types.ts'
+import type { PreviewArtifactsBySha, PreviewFiles } from './types.ts'
 
 // The names the shared pr-preview workflow in agent-base uploads.
 export const previewArtifactName = 'pr-preview'

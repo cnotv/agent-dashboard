@@ -2,8 +2,16 @@ import { request } from 'node:http'
 import { text } from 'node:stream/consumers'
 import type { HostedResponse } from './types.ts'
 
-// node:http sends exactly the Host header it is given, and which Host the server accepts is
-// what the healthcheck and the smoke test are about.
+/**
+ * Sends a GET with an exact Host header and reads the whole answer.
+ * node:http sends exactly the Host header it is given, and which Host the server accepts is
+ * what the healthcheck and the smoke test are about.
+ * @param baseUrl Where the server listens.
+ * @param host The Host header to send.
+ * @param path The path to request.
+ * @param timeoutMilliseconds How long to wait before giving up.
+ * @returns The status, the Location header and the body.
+ */
 export const requestWithHost = (baseUrl: string, host: string, path: string, timeoutMilliseconds = 3000): Promise<HostedResponse> =>
   new Promise((resolve, reject) => {
     const target = new URL(path, baseUrl)

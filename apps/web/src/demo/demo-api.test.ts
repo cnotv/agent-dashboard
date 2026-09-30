@@ -61,4 +61,21 @@ describe('createDemoApi', () => {
     const [pullRequest] = sampleBoardColumns.flatMap((column) => column.cards).flatMap((card) => (card.pullRequest ? [card.pullRequest] : []))
     expect(demoApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'example' }, pullRequest!, 'video')).toBe('/demo-media/video.webm')
   })
+
+  it('shows a merged pull request gone with its issue, and a closed one leaving its issue behind', async () => {
+    const demoApi = createDemoApi()
+    const repository = { owner: 'cnotv', name: 'example' }
+    const cardsOf = async () => (await demoApi.readBoard(repository, false)).columns.flatMap((column) => column.cards)
+    const [issueCard, pullRequestOnlyCard] = [
+      (await cardsOf()).find((card) => card.issue !== null && card.pullRequest !== null),
+      (await cardsOf()).find((card) => card.issue === null && card.pullRequest !== null),
+    ]
+    await demoApi.closePullRequest(repository, issueCard!.pullRequest!)
+    expect((await cardsOf()).find((card) => card.issue?.number === issueCard!.issue!.number)).toMatchObject({
+      pullRequest: null,
+      status: 'no-pull-request',
+    })
+    await demoApi.mergePullRequest(repository, pullRequestOnlyCard!.pullRequest!)
+    expect((await cardsOf()).some((card) => card.pullRequest?.number === pullRequestOnlyCard!.pullRequest!.number)).toBe(false)
+  })
 })

@@ -46,8 +46,10 @@ Create the App once at <https://github.com/settings/apps/new>:
    `http://localhost:4317/api/auth/github/callback` as a second one to sign in locally too.
 3. Keep **Expire user authorization tokens** on. Leave **Request user authorization during
    installation** off, and untick **Webhook: Active**.
-4. **Repository permissions**, all read-only: Actions, Checks, Commit statuses, Contents,
-   Issues, Pull requests (Metadata is added on its own).
+4. **Repository permissions**: read-only for Actions, Checks, Commit statuses and Issues; **read
+   and write** for Contents and Pull requests, which the Merge and Close buttons need (Metadata
+   is added on its own). Leave those two read-only to keep the dashboard unable to change
+   anything; the buttons then show GitHub's refusal.
 5. **Only on this account**, then create it. Copy the **Client ID** and generate a **client
    secret**.
 6. **Install App** on your account, for the repositories in `config/repos.json`. The board can
@@ -116,8 +118,9 @@ features that use a stored API key, since GitHub access comes from the sign-in.
 ## Credentials
 
 Signed in with GitHub, the board reads GitHub as you. Without sign-in, open **Credentials**
-and add a GitHub token (fine-grained, read access to issues, pull requests, checks and actions
-on the repositories in `config/repos.json`). API keys for
+and add a GitHub token (fine-grained, read access to issues, checks and actions on the
+repositories in `config/repos.json`, and write access to contents and pull requests for Merge
+and Close). API keys for
 Anthropic, OpenAI and OpenRouter are stored the same way, for sessions that are not on a
 subscription.
 
@@ -150,6 +153,15 @@ Both are fed by the machines running Claude Code, not read from them:
 The token is shown once and stored as a hash. It can only send events and metrics, never
 read anything, and **Revoke** cuts one machine off. A session silent for six hours counts as
 inactive, since a closed terminal never reports that it ended.
+
+## Merge and close
+
+A board card with a pull request has **Merge** and **Close** buttons, each asking for
+confirmation. Merge squash-merges with the pull request's title followed by its number, and
+sends the head commit the card shows, so GitHub refuses it if anyone pushed since the board
+loaded. Close closes the pull request without merging and leaves the branch. Either way the
+board reloads, and a refusal from GitHub (conflicts, required checks or reviews, missing write
+permission) is shown as GitHub words it. Merge is off for drafts and conflicting branches.
 
 ## Screenshots and videos
 
@@ -194,8 +206,8 @@ without all three configured.
 ## UI
 
 React 19 with [Radix Themes](https://www.radix-ui.com/themes) (light and dark follow the
-system) and [TanStack Table](https://tanstack.com/table) for sorting, searching, expanding
-and paging. No Tailwind.
+system) and [TanStack Table](https://tanstack.com/table) for the sortable tables on Sessions
+and Usage. No Tailwind.
 
 ## Develop
 

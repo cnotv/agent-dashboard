@@ -25,6 +25,11 @@ const stateByClaudeHookEvent: Record<string, AgentSessionState> = {
 // http://proxy@127.0.0.1:port/git/<owner>/<name>: the last two path segments are the repository.
 const remoteRepositoryPattern = /[:/]([^/:]+)\/([^/]+?)(?:\.git)?\/?$/
 
+/**
+ * Reads the owner and name from a git remote, whether https, ssh or a proxy address.
+ * @param remote The remote URL the hook sent.
+ * @returns The repository, or null when the remote is missing or unreadable.
+ */
 export const repositoryFromRemote = (remote: string | undefined): RepositoryReference | null => {
   const remoteMatch = remote === undefined ? null : remoteRepositoryPattern.exec(remote.trim())
   return remoteMatch?.[1] && remoteMatch[2] ? { owner: remoteMatch[1], name: remoteMatch[2] } : null
@@ -42,6 +47,13 @@ const emptyToNull = (value: string | undefined): string | null => {
   return trimmed === '' || trimmed === 'HEAD' ? null : trimmed
 }
 
+/**
+ * Turns a Claude Code hook or Codex notification into a session event.
+ * @param payload The hook's JSON body.
+ * @param headers The provider, branch and remote the hook sent alongside it.
+ * @param occurredAt When the event arrived.
+ * @returns The event, or null for a hook that says nothing about the session's state.
+ */
 export const agentEventFrom = (payload: HookPayload, headers: HookHeaders, occurredAt: string): AgentEvent | null => {
   const provider = providerFrom(headers.provider)
   const sessionId = provider === 'codex' ? payload['thread-id'] : payload.session_id
@@ -72,6 +84,12 @@ const nanosecondsToIso = (value: string | number | undefined, fallback: string):
   return Number.isFinite(milliseconds) && milliseconds > 0 ? new Date(milliseconds).toISOString() : fallback
 }
 
+/**
+ * Picks Claude Code's token counts out of an OTLP metrics export.
+ * @param request The parsed OTLP request.
+ * @param receivedAt When it arrived, used when a data point carries no time.
+ * @returns One point per session, model and token type.
+ */
 export const tokenUsagePointsFrom = (request: OtlpMetricsRequest, receivedAt: string): TokenUsagePoint[] =>
   request.resourceMetrics.flatMap((resourceMetric) =>
     resourceMetric.scopeMetrics.flatMap((scopeMetric) =>

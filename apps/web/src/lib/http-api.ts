@@ -11,6 +11,11 @@ const readErrorMessage = async (response: Response): Promise<string> => {
   }
 }
 
+/**
+ * Creates the API that talks to a dashboard server.
+ * @param apiBaseUrl The server's address, or empty for the same origin.
+ * @returns The API; each call throws with the server's error message.
+ */
 export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
   const requestJson = async <ResponseBody>(path: string, init: RequestInit = {}): Promise<ResponseBody> => {
     const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -48,6 +53,12 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     listIngestTokens: () => requestJson('/api/ingest-tokens'),
     createIngestToken: (label) => sendJson('POST', '/api/ingest-tokens', { label }),
     revokeIngestToken: (tokenId) => sendJson('DELETE', ingestTokenPath(tokenId)),
+    mergePullRequest: (repository, pullRequest) =>
+      sendJson('POST', `${repositoryPath(repository)}/pulls/${pullRequest.number}/merge`, {
+        title: pullRequest.title,
+        headSha: pullRequest.headSha,
+      }),
+    closePullRequest: (repository, pullRequest) => sendJson('POST', `${repositoryPath(repository)}/pulls/${pullRequest.number}/close`),
     pullRequestMediaUrl: (repository, pullRequest, kind) =>
       `${apiBaseUrl}${repositoryPath(repository)}/pulls/${pullRequest.number}/media/${kind}${pullRequest.headSha ? `?sha=${encodeURIComponent(pullRequest.headSha)}` : ''}`,
   }

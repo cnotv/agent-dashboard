@@ -1,35 +1,31 @@
-import { ReloadIcon, RowsIcon, ViewVerticalIcon } from '@radix-ui/react-icons'
-import { Badge, Button, Callout, Flex, SegmentedControl, Select, Skeleton, Text } from '@radix-ui/themes'
+import { ReloadIcon } from '@radix-ui/react-icons'
+import { Badge, Button, Callout, Flex, Select, Skeleton, Text } from '@radix-ui/themes'
 import { useMemo } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router'
 import { BoardCardItem } from '@/components/board/BoardCardItem'
-import { IssuesTable } from '@/components/board/IssuesTable'
 import { useBoard, useRepositories } from '@/hooks/useBoard'
 import { issueStatusColors, issueStatusLabels, parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 
 const skeletonColumnCount = 6
 
+/** The Issues page: the chosen repository's issues and pull requests as a board, one column per status. */
 export const IssuesBoardView = () => {
   const { repositories, errorMessage: repositoriesError } = useRepositories()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const firstRepositoryKey = repositories[0] ? repositoryKey(repositories[0]) : ''
   const selectedRepositoryKey = searchParams.get('repository') ?? firstRepositoryKey
-  const layout = searchParams.get('layout') === 'table' ? 'table' : 'board'
   const selectedRepository = useMemo(() => parseRepositoryKey(selectedRepositoryKey), [selectedRepositoryKey])
   const { board, isLoading, errorMessage, refresh } = useBoard(selectedRepository)
 
-  const updateSearchParam = (name: string, value: string): void =>
-    setSearchParams((currentParams) => new URLSearchParams({ ...Object.fromEntries(currentParams), [name]: value }), {
-      replace: true,
-    })
+  const selectRepository = (nextKey: string): void => setSearchParams({ repository: nextKey }, { replace: true })
 
   const loadError = repositoriesError ?? errorMessage
 
   return (
     <Flex direction="column" gap="5">
       <Flex gap="3" align="center" wrap="wrap">
-        <Select.Root value={selectedRepositoryKey} onValueChange={(nextKey) => updateSearchParam('repository', nextKey)}>
+        <Select.Root value={selectedRepositoryKey} onValueChange={selectRepository}>
           <Select.Trigger placeholder="Choose a repository" aria-label="Repository" style={{ minWidth: 240 }} />
           <Select.Content>
             {repositories.map((repository) => (
@@ -42,18 +38,6 @@ export const IssuesBoardView = () => {
         <Button variant="soft" color="gray" onClick={refresh} loading={isLoading}>
           <ReloadIcon /> Refresh
         </Button>
-        <SegmentedControl.Root value={layout} onValueChange={(nextLayout) => updateSearchParam('layout', nextLayout)}>
-          <SegmentedControl.Item value="board" aria-label="Board">
-            <Flex gap="1" align="center">
-              <ViewVerticalIcon /> Board
-            </Flex>
-          </SegmentedControl.Item>
-          <SegmentedControl.Item value="table" aria-label="Table">
-            <Flex gap="1" align="center">
-              <RowsIcon /> Table
-            </Flex>
-          </SegmentedControl.Item>
-        </SegmentedControl.Root>
         {board && (
           <Text size="1" color="gray">
             Updated {new Date(board.fetchedAt).toLocaleTimeString()}
@@ -77,9 +61,7 @@ export const IssuesBoardView = () => {
         </div>
       )}
 
-      {board && layout === 'table' && <IssuesTable cards={board.columns.flatMap((column) => column.cards)} />}
-
-      {board && layout === 'board' && (
+      {board && (
         <div className="board-columns">
           {board.columns.map((column) => (
             <Flex key={column.status} direction="column" gap="3">
@@ -96,6 +78,7 @@ export const IssuesBoardView = () => {
                   key={card.issue ? `issue-${card.issue.number}` : `pull-${card.pullRequest?.number}`}
                   card={card}
                   repository={board.repository}
+                  onPullRequestChanged={refresh}
                 />
               ))}
             </Flex>

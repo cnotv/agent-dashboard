@@ -11,6 +11,7 @@ interface UsageByDayChartProps {
   isStale: boolean
 }
 
+/** The tokens-per-day column chart, with a tooltip on every day and the busiest day labelled. */
 export const UsageByDayChart = ({ days, isStale }: UsageByDayChartProps) => {
   const axisTicks = niceAxisTicks(Math.max(0, ...days.map((usage) => usage.tokens.total)))
   const axisTop = axisTicks.at(-1) ?? 0

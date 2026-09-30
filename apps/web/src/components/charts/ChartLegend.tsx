@@ -6,6 +6,7 @@ interface LegendEntry {
   swatchClassName: string
 }
 
+/** A chart legend: a swatch in the series colour beside each label in text colour. */
 export const ChartLegend = ({ entries }: { entries: LegendEntry[] }) => (
   <Flex gap="4" wrap="wrap" asChild>
     <ul className="chart-legend" aria-label="Legend">

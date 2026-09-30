@@ -7,6 +7,7 @@ import { runtimeConfiguration } from '@/lib/runtime-configuration'
 
 const dashboardUrl = (): string => runtimeConfiguration.apiBaseUrl || window.location.origin
 
+/** The Connect Claude Code panel: issues a machine's ingest token, shows it once in a settings snippet, and lists tokens to revoke. */
 export const ConnectAgentsPanel = () => {
   const toast = useToast()
   const { ingestTokens, createIngestToken, revokeIngestToken } = useIngestTokens(toast.notifyError)

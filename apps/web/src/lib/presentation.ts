@@ -34,13 +34,28 @@ export const gateOverallLabels: Record<GateOverallState, string> = {
   failing: 'Checks failing',
 }
 
+/**
+ * Names a repository as owner/name, for keys, labels and the URL.
+ * @param repository The repository.
+ * @returns owner/name.
+ */
 export const repositoryKey = (repository: { owner: string; name: string }): string => `${repository.owner}/${repository.name}`
 
+/**
+ * Reads an owner/name key back into a repository.
+ * @param key The key, usually from the URL.
+ * @returns The repository, or null when the key is malformed.
+ */
 export const parseRepositoryKey = (key: string): { owner: string; name: string } | null => {
   const [owner, name, ...extraParts] = key.split('/')
   return owner && name && extraParts.length === 0 ? { owner, name } : null
 }
 
+/**
+ * Turns anything thrown into text for a toast or a callout.
+ * @param errorOrText An Error or any other thrown value.
+ * @returns The message.
+ */
 export const errorMessageOf = (errorOrText: unknown): string =>
   errorOrText instanceof Error ? errorOrText.message : String(errorOrText)
 
@@ -71,15 +86,35 @@ export const providerLabels: Record<AgentProvider, string> = { claude: 'Claude',
 const compactNumberFormat = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 })
 const fullNumberFormat = new Intl.NumberFormat('en')
 
+/**
+ * Writes a count exactly below ten thousand and compactly above, as 12.9K or 4.2M.
+ * @param value The count.
+ * @returns The formatted count.
+ */
 export const formatCompactCount = (value: number): string =>
   value < 10_000 ? fullNumberFormat.format(value) : compactNumberFormat.format(value)
 
+/**
+ * Writes a count in full with thousands separators, for tooltips.
+ * @param value The count.
+ * @returns The formatted count.
+ */
 export const formatFullCount = (value: number): string => fullNumberFormat.format(value)
 
+/**
+ * Writes a share as a whole percentage.
+ * @param share The share, from 0 to 1.
+ * @returns The percentage, such as 38%.
+ */
 export const formatPercent = (share: number): string => `${Math.round(share * 100)}%`
 
 const minuteMilliseconds = 60_000
 
+/**
+ * Writes a duration in hours and minutes.
+ * @param milliseconds The duration.
+ * @returns The duration, such as 1 h 5 min.
+ */
 export const formatDuration = (milliseconds: number): string => {
   const totalMinutes = Math.max(0, Math.round(milliseconds / minuteMilliseconds))
   const hours = Math.floor(totalMinutes / 60)
@@ -88,13 +123,31 @@ export const formatDuration = (milliseconds: number): string => {
   return minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`
 }
 
+/**
+ * Writes how long ago something happened.
+ * @param isoTime When it happened.
+ * @param now The current time in milliseconds.
+ * @returns The elapsed time, or just now inside the last minute.
+ */
 export const formatTimeAgo = (isoTime: string, now: number): string => {
   const elapsed = now - Date.parse(isoTime)
   return elapsed < minuteMilliseconds ? 'just now' : `${formatDuration(elapsed)} ago`
 }
 
+/**
+ * Builds the GitHub address of an issue.
+ * @param repository The repository.
+ * @param issueNumber The issue number.
+ * @returns The issue URL.
+ */
 export const gitHubIssueUrl = (repository: RepositoryReference, issueNumber: number): string =>
   `https://github.com/${repository.owner}/${repository.name}/issues/${issueNumber}`
 
+/**
+ * Builds the GitHub address of a pull request.
+ * @param repository The repository.
+ * @param pullRequestNumber The pull request number.
+ * @returns The pull request URL.
+ */
 export const gitHubPullRequestUrl = (repository: RepositoryReference, pullRequestNumber: number): string =>
   `https://github.com/${repository.owner}/${repository.name}/pull/${pullRequestNumber}`

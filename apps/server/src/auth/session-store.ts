@@ -18,8 +18,13 @@ const withoutExpired = <Entry extends { expiresAt: number }>(entries: Map<string
 const newestEntries = <Entry>(entries: Map<string, Entry>, limit: number): Map<string, Entry> =>
   new Map([...entries].slice(-limit))
 
-// Sessions live in memory on purpose: no GitHub token is ever written to disk, and a restart
-// costs one click on "Sign in with GitHub", which GitHub completes without a prompt.
+/**
+ * Creates the store of signed-in sessions and pending sign-ins.
+ * Sessions live in memory on purpose: no GitHub token is ever written to disk, and a restart
+ * costs one click on "Sign in with GitHub", which GitHub completes without a prompt.
+ * @param now The clock, injected so tests can move time.
+ * @returns The session store.
+ */
 export const createSessionStore = (now: () => number): SessionStore => {
   const memory = {
     sessions: new Map<string, DashboardSession>(),

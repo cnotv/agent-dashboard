@@ -6,11 +6,21 @@ import type { GraphqlFetcher, IssueNode, PullRequestNode, RollupContext } from '
 
 const githubGraphqlUrl = 'https://api.github.com/graphql'
 
+/**
+ * Turns one entry of a commit's status rollup, a check run or a legacy status, into a gate.
+ * @param context The rollup entry from GitHub.
+ * @returns The gate's name, state and link.
+ */
 export const gateFromRollupContext = (context: RollupContext): CheckGate =>
   context.__typename === 'CheckRun'
     ? { name: context.name, state: gateStateFromCheckRun(context.status, context.conclusion), url: context.detailsUrl }
     : { name: context.context, state: gateStateFromStatusContext(context.state), url: context.targetUrl }
 
+/**
+ * Turns a pull request from the board query into the summary the board shows.
+ * @param node The pull request from GitHub.
+ * @returns The summary with its gates and their totals.
+ */
 export const mapPullRequestNode = (node: PullRequestNode): PullRequestSummary => {
   const headCommit = node.commits.nodes[0]?.commit ?? null
   const gates = (headCommit?.statusCheckRollup?.contexts.nodes ?? [])
@@ -32,6 +42,11 @@ export const mapPullRequestNode = (node: PullRequestNode): PullRequestSummary =>
   }
 }
 
+/**
+ * Turns an issue from the board query into the summary the board shows.
+ * @param node The issue from GitHub.
+ * @returns The summary, with the pull requests that close it.
+ */
 export const mapIssueNode = (node: IssueNode): IssueSummary => ({
   number: node.number,
   title: node.title,
@@ -41,6 +56,11 @@ export const mapIssueNode = (node: IssueNode): IssueSummary => ({
   linkedPullRequestNumbers: node.closedByPullRequestsReferences.nodes.map((reference) => reference.number),
 })
 
+/**
+ * Creates a GraphQL caller that reads GitHub with one token.
+ * @param token A user token or the stored GitHub token.
+ * @returns The fetcher, which throws on any non-2xx answer.
+ */
 export const createGithubGraphqlFetcher =
   (token: string): GraphqlFetcher =>
   async (query, variables) => {
@@ -54,6 +74,12 @@ export const createGithubGraphqlFetcher =
     return githubResponse.json()
   }
 
+/**
+ * Reads a repository's open issues and pull requests in one query and sorts them into board columns.
+ * @param fetchGraphql The GraphQL caller.
+ * @param repository The repository to read.
+ * @returns The board.
+ */
 export const fetchRepositoryBoard = async (fetchGraphql: GraphqlFetcher, repository: RepositoryReference): Promise<Board> => {
   const rawResponse = await fetchGraphql(boardQuery, { owner: repository.owner, name: repository.name })
   const parsedResponse = boardResponseSchema.safeParse(rawResponse)

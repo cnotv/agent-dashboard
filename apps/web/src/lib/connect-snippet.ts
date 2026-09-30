@@ -1,8 +1,12 @@
 import type { ConnectSnippetInput } from './types'
 
-// Claude Code only reads telemetry settings from the user's own settings (or managed settings
-// and the shell), never from a repository's .claude/settings.json, so the snippet is for
-// ~/.claude/settings.json. The hook reads the first two; the rest turn on token metrics.
+/**
+ * Builds the ~/.claude/settings.json snippet that points a machine's hooks and token metrics at this dashboard.
+ * Claude Code only reads telemetry settings from the user's own settings (or managed settings
+ * and the shell), never from a repository's .claude/settings.json, so the snippet is for
+ * ~/.claude/settings.json. The hook reads the first two; the rest turn on token metrics.
+ * @returns The snippet as formatted JSON.
+ */
 export const connectSnippet = ({ dashboardUrl, ingestToken }: ConnectSnippetInput): string => {
   const baseUrl = dashboardUrl.replace(/\/+$/, '')
   return JSON.stringify(

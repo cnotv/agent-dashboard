@@ -8,6 +8,7 @@ interface StatTileProps {
   isHero?: boolean
 }
 
+/** A headline number with its label and an optional detail line; the hero variant is for the one number a page leads with. */
 export const StatTile = ({ label, value, detail, isHero = false }: StatTileProps) => (
   <Card size="2">
     <Flex direction="column" gap="1">
