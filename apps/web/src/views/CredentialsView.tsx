@@ -5,6 +5,9 @@ import { VaultPanel } from '@/components/credentials/VaultPanel'
 import { useToast } from '@/hooks/useToast'
 import { useVault } from '@/hooks/useVault'
 
+/** The Credentials page: the vault and the stored secrets, each with add, test and remove. */
+/** The Credentials page: the vault and the stored secrets, each with add, test and remove. */
+/** The Credentials page: the vault and the stored secrets, each with add, test and remove. */
 export const CredentialsView = () => {
   const toast = useToast()
   const vault = useVault(toast.notifyError)

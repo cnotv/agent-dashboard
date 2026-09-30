@@ -77,6 +77,8 @@ const issuesTableColumns = columnHelper.columns([
   }),
 ])
 
+/** The board as a searchable, sortable, paged table, with each row expanding to its checks. */
+/** The board as a searchable, sortable, paged table, with each row expanding to its checks. */
 export const IssuesTable = ({ cards }: { cards: BoardCard[] }) => {
   const tableRows = useMemo(() => boardTableRows(cards), [cards])
 

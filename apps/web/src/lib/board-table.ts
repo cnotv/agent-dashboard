@@ -7,8 +7,13 @@ const latestTimestamp = (card: BoardCard): string =>
     .filter((timestamp): timestamp is string => timestamp !== undefined)
     .reduce((latest, timestamp) => (timestamp > latest ? timestamp : latest), '')
 
-// The table sorts and searches on plain fields, so each card is flattened once here rather
-// than teaching every column how to reach into nested issue and pull request objects.
+/**
+ * Flattens board cards into rows the table can sort and search.
+ * The table sorts and searches on plain fields, so each card is flattened once here rather
+ * than teaching every column how to reach into nested issue and pull request objects.
+ * @param cards The board's cards.
+ * @returns One row per card.
+ */
 export const boardTableRows = (cards: BoardCard[]): BoardTableRow[] =>
   cards.map((card) => ({
     rowKey: card.issue ? `issue-${card.issue.number}` : `pull-${card.pullRequest?.number ?? 'unknown'}`,

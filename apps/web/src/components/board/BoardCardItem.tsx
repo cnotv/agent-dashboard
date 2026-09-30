@@ -4,6 +4,7 @@ import type { BoardCard, RepositoryReference } from '@agent-dashboard/contracts'
 import { GateStrip } from './GateStrip'
 import { PullRequestMedia } from './PullRequestMedia'
 
+/** One board card: the issue, its labels, and its pull request with the check gates. */
 export const BoardCardItem = ({ card, repository }: { card: BoardCard; repository: RepositoryReference }) => (
   <Card size="2">
     <Flex direction="column" gap="3">

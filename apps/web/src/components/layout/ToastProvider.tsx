@@ -6,6 +6,9 @@ import { errorMessageOf } from '@/lib/presentation'
 import { ToastContext } from '@/lib/toast-context'
 import type { ToastApi, ToastMessage, ToastTone } from '@/lib/types'
 
+/** Holds the toast queue and gives the app the success and error notifiers. */
+/** Holds the toast queue and gives the app the success and error notifiers. */
+/** Holds the toast queue and gives the app the success and error notifiers. */
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toastMessages, setToastMessages] = useState<ToastMessage[]>([])
 

@@ -35,6 +35,11 @@ const readJsonBody = async (request: Request): Promise<unknown> => {
   }
 }
 
+/**
+ * Builds the dashboard's HTTP app: security headers, the Host and origin guard, sign-in, and every /api route.
+ * @param dependencies The vault, auth, repositories and GitHub access the routes use; injected so tests can swap each one.
+ * @returns The Hono app, ready to serve or to call in tests with app.request.
+ */
 export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> => {
   const { vault, auth, activity, repositories, secretDefinitions } = dependencies
   const sessionCookieName = authCookieNamesFor(auth.secureCookies).session

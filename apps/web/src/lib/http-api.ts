@@ -11,6 +11,11 @@ const readErrorMessage = async (response: Response): Promise<string> => {
   }
 }
 
+/**
+ * Creates the API that talks to a dashboard server.
+ * @param apiBaseUrl The server's address, or empty for the same origin.
+ * @returns The API; each call throws with the server's error message.
+ */
 export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
   const requestJson = async <ResponseBody>(path: string, init: RequestInit = {}): Promise<ResponseBody> => {
     const response = await fetch(`${apiBaseUrl}${path}`, {

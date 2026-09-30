@@ -119,6 +119,12 @@ const assertPassphraseStrength = (passphrase: string): void => {
   }
 }
 
+/**
+ * Creates the encrypted credential vault on a SQLite database.
+ * @param database The database that holds the encrypted rows.
+ * @param options Whether the key comes from the environment or a passphrase.
+ * @returns The vault.
+ */
 export const createVault = (database: DatabaseSync, options: VaultOptions): Vault => {
   createSchema(database)
 

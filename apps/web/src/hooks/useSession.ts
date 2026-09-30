@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import type { SessionState } from '@agent-dashboard/contracts'
 import { dashboardApi } from '@/lib/api'
 
+/**
+ * Loads who is signed in and offers sign-out.
+ * @param onError Called when the session cannot be read.
+ * @returns The session state, signOut and the sign-in address.
+ */
 export const useSession = (onError: (error: unknown) => void) => {
   const [sessionState, setSessionState] = useState<SessionState | null>(null)
 

@@ -34,13 +34,28 @@ export const gateOverallLabels: Record<GateOverallState, string> = {
   failing: 'Checks failing',
 }
 
+/**
+ * Names a repository as owner/name, for keys, labels and the URL.
+ * @param repository The repository.
+ * @returns owner/name.
+ */
 export const repositoryKey = (repository: { owner: string; name: string }): string => `${repository.owner}/${repository.name}`
 
+/**
+ * Reads an owner/name key back into a repository.
+ * @param key The key, usually from the URL.
+ * @returns The repository, or null when the key is malformed.
+ */
 export const parseRepositoryKey = (key: string): { owner: string; name: string } | null => {
   const [owner, name, ...extraParts] = key.split('/')
   return owner && name && extraParts.length === 0 ? { owner, name } : null
 }
 
+/**
+ * Turns anything thrown into text for a toast or a callout.
+ * @param errorOrText An Error or any other thrown value.
+ * @returns The message.
+ */
 export const errorMessageOf = (errorOrText: unknown): string =>
   errorOrText instanceof Error ? errorOrText.message : String(errorOrText)
 

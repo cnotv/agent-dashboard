@@ -54,7 +54,16 @@ an exploratory prototype, which still owes them before the pull request is marke
 - **Config files hold data, never logic.**
 - **Update every call site** when a signature, type or export changes. No overloads, shims or
   deprecated aliases to keep old callers working.
-- **Comments explain why, never what.**
+- **Every exported function has a JSDoc comment**: one line on what it is for, then `@param`
+  and `@returns` (a component takes the line only). Types stay in TypeScript, not in the
+  comment.
+- **The linter always enforces the JSDoc rule.** Every repository's lint config turns on
+  `eslint-plugin-jsdoc` with `jsdoc/require-jsdoc` for exported functions, arrow functions
+  included, and `jsdoc/require-param` and `jsdoc/require-returns`; tests may be left out. A
+  repository that lacks it adds it in the next change that touches its lint config, or in one of
+  its own. A rule nobody runs is a rule nobody keeps.
+- **Other comments explain why, never what.** If code needs a comment to say what it does,
+  rewrite the code.
 - **DRY and KISS.** Extract a pattern the second time it appears; prefer the simplest thing
   that works. Reuse what the repository already has before writing something new.
 

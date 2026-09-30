@@ -4,6 +4,11 @@ import { dashboardApi } from '@/lib/api'
 
 const readVaultSnapshot = () => Promise.all([dashboardApi.readVault(), dashboardApi.listSecrets()])
 
+/**
+ * Loads the vault and its secrets, and refreshes both after every change.
+ * @param onError Called when the vault cannot be read.
+ * @returns The vault state, the secrets and the actions on them.
+ */
 export const useVault = (onError: (error: unknown) => void) => {
   const [vaultState, setVaultState] = useState<VaultState | null>(null)
   const [secrets, setSecrets] = useState<SecretSummary[]>([])

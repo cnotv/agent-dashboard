@@ -25,6 +25,14 @@ const pullRequestBodyHtmlFixture = {
   },
 }
 
+/**
+ * Builds the app on an in-memory database with a fake GitHub that records every token and REST path it is given.
+ * @param overrides App dependencies to replace for one test.
+ * @param authOverrides Auth settings to replace, such as requiring sign-in.
+ * @param clock The time the activity routes see; a test moves it by changing now.
+ * @param restResponses The answer the fake GitHub REST API gives for each path; any other path is a 404.
+ * @returns The app, its vault, database and activity stores, and the tokens and REST paths GitHub received.
+ */
 export const createTestApp = (
   overrides: Partial<AppDependencies> = {},
   authOverrides: Partial<AuthDependencies> = {},
@@ -69,6 +77,14 @@ export const createTestApp = (
   return { app, vault, database, receivedTokens, receivedRestPaths, activityStore, ingestTokens }
 }
 
+/**
+ * Builds a request with a JSON body and an allowed Host header, as the browser would send it.
+ * @param method The HTTP method.
+ * @param path The path, starting with /api.
+ * @param body The value sent as JSON.
+ * @param extraHeaders Headers added to or replacing the defaults.
+ * @returns The request, ready for app.request.
+ */
 export const jsonRequest = (method: string, path: string, body: unknown, extraHeaders: Record<string, string> = {}) =>
   new Request(`http://${testHost}${path}`, {
     method,
@@ -76,5 +92,11 @@ export const jsonRequest = (method: string, path: string, body: unknown, extraHe
     body: JSON.stringify(body),
   })
 
+/**
+ * Builds a GET request with an allowed Host header.
+ * @param path The path, starting with /api.
+ * @param extraHeaders Headers added to or replacing the defaults.
+ * @returns The request, ready for app.request.
+ */
 export const getRequest = (path: string, extraHeaders: Record<string, string> = {}) =>
   new Request(`http://${testHost}${path}`, { headers: { host: testHost, ...extraHeaders } })

@@ -9,6 +9,9 @@ import { issueStatusColors, issueStatusLabels, parseRepositoryKey, repositoryKey
 
 const skeletonColumnCount = 6
 
+/** The Issues page: the chosen repository's issues and pull requests as a board or a table. */
+/** The Issues page: the chosen repository's issues and pull requests as a board or a table. */
+/** The Issues page: the chosen repository's issues and pull requests as a board or a table. */
 export const IssuesBoardView = () => {
   const { repositories, errorMessage: repositoriesError } = useRepositories()
   const [searchParams, setSearchParams] = useSearchParams()

@@ -4,8 +4,12 @@ import { sampleIngestTokens, sampleSessionsOverview, sampleUsageReport } from '.
 import { demoMediaUrls, sampleBoardColumns } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
-// Demo mode has no server: everything below lives in this page and is gone on reload, so a
-// value typed into the credentials dialog never leaves the browser.
+/**
+ * Creates the in-page API that demo mode uses in place of a server.
+ * Demo mode has no server: everything below lives in this page and is gone on reload, so a
+ * value typed into the credentials dialog never leaves the browser.
+ * @returns The demo API, holding its state in memory only.
+ */
 export const createDemoApi = (): DashboardApi => {
   const demoVaultState: VaultState = { mode: 'environment', initialised: true, unlocked: true }
   const demoSessionState: SessionState = { signInRequired: false, signInAvailable: false, user: demoUser }

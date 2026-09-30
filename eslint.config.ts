@@ -1,5 +1,6 @@
 import javascript from '@eslint/js'
 import globals from 'globals'
+import jsdoc from 'eslint-plugin-jsdoc'
 import reactHooks from 'eslint-plugin-react-hooks'
 import typescript from 'typescript-eslint'
 
@@ -31,6 +32,30 @@ export default typescript.config(
       globals: { ...globals.browser, ...globals.node },
     },
     rules: functionalStyle,
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['**/*.test.ts', '**/*.test.tsx'],
+    ...jsdoc.configs['flat/recommended-typescript-error'],
+    rules: {
+      ...jsdoc.configs['flat/recommended-typescript-error'].rules,
+      // Every exported function and component, however it is declared, carries a comment.
+      'jsdoc/require-jsdoc': [
+        'error',
+        {
+          publicOnly: true,
+          require: { FunctionDeclaration: true, ArrowFunctionExpression: true, FunctionExpression: true },
+        },
+      ],
+      // A destructured argument is described by its type; naming its parts again adds nothing.
+      'jsdoc/require-param': ['error', { checkDestructuredRoots: false }],
+      'jsdoc/check-param-names': ['error', { checkDestructured: false }],
+    },
+  },
+  {
+    // A component's props are its type and what it returns is always markup.
+    files: ['**/*.tsx'],
+    rules: { 'jsdoc/require-returns': 'off', 'jsdoc/require-param': 'off' },
   },
   {
     files: ['apps/web/**/*.tsx', 'apps/web/**/*.ts'],
