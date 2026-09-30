@@ -6,4 +6,4 @@ export type PullRequestNode = z.infer<typeof pullRequestNodeSchema>
 export type IssueNode = z.infer<typeof issueNodeSchema>
 export type RollupContext = z.infer<typeof rollupContextSchema>
 
-export type GraphqlFetcher = (query: string, variables: Record<string, string>) => Promise<unknown>
+export type GraphqlFetcher = (query: string, variables: Record<string, string | number>) => Promise<unknown>

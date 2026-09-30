@@ -24,7 +24,7 @@ describe('fetchRepositoryBoard', () => {
   })
 
   it('passes owner and name as variables, never inside the query text', async () => {
-    const receivedVariables: Record<string, string>[] = []
+    const receivedVariables: Record<string, string | number>[] = []
     await fetchRepositoryBoard(async (_query, variables) => {
       receivedVariables.push(variables)
       return boardResponseFixture

@@ -92,7 +92,11 @@ export const IssuesBoardView = () => {
                 </Badge>
               </Flex>
               {column.cards.map((card) => (
-                <BoardCardItem key={card.issue ? `issue-${card.issue.number}` : `pull-${card.pullRequest?.number}`} card={card} />
+                <BoardCardItem
+                  key={card.issue ? `issue-${card.issue.number}` : `pull-${card.pullRequest?.number}`}
+                  card={card}
+                  repository={board.repository}
+                />
               ))}
             </Flex>
           ))}

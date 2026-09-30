@@ -1,4 +1,10 @@
-import type { BoardColumn } from '@agent-dashboard/contracts'
+import type { BoardColumn, MediaKind } from '@agent-dashboard/contracts'
+
+// Served from apps/web/public so demo mode has a recording to open without any server.
+export const demoMediaUrls: Record<MediaKind, string> = {
+  image: '/demo-media/screenshot.png',
+  video: '/demo-media/video.webm',
+}
 
 export const sampleBoardColumns: BoardColumn[] = [
   {
@@ -46,7 +52,8 @@ export const sampleBoardColumns: BoardColumn[] = [
             "pending": 0,
             "total": 0,
             "overallState": "none"
-          }
+          },
+          "media": { "hasImage": false, "hasVideo": false }
         },
         "status": "draft"
       }
@@ -104,7 +111,8 @@ export const sampleBoardColumns: BoardColumn[] = [
             "pending": 1,
             "total": 3,
             "overallState": "failing"
-          }
+          },
+          "media": { "hasImage": true, "hasVideo": true }
         },
         "status": "checks-failing"
       }

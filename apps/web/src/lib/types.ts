@@ -5,6 +5,8 @@ import type {
   CreatedIngestToken,
   IngestTokenSummary,
   IssueStatus,
+  MediaKind,
+  PullRequestSummary,
   RepositoryReference,
   SecretSummary,
   SessionState,
@@ -54,6 +56,7 @@ export interface DashboardApi {
   testSecret: (name: string) => Promise<SecretTestResult>
   listRepositories: () => Promise<RepositoryReference[]>
   readBoard: (repository: RepositoryReference, refresh: boolean) => Promise<Board>
+  pullRequestMediaUrl: (repository: RepositoryReference, pullRequest: PullRequestSummary, kind: MediaKind) => string
   readSessions: (hours: number) => Promise<SessionsOverview>
   readUsage: (days: number) => Promise<UsageReport>
   listIngestTokens: () => Promise<IngestTokenSummary[]>
