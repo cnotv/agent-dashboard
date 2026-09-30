@@ -237,7 +237,9 @@ permission) is shown as GitHub words it. Merge is off for drafts and conflicting
 ## Screenshots and videos
 
 A board card with a pull request has an image and a video button at its bottom. The video
-opens in a popover, plays on its own and can go full screen. Each comes from the first of:
+opens in a popover and plays on its own. Clicking the screenshot or the video, or its icon
+while the preview shows, puts it full screen; on an iPhone the video uses the phone's own
+player and the screenshot opens in a new tab. Each comes from the first of:
 
 1. The `pr-preview` artifact of the pull request's head commit, recorded by the shared
    workflow in agent-base. The server downloads it once with the reader's GitHub token (the App

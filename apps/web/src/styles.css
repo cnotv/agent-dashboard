@@ -502,8 +502,24 @@ body {
   background: var(--gray-a3);
 }
 
+.media-viewer-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.media-viewer-button:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+  border-radius: var(--radius-3);
+}
+
 .media-viewer:fullscreen {
   max-height: none;
+  cursor: auto;
   border-radius: 0;
   background: black;
 }
