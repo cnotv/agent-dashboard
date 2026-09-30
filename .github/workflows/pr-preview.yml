@@ -1,0 +1,19 @@
+# Records one screenshot and one video of the demo UI for every pull request, through the
+# shared recorder in agent-base. The route comes from a "Preview route:" line in the body.
+name: PR preview
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pr-preview:
+    uses: cnotv/agent-base/.github/workflows/pr-preview.yml@6c77cda4a80ab9e7fb5b88ce142a6e3359bfa9a2 # main
+    with:
+      start-command: VITE_DEMO_MODE=1 pnpm --filter @agent-dashboard/web exec vite --port 5318 --strictPort
+      port: 5318
+      default-route: /sessions
+      settle-ms: 2000
+      node-version: '22'

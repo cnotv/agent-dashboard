@@ -34,4 +34,24 @@ describe('createDemoApi', () => {
     const secondApi = createDemoApi()
     expect((await secondApi.listSecrets()).find((secret) => secret.name === 'github-token')?.isSet).toBe(true)
   })
+
+  it('shows running sessions inside the window it was asked for', async () => {
+    const overview = await createDemoApi().readSessions(24)
+    expect(overview.sessions.some((session) => session.state === 'working')).toBe(true)
+    expect(overview.timeline.every((segment) => segment.startedAt >= overview.windowStartedAt)).toBe(true)
+  })
+
+  it('adds up usage so the parts match the total', async () => {
+    const report = await createDemoApi().readUsage(30)
+    const dailyTotal = report.byDay.reduce((sum, usage) => sum + usage.tokens.total, 0)
+    expect(dailyTotal).toBe(report.totals.total)
+  })
+
+  it('creates and revokes ingest tokens in memory', async () => {
+    const demoApi = createDemoApi()
+    const createdToken = await demoApi.createIngestToken('Desk')
+    expect((await demoApi.listIngestTokens()).map((ingestToken) => ingestToken.label)).toContain('Desk')
+    await demoApi.revokeIngestToken(createdToken.summary.tokenId)
+    expect((await demoApi.listIngestTokens()).map((ingestToken) => ingestToken.label)).not.toContain('Desk')
+  })
 })

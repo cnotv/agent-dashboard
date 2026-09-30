@@ -1,0 +1,32 @@
+import type { TokenTotals, UsageByDay } from '@agent-dashboard/contracts'
+
+const dayMilliseconds = 24 * 60 * 60_000
+
+const emptyTotals = (): TokenTotals => ({ input: 0, output: 0, cacheRead: 0, cacheCreation: 0, total: 0 })
+
+// The server only reports days that had usage; the chart needs the quiet days too, as zero,
+// or a gap in the work would read as no gap at all.
+export const fillMissingDays = (byDay: UsageByDay[], windowStartedAt: string, generatedAt: string): UsageByDay[] => {
+  const firstDay = Date.parse(`${windowStartedAt.slice(0, 10)}T00:00:00Z`)
+  const lastDay = Date.parse(`${generatedAt.slice(0, 10)}T00:00:00Z`)
+  const usageByDayKey = new Map(byDay.map((usage) => [usage.day, usage.tokens]))
+  const dayCount = Math.max(0, Math.round((lastDay - firstDay) / dayMilliseconds) + 1)
+  return Array.from({ length: dayCount }, (_, dayIndex) => {
+    const day = new Date(firstDay + dayIndex * dayMilliseconds).toISOString().slice(0, 10)
+    return { day, tokens: usageByDayKey.get(day) ?? emptyTotals() }
+  })
+}
+
+const niceStepFactors = [1, 2, 2.5, 5, 10]
+
+// Axis ticks on round numbers: the step is 1, 2, 2.5 or 5 times a power of ten, chosen so the
+// axis has at most `maximumTickCount` intervals and its top clears the largest value.
+export const niceAxisTicks = (maximumValue: number, maximumTickCount = 4): number[] => {
+  if (maximumValue <= 0) return [0]
+  const roughStep = maximumValue / maximumTickCount
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep))
+  const step = (niceStepFactors.find((factor) => factor * magnitude >= roughStep) ?? 10) * magnitude
+  return Array.from({ length: Math.ceil(maximumValue / step) + 1 }, (_, tickIndex) => tickIndex * step)
+}
+
+export const shareOf = (part: number, whole: number): number => (whole > 0 ? part / whole : 0)

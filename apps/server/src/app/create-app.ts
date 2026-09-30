@@ -3,6 +3,8 @@ import { getCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
 import { z } from 'zod'
 import type { Board } from '@agent-dashboard/contracts'
+import { createActivityRoutes, createIngestRoutes, ingestApiPaths } from '../activity/activity-routes.ts'
+import type { PullRequestFinder } from '../activity/aggregate.ts'
 import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
 import { fetchRepositoryBoard } from '../github/board.ts'
 import { findRepository } from '../repos/load-repositories.ts'
@@ -23,7 +25,7 @@ const readJsonBody = async (request: Request): Promise<unknown> => {
 }
 
 export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> => {
-  const { vault, auth, repositories, secretDefinitions } = dependencies
+  const { vault, auth, activity, repositories, secretDefinitions } = dependencies
   const sessionCookieName = authCookieNamesFor(auth.secureCookies).session
   const boardCache = new Map<string, { board: Board; storedAt: number }>()
   const app = new Hono<AppEnvironment>()
@@ -51,7 +53,8 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   app.use('/api/*', async (context, next) => {
     const session = auth.sessionStore.readSession(getCookie(context, sessionCookieName))
     context.set('session', session)
-    if (auth.signInRequired && session === null && !publicApiPaths.includes(context.req.path)) {
+    const needsNoSession = publicApiPaths.includes(context.req.path) || ingestApiPaths.includes(context.req.path)
+    if (auth.signInRequired && session === null && !needsNoSession) {
       return context.json({ error: 'Sign in with GitHub first' }, 401)
     }
     return next()
@@ -63,7 +66,17 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     return context.json({ error: redact(error.message) }, 400)
   })
 
+  // Usage is joined to pull requests through boards already fetched for someone, so reading
+  // usage never spends a GitHub request of its own.
+  const findPullRequest: PullRequestFinder = (repository, branch) =>
+    [...boardCache.values()]
+      .filter(({ board }) => board.repository.owner === repository.owner && board.repository.name === repository.name)
+      .flatMap(({ board }) => board.columns.flatMap((column) => column.cards))
+      .find((card) => card.pullRequest?.headRefName === branch)?.pullRequest?.number ?? null
+
   app.route('/api/auth', createAuthRoutes(auth))
+  app.route('/api', createIngestRoutes(activity))
+  app.route('/api', createActivityRoutes(activity, findPullRequest))
 
   app.get('/api/health', (context) => context.json({ ok: true }))
 

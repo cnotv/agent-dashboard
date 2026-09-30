@@ -1,5 +1,6 @@
-import type { SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
+import type { IngestTokenSummary, SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
 import type { DashboardApi } from '@/lib/types'
+import { sampleIngestTokens, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
 import { sampleBoardColumns } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
@@ -8,7 +9,10 @@ import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 export const createDemoApi = (): DashboardApi => {
   const demoVaultState: VaultState = { mode: 'environment', initialised: true, unlocked: true }
   const demoSessionState: SessionState = { signInRequired: false, signInAvailable: false, user: demoUser }
-  const demoMemory: { secrets: SecretSummary[] } = { secrets: sampleSecrets.map((secret) => ({ ...secret })) }
+  const demoMemory: { secrets: SecretSummary[]; ingestTokens: IngestTokenSummary[] } = {
+    secrets: sampleSecrets.map((secret) => ({ ...secret })),
+    ingestTokens: sampleIngestTokens.map((ingestToken) => ({ ...ingestToken })),
+  }
 
   const replaceSecret = (name: string, update: Partial<SecretSummary>): void => {
     demoMemory.secrets = demoMemory.secrets.map((secret) => (secret.name === name ? { ...secret, ...update } : secret))
@@ -29,5 +33,16 @@ export const createDemoApi = (): DashboardApi => {
     testSecret: async () => ({ ok: true, status: null, message: 'Demo mode: nothing was sent' }),
     listRepositories: async () => sampleRepositories,
     readBoard: async (repository) => ({ repository, columns: sampleBoardColumns, fetchedAt: new Date().toISOString() }),
+    readSessions: async (hours) => sampleSessionsOverview(hours, Date.now()),
+    readUsage: async (days) => sampleUsageReport(days, Date.now()),
+    listIngestTokens: async () => demoMemory.ingestTokens,
+    createIngestToken: async (label) => {
+      const summary = { tokenId: `demo-${demoMemory.ingestTokens.length + 1}`, label, createdAt: new Date().toISOString(), lastUsedAt: null }
+      demoMemory.ingestTokens = [...demoMemory.ingestTokens, summary]
+      return { summary, token: 'adt_demo-only-this-token-does-not-work-anywhere' }
+    },
+    revokeIngestToken: async (tokenId) => {
+      demoMemory.ingestTokens = demoMemory.ingestTokens.filter((ingestToken) => ingestToken.tokenId !== tokenId)
+    },
   }
 }

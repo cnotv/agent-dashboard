@@ -1,4 +1,5 @@
 import { Badge, Button, Card, Code, Flex, Table, Text } from '@radix-ui/themes'
+import { ConnectAgentsPanel } from '@/components/credentials/ConnectAgentsPanel'
 import { SecretDialog } from '@/components/credentials/SecretDialog'
 import { VaultPanel } from '@/components/credentials/VaultPanel'
 import { useToast } from '@/hooks/useToast'
@@ -94,6 +95,8 @@ export const CredentialsView = () => {
           </Table.Body>
         </Table.Root>
       </Card>
+
+      <ConnectAgentsPanel />
     </Flex>
   )
 }

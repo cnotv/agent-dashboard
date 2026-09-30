@@ -9,13 +9,17 @@ import { ToastProvider } from '@/components/layout/ToastProvider'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { CredentialsView } from '@/views/CredentialsView'
 import { IssuesBoardView } from '@/views/IssuesBoardView'
+import { SessionsView } from '@/views/SessionsView'
+import { UsageView } from '@/views/UsageView'
 
 const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
-      { index: true, element: <Navigate to="/issues" replace /> },
+      { index: true, element: <Navigate to="/sessions" replace /> },
+      { path: 'sessions', element: <SessionsView />, handle: { title: 'Sessions' } },
       { path: 'issues', element: <IssuesBoardView />, handle: { title: 'Issues' } },
+      { path: 'usage', element: <UsageView />, handle: { title: 'Usage' } },
       { path: 'credentials', element: <CredentialsView />, handle: { title: 'Credentials' } },
     ],
   },

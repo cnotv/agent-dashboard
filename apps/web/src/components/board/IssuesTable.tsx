@@ -1,7 +1,4 @@
 import {
-  CaretDownIcon,
-  CaretSortIcon,
-  CaretUpIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -11,6 +8,7 @@ import { Badge, Card, Flex, IconButton, Link, Table, Text, TextField } from '@ra
 import { createColumnHelper, flexRender, useTable } from '@tanstack/react-table'
 import { Fragment, useMemo } from 'react'
 import type { BoardCard } from '@agent-dashboard/contracts'
+import { SortIndicator } from '@/components/tables/SortIndicator'
 import { boardTableRows } from '@/lib/board-table'
 import { issueStatusColors, issueStatusLabels } from '@/lib/presentation'
 import type { BoardTableRow } from '@/lib/types'
@@ -78,9 +76,6 @@ const issuesTableColumns = columnHelper.columns([
     cell: ({ getValue }) => (getValue() ? new Date(getValue()).toLocaleString() : ''),
   }),
 ])
-
-const SortIndicator = ({ direction }: { direction: false | 'asc' | 'desc' }) =>
-  direction === 'asc' ? <CaretUpIcon /> : direction === 'desc' ? <CaretDownIcon /> : <CaretSortIcon color="var(--gray-8)" />
 
 export const IssuesTable = ({ cards }: { cards: BoardCard[] }) => {
   const tableRows = useMemo(() => boardTableRows(cards), [cards])
