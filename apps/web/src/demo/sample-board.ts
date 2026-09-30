@@ -90,7 +90,7 @@ export const sampleBoardColumns: BoardColumn[] = [
           gates: failingGates,
           gateSummary: { passed: 3, failed: 1, pending: 1, total: 6, overallState: 'failing' },
           media: { hasImage: true, hasVideo: true },
-          previewUrl: 'https://deploy-preview-30--cnotv-example.netlify.app',
+          previewUrl: 'https://deploy-preview-30--cnotv-example.netlify.app/games/MarbleMadness',
         },
         status: 'checks-failing',
       },

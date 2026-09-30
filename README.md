@@ -170,7 +170,8 @@ the branch has a merge conflict, the deploy preview, the screenshot and video, t
 Close. Checks show as a ring with one coloured arc per state (red failed, amber running, green
 passed, grey skipped or neutral) and the passed count; hovering it lists every check with its
 state and a link to its run. The globe opens the Netlify deploy preview once Netlify reports
-one.
+one, on the page named by a `Preview route: /path` line in the pull request body, or on its
+home page when there is none.
 
 ## Netlify
 
