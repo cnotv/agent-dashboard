@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Board, RepositoryReference } from '@agent-dashboard/contracts'
 import { dashboardApi } from '@/lib/api'
-import { errorMessageOf, repositoryKey } from '@/lib/presentation'
+import { errorMessageOf, parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 
 /**
  * Loads the configured repositories once.
@@ -21,20 +21,26 @@ export const useRepositories = () => {
   return { repositories, errorMessage }
 }
 
-interface BoardResult {
+interface BoardsResult {
   requestKey: string | null
-  board: Board | null
+  boards: Board[]
   errorMessage: string | null
 }
 
 /**
- * Loads a repository's board and reloads it on demand, ignoring answers for a repository no longer selected.
- * @param repository The selected repository, or null before one is known.
- * @returns The board, any load error, whether it is loading, and refresh.
+ * Loads the boards of one or more repositories side by side and reloads them on demand,
+ * ignoring answers for a selection no longer shown. A repository that fails to load leaves
+ * the others on screen, with its error alongside.
+ * @param repositories The repositories to show, empty before they are known.
+ * @returns The boards that loaded, the first error, whether they are loading, and refresh.
  */
-export const useBoard = (repository: RepositoryReference | null) => {
-  const requestKey = repository === null ? null : repositoryKey(repository)
-  const [result, setResult] = useState<BoardResult>({ requestKey: null, board: null, errorMessage: null })
+export const useBoards = (repositories: RepositoryReference[]) => {
+  const requestKey = repositories.length === 0 ? null : repositories.map(repositoryKey).join(',')
+  const [result, setResult] = useState<BoardsResult>({
+    requestKey: null,
+    boards: [],
+    errorMessage: null,
+  })
   const [refreshCount, setRefreshCount] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)
   // Set by the Refresh button and consumed by the next load, so switching repositories after
@@ -42,23 +48,27 @@ export const useBoard = (repository: RepositoryReference | null) => {
   const bypassCacheRef = useRef(false)
 
   useEffect(() => {
-    if (repository === null) return
+    if (requestKey === null) return
     const request = { isCurrent: true }
     const bypassCache = bypassCacheRef.current
     bypassCacheRef.current = false
-    dashboardApi
-      .readBoard(repository, bypassCache)
-      .then((board) => request.isCurrent && setResult({ requestKey: repositoryKey(repository), board, errorMessage: null }))
-      .catch(
-        (loadError: unknown) =>
-          request.isCurrent &&
-          setResult({ requestKey: repositoryKey(repository), board: null, errorMessage: errorMessageOf(loadError) }),
-      )
+    const requestedRepositories = requestKey.split(',').flatMap((key) => parseRepositoryKey(key) ?? [])
+    Promise.allSettled(requestedRepositories.map((repository) => dashboardApi.readBoard(repository, bypassCache)))
+      .then((outcomes) => {
+        if (!request.isCurrent) return
+        const boards = outcomes.flatMap((outcome) => (outcome.status === 'fulfilled' ? [outcome.value] : []))
+        const firstFailure = outcomes.find((outcome) => outcome.status === 'rejected')
+        setResult({
+          requestKey,
+          boards,
+          errorMessage: firstFailure ? errorMessageOf(firstFailure.reason) : null,
+        })
+      })
       .finally(() => request.isCurrent && setIsRefreshing(false))
     return () => {
       request.isCurrent = false
     }
-  }, [repository, refreshCount])
+  }, [requestKey, refreshCount])
 
   const refresh = (): void => {
     bypassCacheRef.current = true
@@ -68,7 +78,7 @@ export const useBoard = (repository: RepositoryReference | null) => {
 
   const isCurrentResult = result.requestKey === requestKey
   return {
-    board: isCurrentResult ? result.board : null,
+    boards: isCurrentResult ? result.boards : [],
     errorMessage: isCurrentResult ? result.errorMessage : null,
     isLoading: requestKey !== null && (!isCurrentResult || isRefreshing),
     refresh,
