@@ -45,8 +45,8 @@ export const IssuesBoardView = () => {
           onValueChange={selectScope}
           aria-label="Repositories shown"
         >
-          <SegmentedControl.Item value="one">One repository</SegmentedControl.Item>
           <SegmentedControl.Item value={allRepositoriesKey}>All repositories</SegmentedControl.Item>
+          <SegmentedControl.Item value="one">One repository</SegmentedControl.Item>
         </SegmentedControl.Root>
         {!showsAllRepositories && (
           <Select.Root value={selectedRepositoryKey} onValueChange={selectRepository}>
