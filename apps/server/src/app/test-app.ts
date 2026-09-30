@@ -11,7 +11,7 @@ import { generateKeyMaterial } from '../secrets/crypto.ts'
 import { secretDefinitions } from '../secrets/definitions.ts'
 import { createVault } from '../secrets/vault.ts'
 import { createApp } from './create-app.ts'
-import type { AppDependencies } from './types.ts'
+import type { AppDependencies, ReceivedRestRequest } from './types.ts'
 
 export const testHost = 'localhost:4317'
 
@@ -26,12 +26,12 @@ const pullRequestBodyHtmlFixture = {
 }
 
 /**
- * Builds the app on an in-memory database with a fake GitHub that records every token and REST path it is given.
+ * Builds the app on an in-memory database with a fake GitHub that records every token and REST request it is given.
  * @param overrides App dependencies to replace for one test.
  * @param authOverrides Auth settings to replace, such as requiring sign-in.
  * @param clock The time the activity routes see; a test moves it by changing now.
  * @param restResponses The answer the fake GitHub REST API gives for each path; any other path is a 404.
- * @returns The app, its vault, database and activity stores, and the tokens and REST paths GitHub received.
+ * @returns The app, its vault, database and activity stores, and the tokens and REST requests GitHub received.
  */
 export const createTestApp = (
   overrides: Partial<AppDependencies> = {},
@@ -44,7 +44,7 @@ export const createTestApp = (
   const ingestTokens = createIngestTokenStore(database, () => clock.now)
   const vault = createVault(database, { mode: 'environment', environmentKey: generateKeyMaterial() })
   const receivedTokens: string[] = []
-  const receivedRestPaths: string[] = []
+  const receivedRestRequests: ReceivedRestRequest[] = []
   const app = createApp({
     vault,
     auth: {
@@ -63,9 +63,9 @@ export const createTestApp = (
       receivedTokens.push(token)
       return query.includes('bodyHTML') ? pullRequestBodyHtmlFixture : boardResponseFixture
     },
-    createGithubRestFetcher: (token) => async (path) => {
+    createGithubRestFetcher: (token) => async (path, request = { method: 'GET' }) => {
       receivedTokens.push(token)
-      receivedRestPaths.push(path)
+      receivedRestRequests.push({ path, ...request })
       return restResponses[path] ?? new Response('{}', { status: 404 })
     },
     mediaCacheDirectory: mkdtempSync(join(tmpdir(), 'agent-dashboard-media-')),
@@ -74,7 +74,7 @@ export const createTestApp = (
     now: () => 0,
     ...overrides,
   })
-  return { app, vault, database, receivedTokens, receivedRestPaths, activityStore, ingestTokens }
+  return { app, vault, database, receivedTokens, receivedRestRequests, activityStore, ingestTokens }
 }
 
 /**

@@ -1,7 +1,7 @@
 import type { IngestTokenSummary, SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
-import type { DashboardApi } from '@/lib/types'
+import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'
 import { sampleIngestTokens, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
-import { demoMediaUrls, sampleBoardColumns } from './sample-board'
+import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
 /**
@@ -13,9 +13,14 @@ import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 export const createDemoApi = (): DashboardApi => {
   const demoVaultState: VaultState = { mode: 'environment', initialised: true, unlocked: true }
   const demoSessionState: SessionState = { signInRequired: false, signInAvailable: false, user: demoUser }
-  const demoMemory: { secrets: SecretSummary[]; ingestTokens: IngestTokenSummary[] } = {
+  const demoMemory: {
+    secrets: SecretSummary[]
+    ingestTokens: IngestTokenSummary[]
+    pullRequestOutcomes: Map<number, DemoPullRequestOutcome>
+  } = {
     secrets: sampleSecrets.map((secret) => ({ ...secret })),
     ingestTokens: sampleIngestTokens.map((ingestToken) => ({ ...ingestToken })),
+    pullRequestOutcomes: new Map(),
   }
 
   const replaceSecret = (name: string, update: Partial<SecretSummary>): void => {
@@ -36,7 +41,17 @@ export const createDemoApi = (): DashboardApi => {
     deleteSecret: async (name) => replaceSecret(name, { isSet: false, lastFour: null, updatedAt: null }),
     testSecret: async () => ({ ok: true, status: null, message: 'Demo mode: nothing was sent' }),
     listRepositories: async () => sampleRepositories,
-    readBoard: async (repository) => ({ repository, columns: sampleBoardColumns, fetchedAt: new Date().toISOString() }),
+    readBoard: async (repository) => ({
+      repository,
+      columns: applyDemoPullRequestOutcomes(sampleBoardColumns, demoMemory.pullRequestOutcomes),
+      fetchedAt: new Date().toISOString(),
+    }),
+    mergePullRequest: async (_repository, pullRequest) => {
+      demoMemory.pullRequestOutcomes = new Map([...demoMemory.pullRequestOutcomes, [pullRequest.number, 'merged']])
+    },
+    closePullRequest: async (_repository, pullRequest) => {
+      demoMemory.pullRequestOutcomes = new Map([...demoMemory.pullRequestOutcomes, [pullRequest.number, 'closed']])
+    },
     readSessions: async (hours) => sampleSessionsOverview(hours, Date.now()),
     readUsage: async (days) => sampleUsageReport(days, Date.now()),
     listIngestTokens: async () => demoMemory.ingestTokens,

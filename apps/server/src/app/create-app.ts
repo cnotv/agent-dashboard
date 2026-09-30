@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
 import { z } from 'zod'
@@ -8,6 +8,8 @@ import type { PullRequestFinder } from '../activity/aggregate.ts'
 import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
 import { fetchPullRequestBodyHtml, fetchRepositoryBoard } from '../github/board.ts'
 import { mediaUrlFromBodyHtml } from '../github/media.ts'
+import { closePullRequest, mergePullRequest } from '../github/pull-request-actions.ts'
+import type { PullRequestActionResult } from '../github/types.ts'
 import { readStoredMedia, storePreviewFiles } from '../media/media-store.ts'
 import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '../media/preview-artifacts.ts'
 import type { PreviewArtifactsBySha } from '../media/types.ts'
@@ -22,6 +24,17 @@ const secretBodySchema = z.object({ value: z.string().min(1).max(4096) })
 const rotateBodySchema = z.object({ nextKey: z.string().min(1) })
 const mediaParamsSchema = z.object({ number: z.coerce.number().int().positive(), kind: z.enum(['image', 'video']) })
 const commitShaSchema = z.string().regex(/^[0-9a-f]{7,40}$/)
+const pullRequestNumberSchema = z.coerce.number().int().positive()
+const mergeBodySchema = z.object({ title: z.string().trim().min(1).max(256), headSha: z.string().regex(/^[0-9a-f]{40}$/) })
+
+// GitHub answers 403 or 404 when the token may read a repository but not write to it; saying
+// which permission is missing saves a trip through the GitHub App settings.
+const writeAccessHint = 'The GitHub App or stored token needs write access to pull requests and contents.'
+
+const actionErrorOf = (result: Extract<PullRequestActionResult, { ok: false }>): { status: 403 | 409; body: { error: string } } =>
+  result.status === 403 || result.status === 404
+    ? { status: 403, body: { error: `${result.message}. ${writeAccessHint}` } }
+    : { status: 409, body: { error: result.message } }
 
 // GitHub's signed attachment links last about five minutes, so a rendered body is reused for
 // less than half of that and every link handed to the browser still has time left to play.
@@ -198,6 +211,49 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     const board = withPreviewMedia(boardFromGithub, artifactsBySha)
     boardCache.set(cacheKey, { board, storedAt: dependencies.now() })
     return context.json(board)
+  })
+
+  const forgetBoardsOf = (repository: { owner: string; name: string }): void =>
+    [...boardCache.keys()]
+      .filter((cacheKey) => cacheKey.endsWith(`:${repository.owner}/${repository.name}`))
+      .forEach((cacheKey) => boardCache.delete(cacheKey))
+
+  const answerPullRequestAction = (
+    context: Context<AppEnvironment>,
+    repository: { owner: string; name: string },
+    result: PullRequestActionResult,
+  ): Response => {
+    if (!result.ok) {
+      const actionError = actionErrorOf(result)
+      return context.json(actionError.body, actionError.status)
+    }
+    forgetBoardsOf(repository)
+    return context.body(null, 204)
+  }
+
+  app.post('/api/repositories/:owner/:name/pulls/:number/merge', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    const parsedNumber = pullRequestNumberSchema.safeParse(context.req.param('number'))
+    if (repository === undefined || !parsedNumber.success) return context.json({ error: 'Unknown pull request' }, 404)
+    const { title, headSha } = mergeBodySchema.parse(await readJsonBody(context.req.raw))
+    const githubToken = githubTokenOf(context.get('session'))
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const result = await mergePullRequest(dependencies.createGithubRestFetcher(githubToken), repository, {
+      number: parsedNumber.data,
+      title,
+      headSha,
+    })
+    return answerPullRequestAction(context, repository, result)
+  })
+
+  app.post('/api/repositories/:owner/:name/pulls/:number/close', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    const parsedNumber = pullRequestNumberSchema.safeParse(context.req.param('number'))
+    if (repository === undefined || !parsedNumber.success) return context.json({ error: 'Unknown pull request' }, 404)
+    const githubToken = githubTokenOf(context.get('session'))
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const result = await closePullRequest(dependencies.createGithubRestFetcher(githubToken), repository, parsedNumber.data)
+    return answerPullRequestAction(context, repository, result)
   })
 
   // The pr-preview recording of the pull request's head commit comes first, served from this

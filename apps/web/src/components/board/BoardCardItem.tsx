@@ -2,10 +2,20 @@ import { FileTextIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, Link, Separator, Text } from '@radix-ui/themes'
 import type { BoardCard, RepositoryReference } from '@agent-dashboard/contracts'
 import { GateStrip } from './GateStrip'
+import { PullRequestActions } from './PullRequestActions'
 import { PullRequestMedia } from './PullRequestMedia'
 
-/** One board card: the issue, its labels, and its pull request with the check gates. */
-export const BoardCardItem = ({ card, repository }: { card: BoardCard; repository: RepositoryReference }) => (
+interface BoardCardItemProps {
+  card: BoardCard
+  repository: RepositoryReference
+  onPullRequestChanged: () => void
+}
+
+/**
+ * One board card: the issue, its labels, and its pull request with the check gates, the
+ * screenshot and video, and the merge and close buttons.
+ */
+export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
     <Flex direction="column" gap="3">
       <Flex direction="column" gap="2">
@@ -46,7 +56,10 @@ export const BoardCardItem = ({ card, repository }: { card: BoardCard; repositor
             <GateStrip gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
           </Flex>
           <Separator size="4" />
-          <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
+          <Flex justify="between" align="center" gap="3" wrap="wrap">
+            <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
+            <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
+          </Flex>
         </>
       )}
     </Flex>

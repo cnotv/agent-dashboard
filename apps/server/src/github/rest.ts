@@ -1,9 +1,9 @@
-import type { GithubRestFetcher } from '../media/types.ts'
+import type { GithubRestFetcher } from './types.ts'
 
 const githubApiUrl = 'https://api.github.com'
 
 /**
- * Creates a REST caller that reads the GitHub API with one token.
+ * Creates a REST caller for the GitHub API with one token: reads, and the merge and close writes.
  * fetch drops the Authorization header when GitHub redirects a download to its storage host,
  * so the token never reaches the signed storage link.
  * @param token A user token or the stored GitHub token.
@@ -11,8 +11,10 @@ const githubApiUrl = 'https://api.github.com'
  */
 export const createGithubRestFetcher =
   (token: string): GithubRestFetcher =>
-  (path) =>
+  (path, request = { method: 'GET' }) =>
     fetch(`${githubApiUrl}${path}`, {
+      method: request.method,
+      body: request.body === undefined ? undefined : JSON.stringify(request.body),
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/vnd.github+json',

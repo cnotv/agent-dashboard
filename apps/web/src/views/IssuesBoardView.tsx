@@ -78,6 +78,7 @@ export const IssuesBoardView = () => {
                   key={card.issue ? `issue-${card.issue.number}` : `pull-${card.pullRequest?.number}`}
                   card={card}
                   repository={board.repository}
+                  onPullRequestChanged={refresh}
                 />
               ))}
             </Flex>

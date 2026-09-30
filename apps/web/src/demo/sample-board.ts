@@ -1,4 +1,5 @@
-import type { BoardColumn, MediaKind } from '@agent-dashboard/contracts'
+import type { BoardCard, BoardColumn, MediaKind } from '@agent-dashboard/contracts'
+import type { DemoPullRequestOutcome } from '@/lib/types'
 
 // Served from apps/web/public so demo mode has a recording to open without any server.
 export const demoMediaUrls: Record<MediaKind, string> = {
@@ -127,3 +128,24 @@ export const sampleBoardColumns: BoardColumn[] = [
     "cards": []
   }
 ]
+
+/**
+ * Shows the board as it would look after demo merges and closes: a merged pull request takes its
+ * issue with it, as the Closes line would on GitHub, and a closed one leaves its issue behind
+ * with no pull request.
+ * @param columns The sample board's columns.
+ * @param outcomes What happened to each changed pull request, by number.
+ * @returns The columns with the changed cards moved or removed.
+ */
+export const applyDemoPullRequestOutcomes = (
+  columns: BoardColumn[],
+  outcomes: Map<number, DemoPullRequestOutcome>,
+): BoardColumn[] => {
+  const cards = columns.flatMap((column) => column.cards).flatMap((card): BoardCard[] => {
+    const outcome = card.pullRequest ? outcomes.get(card.pullRequest.number) : undefined
+    if (outcome === undefined) return [card]
+    if (outcome === 'merged' || card.issue === null) return []
+    return [{ ...card, pullRequest: null, status: 'no-pull-request' }]
+  })
+  return columns.map((column) => ({ ...column, cards: cards.filter((card) => card.status === column.status) }))
+}

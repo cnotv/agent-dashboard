@@ -44,6 +44,8 @@ export interface DashboardApi {
   listRepositories: () => Promise<RepositoryReference[]>
   readBoard: (repository: RepositoryReference, refresh: boolean) => Promise<Board>
   pullRequestMediaUrl: (repository: RepositoryReference, pullRequest: PullRequestSummary, kind: MediaKind) => string
+  mergePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
+  closePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
   readSessions: (hours: number) => Promise<SessionsOverview>
   readUsage: (days: number) => Promise<UsageReport>
   listIngestTokens: () => Promise<IngestTokenSummary[]>
@@ -90,3 +92,5 @@ export interface RuntimeConfiguration {
   isDemoMode: boolean
   apiBaseUrl: string
 }
+
+export type DemoPullRequestOutcome = 'merged' | 'closed'
