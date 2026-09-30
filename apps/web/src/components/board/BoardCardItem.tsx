@@ -3,6 +3,7 @@ import { Badge, Card, Flex, IconButton, Link, Separator, Text, Tooltip } from '@
 import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashboard/contracts'
 import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'
+import { PullRequestFilesDrawer } from './PullRequestFilesDrawer'
 import { PullRequestMedia } from './PullRequestMedia'
 import { StartSessionDialog } from './StartSessionDialog'
 
@@ -51,7 +52,7 @@ const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
 /**
  * One board card: every issue its pull request works on, then the pull request, and one row of
  * icons: Start, then the pull request's checks, merge conflict, deploy preview, screenshot,
- * video, merge and close.
+ * video, changed files, merge and close.
  */
 export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
@@ -87,6 +88,7 @@ export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardC
             )}
             <PreviewButton previewUrl={card.pullRequest.previewUrl} />
             <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
+            <PullRequestFilesDrawer repository={repository} pullRequest={card.pullRequest} />
             <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
           </>
         )}

@@ -32,6 +32,23 @@ export interface PullRequestMedia {
   hasVideo: boolean
 }
 
+export type ChangedFileStatus = 'added' | 'removed' | 'modified' | 'renamed' | 'copied' | 'changed' | 'unchanged'
+
+export interface ChangedFile {
+  filename: string
+  previousFilename: string | null
+  status: ChangedFileStatus
+  additions: number
+  deletions: number
+  patch: string | null
+  blobUrl: string
+}
+
+export interface PullRequestFiles {
+  files: ChangedFile[]
+  isTruncated: boolean
+}
+
 export interface PullRequestSummary {
   number: number
   title: string

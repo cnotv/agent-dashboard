@@ -533,3 +533,122 @@ body {
 .card-icon-row span:has(> .rt-IconButton) {
   display: inline-flex;
 }
+
+.side-drawer.rt-DialogContent {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  width: min(920px, 100vw);
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+  overflow-y: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .side-drawer.rt-DialogContent[data-state='open'] {
+    animation: side-drawer-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .side-drawer.rt-DialogContent[data-state='closed'] {
+    animation: side-drawer-out 150ms ease-in;
+  }
+}
+
+@keyframes side-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes side-drawer-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.changed-file {
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+  overflow: hidden;
+}
+
+.changed-file-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--gray-a2);
+  cursor: pointer;
+}
+
+.changed-file[open] > .changed-file-summary {
+  border-bottom: 1px solid var(--gray-a5);
+}
+
+.changed-file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--code-font-family);
+}
+
+.line-counts {
+  margin-left: auto;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.file-patch {
+  overflow-x: auto;
+  font-family: var(--code-font-family);
+  font-size: var(--font-size-1);
+  line-height: 1.6;
+}
+
+.file-patch-missing {
+  margin: 0;
+  padding: var(--space-3);
+}
+
+.diff-line {
+  display: grid;
+  grid-template-columns: 3.5em 3.5em max-content;
+  width: max-content;
+  min-width: 100%;
+}
+
+.diff-line-number {
+  padding-right: var(--space-2);
+  text-align: right;
+  color: var(--gray-a9);
+  user-select: none;
+}
+
+.diff-line-text {
+  padding: 0 var(--space-3);
+  white-space: pre;
+  font-family: inherit;
+}
+
+.diff-line-added {
+  background: var(--green-a3);
+}
+
+.diff-line-removed {
+  background: var(--red-a3);
+}
+
+.diff-line-hunk {
+  background: var(--accent-a2);
+  color: var(--accent-11);
+}
+
+.diff-line-note {
+  color: var(--gray-a10);
+  font-style: italic;
+}

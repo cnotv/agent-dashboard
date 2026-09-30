@@ -122,3 +122,15 @@ export const boardQuery = `
 `
 
 export const githubErrorSchema = z.object({ message: z.string() })
+
+export const pullRequestFileSchema = z.object({
+  filename: z.string(),
+  previous_filename: z.string().optional(),
+  status: z.enum(['added', 'removed', 'modified', 'renamed', 'copied', 'changed', 'unchanged']),
+  additions: z.number(),
+  deletions: z.number(),
+  patch: z.string().optional(),
+  blob_url: z.string(),
+})
+
+export const pullRequestFilesPageSchema = z.array(pullRequestFileSchema)

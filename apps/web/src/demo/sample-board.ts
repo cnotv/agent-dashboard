@@ -1,4 +1,4 @@
-import type { BoardCard, BoardColumn, CheckGate, IssueLabel, IssueSummary, MediaKind } from '@agent-dashboard/contracts'
+import type { BoardCard, BoardColumn, CheckGate, IssueLabel, IssueSummary, MediaKind, PullRequestFiles } from '@agent-dashboard/contracts'
 import type { DemoPullRequestOutcome } from '@/lib/types'
 
 // Served from apps/web/public so demo mode has a recording to open without any server.
@@ -143,4 +143,52 @@ export const applyDemoPullRequestOutcomes = (
     return card.issues.map((issue) => ({ issues: [issue], pullRequest: null, status: 'no-pull-request' }))
   })
   return columns.map((column) => ({ ...column, cards: cards.filter((card) => card.status === column.status) }))
+}
+
+export const samplePullRequestFiles: PullRequestFiles = {
+  isTruncated: false,
+  files: [
+    {
+      filename: 'src/views/Games/MarbleMadness/physics.ts',
+      previousFilename: null,
+      status: 'modified',
+      additions: 6,
+      deletions: 2,
+      patch: [
+        '@@ -12,9 +12,13 @@ const gravity = -9.81',
+        ' export const stepMarble = (marble: Marble, deltaSeconds: number): Marble => {',
+        '-  const velocity = marble.velocity + gravity * deltaSeconds',
+        '-  return { ...marble, velocity }',
+        '+  const velocity = clampSpeed(marble.velocity + gravity * deltaSeconds)',
+        '+  const position = marble.position + velocity * deltaSeconds',
+        '+  return { ...marble, velocity, position }',
+        ' }',
+        ' ',
+        '+const maximumSpeed = 40',
+        '+',
+        '+const clampSpeed = (speed: number): number => Math.max(-maximumSpeed, Math.min(maximumSpeed, speed))',
+        ' ',
+        ' export const resetMarble = (): Marble => ({ velocity: 0, position: 0 })',
+      ].join('\n'),
+      blobUrl: 'https://github.com/cnotv/example/blob/0123abcd/src/views/Games/MarbleMadness/physics.ts',
+    },
+    {
+      filename: 'src/views/Games/MarbleMadness/ramp.ts',
+      previousFilename: 'src/views/Games/MarbleMadness/slope.ts',
+      status: 'renamed',
+      additions: 1,
+      deletions: 1,
+      patch: '@@ -1,3 +1,3 @@\n-export const slopeAngle = 0.4\n+export const rampAngle = 0.4\n export const rampWidth = 3\n export const rampLength = 12\n\\ No newline at end of file',
+      blobUrl: 'https://github.com/cnotv/example/blob/0123abcd/src/views/Games/MarbleMadness/ramp.ts',
+    },
+    {
+      filename: 'public/marble.png',
+      previousFilename: null,
+      status: 'added',
+      additions: 0,
+      deletions: 0,
+      patch: null,
+      blobUrl: 'https://github.com/cnotv/example/blob/0123abcd/public/marble.png',
+    },
+  ],
 }
