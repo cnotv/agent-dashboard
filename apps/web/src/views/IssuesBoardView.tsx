@@ -12,8 +12,8 @@ const skeletonColumnCount = 6
 const allRepositoriesKey = 'all'
 
 /**
- * The Issues page: issues and pull requests as a board, one column per status, for the chosen
- * repository or for every configured repository at once.
+ * The Issues page: issues and pull requests as a board, one column per status, for every
+ * configured repository at once unless the address names one with `?repository=owner/name`.
  */
 export const IssuesBoardView = () => {
   const { repositories, errorMessage: repositoriesError } = useRepositories()
@@ -21,8 +21,8 @@ export const IssuesBoardView = () => {
 
   const firstRepositoryKey = repositories[0] ? repositoryKey(repositories[0]) : ''
   const repositoryParameter = searchParams.get('repository')
-  const showsAllRepositories = repositoryParameter === allRepositoriesKey
-  const selectedRepositoryKey = showsAllRepositories ? firstRepositoryKey : (repositoryParameter ?? firstRepositoryKey)
+  const showsAllRepositories = repositoryParameter === null
+  const selectedRepositoryKey = repositoryParameter ?? firstRepositoryKey
   const selectedRepository = useMemo(() => parseRepositoryKey(selectedRepositoryKey), [selectedRepositoryKey])
   const shownRepositories = useMemo(
     () => (showsAllRepositories ? repositories : selectedRepository ? [selectedRepository] : []),
@@ -33,7 +33,8 @@ export const IssuesBoardView = () => {
   const oldestFetchedAt = boards.map((board) => board.fetchedAt).sort()[0]
 
   const selectRepository = (nextKey: string): void => setSearchParams({ repository: nextKey }, { replace: true })
-  const selectScope = (scope: string): void => selectRepository(scope === allRepositoriesKey ? allRepositoriesKey : firstRepositoryKey)
+  const selectScope = (scope: string): void =>
+    scope === allRepositoriesKey ? setSearchParams({}, { replace: true }) : selectRepository(firstRepositoryKey)
 
   const loadError = repositoriesError ?? errorMessage
 
