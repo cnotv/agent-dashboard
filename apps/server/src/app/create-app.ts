@@ -9,6 +9,7 @@ import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/au
 import { fetchPullRequestBodyHtml, fetchRepositoryBoard } from '../github/board.ts'
 import { mediaUrlFromBodyHtml } from '../github/media.ts'
 import { closePullRequest, mergePullRequest } from '../github/pull-request-actions.ts'
+import { fetchPullRequestFiles } from '../github/pull-request-files.ts'
 import type { PullRequestActionResult } from '../github/types.ts'
 import { readStoredMedia, storePreviewFiles } from '../media/media-store.ts'
 import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '../media/preview-artifacts.ts'
@@ -255,6 +256,17 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     if (githubToken === null) return context.json(missingTokenError, 412)
     const result = await closePullRequest(dependencies.createGithubRestFetcher(githubToken), repository, parsedNumber.data)
     return answerPullRequestAction(context, repository, result)
+  })
+
+  app.get('/api/repositories/:owner/:name/pulls/:number/files', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    const parsedNumber = pullRequestNumberSchema.safeParse(context.req.param('number'))
+    if (repository === undefined || !parsedNumber.success) return context.json({ error: 'Unknown pull request' }, 404)
+    const githubToken = githubTokenOf(context.get('session'))
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const result = await fetchPullRequestFiles(dependencies.createGithubRestFetcher(githubToken), repository, parsedNumber.data)
+    if (!result.ok) return context.json({ error: result.message }, 502)
+    return context.json(result.pullRequestFiles)
   })
 
   const netlifyStatusCache = new Map<string, { status: NetlifyStatus; storedAt: number }>()

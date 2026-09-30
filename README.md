@@ -175,7 +175,9 @@ Close. Checks show as a ring with one coloured arc per state (red failed, amber 
 passed, grey skipped or neutral) and the passed count; hovering it lists every check with its
 state and a link to its run. The globe opens the Netlify deploy preview once Netlify reports
 one, on the page named by a `Preview route: /path` line in the pull request body, or on its
-home page when there is none.
+home page when there is none. The code icon opens a drawer from the side with every file the
+pull request changes, its status and line counts, and its diff; past ten files each one starts
+folded, and past three hundred the rest is left to GitHub.
 
 ## Netlify
 

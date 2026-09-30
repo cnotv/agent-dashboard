@@ -8,6 +8,7 @@ import type {
   MediaKind,
   MachineTokenKind,
   NetlifyStatus,
+  PullRequestFiles,
   PullRequestSummary,
   RepositoryReference,
   RoutineSettings,
@@ -90,6 +91,7 @@ export interface DashboardApi {
   pullRequestMediaUrl: (repository: RepositoryReference, pullRequest: PullRequestSummary, kind: MediaKind) => string
   mergePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
   closePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
+  readPullRequestFiles: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<PullRequestFiles>
   readNetlifyStatus: (repository: RepositoryReference) => Promise<NetlifyStatus>
   enableNetlify: (repository: RepositoryReference) => Promise<NetlifyStatus>
   readSessions: (hours: number) => Promise<SessionsOverview>
@@ -146,3 +148,13 @@ export interface RuntimeConfiguration {
 }
 
 export type DemoPullRequestOutcome = 'merged' | 'closed'
+
+export type DiffLineKind = 'hunk' | 'added' | 'removed' | 'context' | 'note'
+
+export interface DiffLine {
+  lineKey: string
+  kind: DiffLineKind
+  oldLineNumber: number | null
+  newLineNumber: number | null
+  text: string
+}

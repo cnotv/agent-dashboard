@@ -11,7 +11,7 @@ import type {
 import { repositoryKey } from '@/lib/presentation'
 import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'
 import { sampleIngestTokens, sampleRunnerTokens, sampleSessionStarts, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
-import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns } from './sample-board'
+import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns, samplePullRequestFiles } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
 const demoNetlifySite = (repository: RepositoryReference): NetlifyStatus => {
@@ -73,6 +73,7 @@ export const createDemoApi = (): DashboardApi => {
     closePullRequest: async (_repository, pullRequest) => {
       demoMemory.pullRequestOutcomes = new Map([...demoMemory.pullRequestOutcomes, [pullRequest.number, 'closed']])
     },
+    readPullRequestFiles: async () => samplePullRequestFiles,
     readNetlifyStatus: async (repository) =>
       demoMemory.netlifyRepositoryKeys.has(repositoryKey(repository)) ? demoNetlifySite(repository) : { state: 'inactive' },
     enableNetlify: async (repository) => {

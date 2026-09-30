@@ -252,6 +252,32 @@ describe('merge and close', () => {
   })
 })
 
+describe('pull request files', () => {
+  const filesPath = '/api/repositories/cnotv/generative-art/pulls/7/files'
+  const githubFilesPath = '/repos/cnotv/generative-art/pulls/7/files?per_page=100&page=1'
+
+  it("lists the pull request's files with the reader's token", async () => {
+    const file = { filename: 'a.ts', status: 'added', additions: 1, deletions: 0, patch: '@@ -0,0 +1 @@\n+x', blob_url: 'https://github.com/b' }
+    const { app, vault, receivedTokens } = createTestApp({}, {}, { now: 0 }, { [githubFilesPath]: Response.json([file]) })
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(getRequest(filesPath))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      isTruncated: false,
+      files: [{ filename: 'a.ts', previousFilename: null, status: 'added', additions: 1, deletions: 0, patch: file.patch, blobUrl: file.blob_url }],
+    })
+    expect(receivedTokens).toContain(sampleToken)
+  })
+
+  it("passes on GitHub's refusal, and refuses a repository that is not configured", async () => {
+    const { app, vault } = createTestApp()
+    vault.saveSecret('github-token', sampleToken)
+    const refused = await app.request(getRequest(filesPath))
+    expect(refused.status).toBe(502)
+    expect((await app.request(getRequest('/api/repositories/someone/else/pulls/7/files'))).status).toBe(404)
+  })
+})
+
 describe('netlify routes', () => {
   const netlifyPath = '/api/repositories/cnotv/generative-art/netlify'
   const netlifyToken = 'nfp_exampleNetlifyToken9876'
