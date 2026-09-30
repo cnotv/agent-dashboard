@@ -1,7 +1,9 @@
 import type {
   AgentSessionState,
   Board,
+  BoardCard,
   CreatedMachineToken,
+  IssueStatus,
   MachineTokenSummary,
   MediaKind,
   MachineTokenKind,
@@ -46,6 +48,16 @@ export interface LogoParticle {
   y: number
   radius: number
   concentration: number
+}
+
+export interface RepositoryBoardCard {
+  card: BoardCard
+  repository: RepositoryReference
+}
+
+export interface RepositoryBoardColumn {
+  status: IssueStatus
+  cards: RepositoryBoardCard[]
 }
 
 export type ToastTone = 'success' | 'error'

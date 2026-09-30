@@ -9,6 +9,7 @@ import { StartSessionDialog } from './StartSessionDialog'
 interface BoardCardItemProps {
   card: BoardCard
   repository: RepositoryReference
+  showRepository: boolean
   onPullRequestChanged: () => void
 }
 
@@ -49,14 +50,19 @@ const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
   )
 
 /**
- * One board card: every issue its pull request works on, then the pull request, and one row of
+ * One board card: its repository when the board shows several, every issue its pull request works on, then the pull request, and one row of
  * icons: Start, then the pull request's checks, merge conflict, deploy preview, screenshot,
  * video, merge and close.
  */
-export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardCardItemProps) => (
+export const BoardCardItem = ({ card, repository, showRepository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
     <Flex direction="column" gap="3">
       <Flex direction="column" gap="2">
+        {showRepository && (
+          <Text size="1" color="gray">
+            {repository.owner}/{repository.name}
+          </Text>
+        )}
         {card.issues.length === 0 ? (
           <Text size="2" color="gray">
             No linked issue

@@ -162,6 +162,10 @@ inactive, since a closed terminal never reports that it ended.
 
 ## Board cards
 
+The board opens on **All repositories**: every configured repository's issues on one board,
+newest first in each column, each card naming its repository. The toggle above it switches to
+one repository, picked from the list and kept in the address (`?repository=owner/name`).
+
 Each open pull request gets one card, listing every issue it closes (by a `Closes #n` line or
 by its `<type>/<n>-description` branch). An issue without a pull request has a card of its own.
 
