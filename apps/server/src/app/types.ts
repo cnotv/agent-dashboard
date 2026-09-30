@@ -3,12 +3,14 @@ import type { ActivityDependencies } from '../activity/types.ts'
 import type { AuthDependencies, DashboardSession } from '../auth/types.ts'
 import type { GithubRestFetcher, GithubRestRequest, GraphqlFetcher } from '../github/types.ts'
 import type { NetlifyFetcher } from '../netlify/types.ts'
+import type { SessionStartServices } from '../session-starts/types.ts'
 import type { SecretDefinitionWithTester, SecretTestRunner, Vault } from '../secrets/types.ts'
 
 export interface AppDependencies {
   vault: Vault
   auth: AuthDependencies
   activity: ActivityDependencies
+  sessionStarts: SessionStartServices
   repositories: RepositoryReference[]
   secretDefinitions: SecretDefinitionWithTester[]
   testSecret: SecretTestRunner

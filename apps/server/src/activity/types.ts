@@ -2,10 +2,9 @@ import type { z } from 'zod'
 import type {
   AgentProvider,
   AgentSessionState,
-  CreatedIngestToken,
-  IngestTokenSummary,
   RepositoryReference,
 } from '@agent-dashboard/contracts'
+import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import type { hookPayloadSchema, keyValueSchema, otlpMetricsSchema } from './schema.ts'
 
 export type HookPayload = z.infer<typeof hookPayloadSchema>
@@ -71,15 +70,8 @@ export interface ActivityStore {
   readTokenSamplesSince: (since: string) => StoredTokenSample[]
 }
 
-export interface IngestTokenStore {
-  createToken: (label: string) => CreatedIngestToken
-  listTokens: () => IngestTokenSummary[]
-  revokeToken: (tokenId: string) => void
-  verifyToken: (presentedToken: string | undefined) => boolean
-}
-
 export interface ActivityDependencies {
   activityStore: ActivityStore
-  ingestTokens: IngestTokenStore
+  ingestTokens: MachineTokenStore
   now: () => number
 }

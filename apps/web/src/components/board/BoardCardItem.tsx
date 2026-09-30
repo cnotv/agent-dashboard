@@ -1,9 +1,10 @@
-import { FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
-import { Badge, Card, Flex, Link, Separator, Text } from '@radix-ui/themes'
+import { ExclamationTriangleIcon, FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
+import { Badge, Card, Flex, IconButton, Link, Separator, Text, Tooltip } from '@radix-ui/themes'
 import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashboard/contracts'
 import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'
 import { PullRequestMedia } from './PullRequestMedia'
+import { StartSessionDialog } from './StartSessionDialog'
 
 interface BoardCardItemProps {
   card: BoardCard
@@ -28,9 +29,29 @@ const IssueHeading = ({ issue }: { issue: IssueSummary }) => (
   </Flex>
 )
 
+const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
+  previewUrl === null ? (
+    <Tooltip content="No deploy preview yet">
+      <span>
+        <IconButton size="1" variant="ghost" color="gray" disabled aria-label="No deploy preview yet">
+          <GlobeIcon />
+        </IconButton>
+      </span>
+    </Tooltip>
+  ) : (
+    <Tooltip content="Open the deploy preview">
+      <IconButton size="1" variant="ghost" aria-label="Open the deploy preview" asChild>
+        <a href={previewUrl} target="_blank" rel="noopener noreferrer">
+          <GlobeIcon />
+        </a>
+      </IconButton>
+    </Tooltip>
+  )
+
 /**
- * One board card: every issue its pull request works on, then the pull request with its checks,
- * its deploy preview, the screenshot and video, and the merge and close buttons.
+ * One board card: every issue its pull request works on, then the pull request, and one row of
+ * icons: Start, then the pull request's checks, merge conflict, deploy preview, screenshot,
+ * video, merge and close.
  */
 export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
@@ -47,38 +68,35 @@ export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardC
       {card.pullRequest && (
         <>
           <Separator size="4" />
-          <Flex direction="column" gap="2">
-            <Flex gap="2" align="start">
-              {card.pullRequest.isDraft ? <FileTextIcon /> : <Link2Icon />}
-              <Link href={card.pullRequest.url} target="_blank" rel="noopener noreferrer" size="1" color="gray" underline="hover">
-                #{card.pullRequest.number} {card.pullRequest.title}
-              </Link>
-            </Flex>
-            {card.pullRequest.mergeable === 'CONFLICTING' && (
-              <Badge color="red" radius="full">
-                Merge conflict
-              </Badge>
-            )}
-            <Flex justify="between" align="center" gap="3" wrap="wrap">
-              <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
-              {card.pullRequest.previewUrl && (
-                <Link href={card.pullRequest.previewUrl} target="_blank" rel="noopener noreferrer" size="1">
-                  <Flex gap="1" align="center" asChild>
-                    <span>
-                      <GlobeIcon /> Preview
-                    </span>
-                  </Flex>
-                </Link>
-              )}
-            </Flex>
-          </Flex>
-          <Separator size="4" />
-          <Flex justify="between" align="center" gap="3" wrap="wrap">
-            <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
-            <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
+          <Flex gap="2" align="start">
+            {card.pullRequest.isDraft ? <FileTextIcon /> : <Link2Icon />}
+            <Link href={card.pullRequest.url} target="_blank" rel="noopener noreferrer" size="1" color="gray" underline="hover">
+              #{card.pullRequest.number} {card.pullRequest.title}
+            </Link>
           </Flex>
         </>
       )}
+      <Separator size="4" />
+      <Flex className="card-icon-row" gap="2" align="center">
+        <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} />
+        {card.pullRequest && (
+          <>
+            <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
+            {card.pullRequest.mergeable === 'CONFLICTING' && (
+              <Tooltip content="Merge conflict">
+                <IconButton size="1" variant="ghost" color="red" aria-label="Merge conflict" asChild>
+                  <a href={card.pullRequest.url} target="_blank" rel="noopener noreferrer">
+                    <ExclamationTriangleIcon />
+                  </a>
+                </IconButton>
+              </Tooltip>
+            )}
+            <PreviewButton previewUrl={card.pullRequest.previewUrl} />
+            <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
+            <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
+          </>
+        )}
+      </Flex>
     </Flex>
   </Card>
 )

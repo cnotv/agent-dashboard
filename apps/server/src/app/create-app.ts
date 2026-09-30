@@ -15,9 +15,11 @@ import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '.
 import type { PreviewArtifactsBySha } from '../media/types.ts'
 import { activeStatusOf, enableNetlifyForRepository, fetchNetlifySites, findSiteForRepository } from '../netlify/sites.ts'
 import { findRepository } from '../repos/load-repositories.ts'
+import { createRunnerRoutes, createSessionStartRoutes, runnerApiPathPrefix } from '../session-starts/session-start-routes.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
 import { createRedactor } from '../secrets/redact.ts'
 import type { DashboardSession } from '../auth/types.ts'
+import { readJsonBody } from './http.ts'
 import type { AppDependencies, AppEnvironment } from './types.ts'
 
 const passphraseBodySchema = z.object({ passphrase: z.string().min(1) })
@@ -40,14 +42,6 @@ const actionErrorOf = (result: Extract<PullRequestActionResult, { ok: false }>):
 // GitHub's signed attachment links last about five minutes, so a rendered body is reused for
 // less than half of that and every link handed to the browser still has time left to play.
 const bodyHtmlCacheMilliseconds = 2 * 60_000
-
-const readJsonBody = async (request: Request): Promise<unknown> => {
-  try {
-    return await request.json()
-  } catch {
-    return null
-  }
-}
 
 /**
  * Builds the dashboard's HTTP app: security headers, the Host and origin guard, sign-in, and every /api route.
@@ -85,7 +79,10 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   app.use('/api/*', async (context, next) => {
     const session = auth.sessionStore.readSession(getCookie(context, sessionCookieName))
     context.set('session', session)
-    const needsNoSession = publicApiPaths.includes(context.req.path) || ingestApiPaths.includes(context.req.path)
+    const needsNoSession =
+      publicApiPaths.includes(context.req.path) ||
+      ingestApiPaths.includes(context.req.path) ||
+      context.req.path.startsWith(runnerApiPathPrefix)
     if (auth.signInRequired && session === null && !needsNoSession) {
       return context.json({ error: 'Sign in with GitHub first' }, 401)
     }
@@ -109,6 +106,9 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   app.route('/api/auth', createAuthRoutes(auth))
   app.route('/api', createIngestRoutes(activity))
   app.route('/api', createActivityRoutes(activity, findPullRequest))
+  const sessionStartDependencies = { ...dependencies.sessionStarts, vault, repositories, now: dependencies.now }
+  app.route('/api', createSessionStartRoutes(sessionStartDependencies))
+  app.route('/api/runner', createRunnerRoutes(sessionStartDependencies))
 
   app.get('/api/health', (context) => context.json({ ok: true }))
 
@@ -140,7 +140,7 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   const findDefinition = (name: string) => secretDefinitions.find((definition) => definition.name === name)
 
   app.get('/api/secrets', (context) =>
-    context.json(vault.listSecrets(secretDefinitions.map(({ name, label, description }) => ({ name, label, description })))),
+    context.json(vault.listSecrets(secretDefinitions.map(({ name, label, description, tokenPageUrl }) => ({ name, label, description, tokenPageUrl })))),
   )
 
   app.put('/api/secrets/:name', async (context) => {

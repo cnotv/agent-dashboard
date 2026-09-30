@@ -1,16 +1,21 @@
 import { Badge, Button, Card, Code, Dialog, Flex, Heading, Table, Text, TextField } from '@radix-ui/themes'
 import { useState, type FormEvent } from 'react'
-import { useIngestTokens } from '@/hooks/useActivity'
+import { useMachineTokens } from '@/hooks/useActivity'
 import { useToast } from '@/hooks/useToast'
 import { connectSnippet, pluginInstallCommands } from '@/lib/connect-snippet'
 import { runtimeConfiguration } from '@/lib/runtime-configuration'
+import { CopyableSnippet } from './CopyableSnippet'
 
 const dashboardUrl = (): string => runtimeConfiguration.apiBaseUrl || window.location.origin
 
 /** The Connect Claude Code panel: issues a machine's ingest token, shows it once in a settings snippet, and lists tokens to revoke. */
 export const ConnectAgentsPanel = () => {
   const toast = useToast()
-  const { ingestTokens, createIngestToken, revokeIngestToken } = useIngestTokens(toast.notifyError)
+  const {
+    machineTokens: ingestTokens,
+    createMachineToken: createIngestToken,
+    revokeMachineToken: revokeIngestToken,
+  } = useMachineTokens('ingest', toast.notifyError)
   const [isOpen, setIsOpen] = useState(false)
   const [tokenLabel, setTokenLabel] = useState('')
   const [snippet, setSnippet] = useState<string | null>(null)
@@ -30,16 +35,6 @@ export const ConnectAgentsPanel = () => {
       setSnippet(connectSnippet({ dashboardUrl: dashboardUrl(), ingestToken: createdToken.token }))
     } catch (createError) {
       toast.notifyError(createError)
-    }
-  }
-
-  const copySnippet = async (): Promise<void> => {
-    if (snippet === null) return
-    try {
-      await navigator.clipboard.writeText(snippet)
-      toast.notifySuccess('Copied')
-    } catch (copyError) {
-      toast.notifyError(copyError)
     }
   }
 
@@ -106,7 +101,7 @@ export const ConnectAgentsPanel = () => {
                     plugin, whose hook reports each session, and points it here. The token is shown only now; the
                     dashboard keeps just its hash.
                   </Dialog.Description>
-                  <pre className="connect-snippet">{snippet}</pre>
+                  <CopyableSnippet snippet={snippet} />
                   <Text as="p" size="2" color="gray">
                     Then start a new Claude Code session: one already open keeps its old settings. Its first
                     report fills in <Text weight="medium">Last report</Text> below. If it stays at Never, install the
@@ -114,9 +109,6 @@ export const ConnectAgentsPanel = () => {
                   </Text>
                   <pre className="connect-snippet">{pluginInstallCommands.join('\n')}</pre>
                   <Flex gap="3" justify="end">
-                    <Button variant="soft" color="gray" onClick={() => void copySnippet()}>
-                      Copy
-                    </Button>
                     <Dialog.Close>
                       <Button>Done</Button>
                     </Dialog.Close>

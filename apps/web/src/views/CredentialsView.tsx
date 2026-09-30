@@ -1,5 +1,7 @@
 import { Badge, Button, Card, Code, Flex, Table, Text } from '@radix-ui/themes'
 import { ConnectAgentsPanel } from '@/components/credentials/ConnectAgentsPanel'
+import { RoutinePanel } from '@/components/credentials/RoutinePanel'
+import { RunnerPanel } from '@/components/credentials/RunnerPanel'
 import { SecretDialog } from '@/components/credentials/SecretDialog'
 import { VaultPanel } from '@/components/credentials/VaultPanel'
 import { useToast } from '@/hooks/useToast'
@@ -98,6 +100,8 @@ export const CredentialsView = () => {
       </Card>
 
       <ConnectAgentsPanel />
+      <RunnerPanel />
+      <RoutinePanel />
     </Flex>
   )
 }

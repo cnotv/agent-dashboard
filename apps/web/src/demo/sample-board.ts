@@ -109,7 +109,7 @@ export const sampleBoardColumns: BoardColumn[] = [
           headRefName: 'feat/5-round-score',
           headSha: '4567cdef',
           reviewDecision: 'REVIEW_REQUIRED',
-          mergeable: 'MERGEABLE',
+          mergeable: 'CONFLICTING',
           body: 'Closes #5',
           updatedAt: '2026-09-26T12:00:00Z',
           gates: passingGates,

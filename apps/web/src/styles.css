@@ -507,3 +507,13 @@ body {
   border-radius: 0;
   background: black;
 }
+
+/* Radix pulls ghost buttons outward by their own padding, and a disabled icon keeps its tooltip
+   through an inline span around it; left alone, both knock the card's icon row out of line. */
+.card-icon-row .rt-variant-ghost {
+  margin: 0;
+}
+
+.card-icon-row span:has(> .rt-IconButton) {
+  display: inline-flex;
+}

@@ -1,4 +1,15 @@
-import type { AgentProvider, AgentSessionState, GateOverallState, GateState, IssueStatus, RepositoryReference } from '@agent-dashboard/contracts'
+import type {
+  AgentProvider,
+  AgentSessionState,
+  GateOverallState,
+  GateState,
+  HeadlessPermissionMode,
+  IssueStatus,
+  RepositoryReference,
+  SessionStartState,
+  StartTarget,
+  StartWorkflow,
+} from '@agent-dashboard/contracts'
 import type { GateRingGroup, RadixColor } from './types'
 
 export const issueStatusLabels: Record<IssueStatus, string> = {
@@ -47,6 +58,51 @@ export const gateRingColors: Record<GateRingGroup, string> = {
   pending: 'var(--amber-9)',
   success: 'var(--green-9)',
   other: 'var(--gray-8)',
+}
+
+export const startTargetLabels: Record<StartTarget, { name: string; description: string }> = {
+  'laptop-remote-control': {
+    name: 'Laptop, steered from the phone',
+    description: 'Interactive Claude on the laptop with Remote Control. Open it in the Claude app.',
+  },
+  'laptop-headless': {
+    name: 'Laptop, unattended',
+    description: 'Runs to the end without asking. Follow it on the Sessions page.',
+  },
+  'laptop-cloud': {
+    name: 'Claude cloud, sent from the laptop',
+    description: 'The laptop starts a claude.ai/code session and hands back its link.',
+  },
+  'cloud-routine': {
+    name: 'Claude cloud routine',
+    description: "Works with the laptop off. Uses this repository's routine.",
+  },
+}
+
+export const startTargetOrder: StartTarget[] = ['laptop-remote-control', 'laptop-headless', 'laptop-cloud', 'cloud-routine']
+
+export const startWorkflowOrder: StartWorkflow[] = ['feature', 'fix', 'refactor', 'docs', 'design', '3d', 'security', 'tests', 'chore', 'research']
+
+export const permissionModeOrder: HeadlessPermissionMode[] = ['auto', 'acceptEdits', 'dontAsk']
+
+export const permissionModeLabels: Record<HeadlessPermissionMode, string> = {
+  auto: 'Auto: a classifier approves safe actions',
+  acceptEdits: 'Accept edits: file changes only',
+  dontAsk: 'Only tools already allowed in settings',
+}
+
+export const sessionStartStateColors: Record<SessionStartState, RadixColor> = {
+  queued: 'gray',
+  claimed: 'amber',
+  started: 'green',
+  failed: 'red',
+}
+
+export const sessionStartStateLabels: Record<SessionStartState, string> = {
+  queued: 'Waiting for the runner',
+  claimed: 'Starting',
+  started: 'Started',
+  failed: 'Failed',
 }
 
 export const gateOverallLabels: Record<GateOverallState, string> = {
