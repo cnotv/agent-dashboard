@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { connectSnippet } from './connect-snippet'
 
 describe('connectSnippet', () => {
-  it('points the hooks and the metrics exporter at the dashboard with the same token', () => {
+  it('enables the reporting plugin and points it and the metrics exporter at the dashboard', () => {
     const settings: unknown = JSON.parse(connectSnippet({ dashboardUrl: 'https://agents.example.com/', ingestToken: 'adt_example' }))
     expect(settings).toEqual({
+      extraKnownMarketplaces: { cnotv: { source: { source: 'github', repo: 'cnotv/agent-base' } } },
+      enabledPlugins: { 'base@cnotv': true },
       env: {
         AGENT_DASHBOARD_URL: 'https://agents.example.com',
         AGENT_DASHBOARD_TOKEN: 'adt_example',
