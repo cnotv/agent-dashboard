@@ -1,11 +1,11 @@
-# agent-dashboard
+# Dashi
 
-A dashboard for coding-agent work across repositories: the Claude Code and Codex sessions
-running now, the issues, whether each has a pull request, that pull request's check gates,
-and the tokens spent per repository and pull request — with credentials saved from the UI
-and stored encrypted. Starting sessions, pull request screenshots and videos, and the shared
-agent instructions from [agent-base](https://github.com/cnotv/agent-base) follow in later
-milestones.
+Dashi, from this `agent-dashboard` repository, is a dashboard for coding-agent work across
+repositories: the Claude Code and Codex sessions running now and the tokens they spend, the
+issues and their pull requests with check gates, screenshots and videos, and buttons to merge,
+close, and start a session from the phone, on your laptop or in Claude's cloud. Credentials are
+saved from the UI and stored encrypted, and the shared agent instructions come from
+[agent-base](https://github.com/cnotv/agent-base).
 
 ## Run it
 

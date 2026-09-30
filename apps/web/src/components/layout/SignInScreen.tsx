@@ -2,6 +2,7 @@ import { GitHubLogoIcon } from '@radix-ui/react-icons'
 import { Button, Callout, Card, Flex, Heading, Text } from '@radix-ui/themes'
 import { useSearchParams } from 'react-router'
 import { signInErrorMessages } from '@/lib/presentation'
+import { DashiLogo } from './DashiLogo'
 
 /** The full-page sign-in shown when the dashboard requires GitHub sign-in, with the reason a previous attempt failed. */
 export const SignInScreen = ({ signInUrl }: { signInUrl: string }) => {
@@ -13,9 +14,12 @@ export const SignInScreen = ({ signInUrl }: { signInUrl: string }) => {
     <Flex className="sign-in-screen" align="center" justify="center" p="4">
       <Card size="4" className="sign-in-card">
         <Flex direction="column" gap="4">
-          <Heading size="6" weight="medium">
-            Agent dashboard
-          </Heading>
+          <Flex align="center" gap="3">
+            <DashiLogo size={32} />
+            <Heading size="6" weight="medium">
+              Dashi
+            </Heading>
+          </Flex>
           <Text color="gray" size="2">
             Sign in with a GitHub account on this dashboard&apos;s allowlist. The dashboard reads your issues and pull
             requests with that sign-in.

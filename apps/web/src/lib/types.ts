@@ -41,6 +41,13 @@ export interface RunnerSetupInput {
   runnerToken: string
 }
 
+export interface LogoParticle {
+  x: number
+  y: number
+  radius: number
+  concentration: number
+}
+
 export type ToastTone = 'success' | 'error'
 
 export interface ToastMessage {

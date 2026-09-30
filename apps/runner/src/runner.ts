@@ -1,4 +1,4 @@
-// The agent dashboard's laptop runner. It asks the dashboard every few seconds for a session
+// Dashi's laptop runner. It asks the dashboard every few seconds for a session
 // started from the board, prepares a fresh worktree of the repository, and starts Claude Code
 // there. It needs Node 22.18 or later, git, Claude Code and, for sessions steered from the
 // phone, tmux 3.2 or later. Every command is an argument list; nothing goes through a shell.
