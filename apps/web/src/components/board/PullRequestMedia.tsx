@@ -2,6 +2,7 @@ import { EnterFullScreenIcon, ExternalLinkIcon, ImageIcon, VideoIcon } from '@ra
 import { Button, Callout, Flex, IconButton, Link, Popover, Text, Tooltip } from '@radix-ui/themes'
 import { useRef, useState, type ReactNode } from 'react'
 import type { MediaKind, PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import { useHoverOpen } from '@/hooks/useHoverOpen'
 import { dashboardApi } from '@/lib/api'
 
 const mediaLabels: Record<MediaKind, { name: string; missing: string }> = {
@@ -69,6 +70,8 @@ interface MediaButtonProps {
 }
 
 const MediaButton = ({ kind, isAvailable, mediaUrl }: MediaButtonProps) => {
+  const { isOpen, setIsOpen, triggerHoverHandlers, contentHoverHandlers } = useHoverOpen()
+
   if (!isAvailable) {
     // A disabled button gets no pointer events, so the tooltip hangs on the element around it.
     return (
@@ -82,15 +85,13 @@ const MediaButton = ({ kind, isAvailable, mediaUrl }: MediaButtonProps) => {
     )
   }
   return (
-    <Popover.Root>
-      <Tooltip content={mediaLabels[kind].name}>
-        <Popover.Trigger>
-          <IconButton size="1" variant="ghost" aria-label={`Show the ${mediaLabels[kind].name.toLowerCase()}`}>
-            {mediaIcons[kind]}
-          </IconButton>
-        </Popover.Trigger>
-      </Tooltip>
-      <Popover.Content width="640px" maxWidth="calc(100vw - 32px)" size="2">
+    <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
+      <Popover.Trigger>
+        <IconButton size="1" variant="ghost" aria-label={`Show the ${mediaLabels[kind].name.toLowerCase()}`} {...triggerHoverHandlers}>
+          {mediaIcons[kind]}
+        </IconButton>
+      </Popover.Trigger>
+      <Popover.Content width="640px" maxWidth="calc(100vw - 32px)" size="2" {...contentHoverHandlers}>
         <Text as="div" size="2" weight="medium" mb="3">
           {mediaLabels[kind].name}
         </Text>
