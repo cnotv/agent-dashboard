@@ -6,11 +6,12 @@ const repositorySchema = z.object({
   name: z.string().regex(/^[A-Za-z0-9._-]{1,100}$/).refine((name) => name !== '.' && name !== '..'),
 })
 
-export const startWorkflowSchema = z.enum(['research', 'feature', 'fix', 'refactor', 'docs', 'design', '3d', 'security', 'tests', 'chore'])
+export const startWorkflowSchema = z.enum(['research', 'feature', 'fix', 'refactor', 'docs', 'design', '3d', 'security', 'tests', 'chore', 'conflicts'])
 
 export const sessionStartRequestSchema = z.object({
   repository: repositorySchema,
   issueNumber: z.number().int().positive().nullable(),
+  pullRequestNumber: z.number().int().positive().nullable().default(null),
   workflow: startWorkflowSchema,
   target: z.enum(['laptop-remote-control', 'laptop-headless', 'laptop-cloud', 'cloud-routine']),
   permissionMode: z.enum(['auto', 'acceptEdits', 'dontAsk']).default('auto'),

@@ -198,7 +198,12 @@ issue leaves something out, and pick where it runs:
 | Claude cloud, sent from the laptop | The runner runs `claude --cloud` in its clone and reports the claude.ai link back                                        | The laptop runner, logged in to claude.ai |
 | Claude cloud routine               | The dashboard fires the repository's routine through the routines API; works with the laptop off                          | A routine for the repository            |
 
-Each start's session opens with `/workflow:start <workflow> <issue link>`, then the note. **Sessions**
+Each start's session opens with `/workflow:start <workflow> <issue link>`, then the note.
+
+A pull request with merge conflicts shows a red warning icon on its card. Tapping it opens the
+same dialog for the `conflicts` workflow: the session checks out that pull request's branch,
+brings in the default branch, resolves the conflicts, runs the checks and pushes, and asks you
+when both sides changed the same logic. It opens with `/workflow:start conflicts <pull request link>`. **Sessions**
 lists the starts, with the session's link or what the runner said.
 
 ### The laptop runner

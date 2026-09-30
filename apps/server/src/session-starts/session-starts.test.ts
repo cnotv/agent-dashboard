@@ -22,11 +22,19 @@ const runnerRequest = (path: string, token: string, body: unknown = {}) =>
 
 describe('sessionPromptFor', () => {
   it('names the workflow for the router, links the issue and adds the note', () => {
-    expect(sessionPromptFor({ repository, issueNumber: 42, workflow: 'fix', note: 'Only the physics.' })).toBe(
+    expect(sessionPromptFor({ repository, issueNumber: 42, pullRequestNumber: null, workflow: 'fix', note: 'Only the physics.' })).toBe(
       '/workflow:start fix https://github.com/cnotv/generative-art/issues/42\n\nOnly the physics.',
     )
-    expect(sessionPromptFor({ repository, issueNumber: null, workflow: 'research', note: '' })).toBe('/workflow:start research')
-    expect(sessionNameFor({ repository, issueNumber: 42, workflow: 'fix' })).toBe('generative-art #42 fix')
+    expect(sessionPromptFor({ repository, issueNumber: null, pullRequestNumber: null, workflow: 'research', note: '' })).toBe(
+      '/workflow:start research',
+    )
+    expect(sessionNameFor({ repository, issueNumber: 42, pullRequestNumber: null, workflow: 'fix' })).toBe('generative-art #42 fix')
+  })
+
+  it('points a conflicts start at its pull request', () => {
+    const conflictsStart = { repository, issueNumber: 42, pullRequestNumber: 43, workflow: 'conflicts' as const, note: '' }
+    expect(sessionPromptFor(conflictsStart)).toBe('/workflow:start conflicts https://github.com/cnotv/generative-art/pull/43')
+    expect(sessionNameFor(conflictsStart)).toBe('generative-art #43 conflicts')
   })
 })
 

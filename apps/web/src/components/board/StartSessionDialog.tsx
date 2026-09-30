@@ -1,9 +1,10 @@
-import { ExternalLinkIcon, PlayIcon } from '@radix-ui/react-icons'
-import { Button, Callout, Dialog, Flex, IconButton, Link, RadioCards, Select, Text, TextArea, Tooltip } from '@radix-ui/themes'
+import { ExclamationTriangleIcon, ExternalLinkIcon, PlayIcon } from '@radix-ui/react-icons'
+import { Button, Callout, Code, Dialog, Flex, IconButton, Link, RadioCards, Select, Text, TextArea, Tooltip } from '@radix-ui/themes'
 import { useState, type FormEvent } from 'react'
 import type {
   HeadlessPermissionMode,
   IssueSummary,
+  PullRequestSummary,
   RepositoryReference,
   SessionStart,
   StartTarget,
@@ -18,6 +19,7 @@ import { defaultTargetFor, suggestedWorkflowFor, targetAvailabilityFor } from '@
 interface StartSessionDialogProps {
   repository: RepositoryReference
   issue: IssueSummary | null
+  conflictingPullRequest?: PullRequestSummary
 }
 
 interface StartChoices {
@@ -49,15 +51,17 @@ const StartedSummary = ({ start }: { start: SessionStart }) => (
 
 /**
  * The Start button on a board card and its dialog: pick a workflow, where the session runs and
- * an optional note, then start it on the laptop runner or a Claude Code routine.
+ * an optional note, then start it on the laptop runner or a Claude Code routine. Given a pull
+ * request with merge conflicts, it is that pull request's red warning instead, and starts the
+ * conflicts workflow on its branch.
  */
-export const StartSessionDialog = ({ repository, issue }: StartSessionDialogProps) => {
+export const StartSessionDialog = ({ repository, issue, conflictingPullRequest }: StartSessionDialogProps) => {
   const toast = useToast()
   const [isOpen, setIsOpen] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [started, setStarted] = useState<SessionStart | null>(null)
   const [choices, setChoices] = useState<StartChoices>({
-    workflow: suggestedWorkflowFor(issue?.labels ?? []),
+    workflow: conflictingPullRequest ? 'conflicts' : suggestedWorkflowFor(issue?.labels ?? []),
     target: null,
     permissionMode: 'auto',
     note: '',
@@ -65,6 +69,12 @@ export const StartSessionDialog = ({ repository, issue }: StartSessionDialogProp
   const { options, errorMessage } = useStartOptions(repository, isOpen)
   const chosenTarget = choices.target ?? (options ? defaultTargetFor(options) : null)
   const chosenAvailability = chosenTarget && options ? targetAvailabilityFor(chosenTarget, options) : null
+  const triggerLabel = conflictingPullRequest ? 'Merge conflict: start a session to fix it' : 'Start a session'
+  const dialogTitle = conflictingPullRequest
+    ? `Fix the conflicts in #${conflictingPullRequest.number}`
+    : issue
+      ? `Start #${issue.number}`
+      : 'Start a session'
 
   const changeOpen = (nextOpen: boolean): void => {
     setIsOpen(nextOpen)
@@ -79,6 +89,7 @@ export const StartSessionDialog = ({ repository, issue }: StartSessionDialogProp
       const sessionStart = await dashboardApi.startSession({
         repository,
         issueNumber: issue?.number ?? null,
+        pullRequestNumber: conflictingPullRequest?.number ?? null,
         workflow: choices.workflow,
         target: chosenTarget,
         permissionMode: choices.permissionMode,
@@ -95,17 +106,17 @@ export const StartSessionDialog = ({ repository, issue }: StartSessionDialogProp
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={changeOpen}>
-      <Tooltip content="Start a session">
+      <Tooltip content={triggerLabel}>
         <Dialog.Trigger>
-          <IconButton size="1" variant="ghost" aria-label="Start a session">
-            <PlayIcon />
+          <IconButton size="1" variant="ghost" color={conflictingPullRequest ? 'red' : undefined} aria-label={triggerLabel}>
+            {conflictingPullRequest ? <ExclamationTriangleIcon /> : <PlayIcon />}
           </IconButton>
         </Dialog.Trigger>
       </Tooltip>
       <Dialog.Content maxWidth="560px">
-        <Dialog.Title>{issue ? `Start #${issue.number}` : 'Start a session'}</Dialog.Title>
+        <Dialog.Title>{dialogTitle}</Dialog.Title>
         <Dialog.Description size="2" color="gray" mb="4">
-          {issue ? issue.title : `${repository.owner}/${repository.name}`}
+          {conflictingPullRequest?.title ?? issue?.title ?? `${repository.owner}/${repository.name}`}
         </Dialog.Description>
         {started ? (
           <Flex direction="column" gap="4">
@@ -119,21 +130,33 @@ export const StartSessionDialog = ({ repository, issue }: StartSessionDialogProp
         ) : (
           <form onSubmit={(submitEvent) => void start(submitEvent)}>
             <Flex direction="column" gap="4">
-              <label>
-                <Text as="div" size="2" mb="1" weight="medium">
-                  Workflow
+              {conflictingPullRequest ? (
+                <Text size="2">
+                  The session checks out <Code>{conflictingPullRequest.headRefName}</Code>, brings in the default branch,
+                  resolves the conflicts, runs the checks and pushes. It asks you when both sides changed the same logic.
                 </Text>
-                <Select.Root value={choices.workflow} onValueChange={(value) => setChoices({ ...choices, workflow: startWorkflowOrder.find((workflow) => workflow === value) ?? choices.workflow })}>
-                  <Select.Trigger />
-                  <Select.Content>
-                    {startWorkflowOrder.map((workflow) => (
-                      <Select.Item key={workflow} value={workflow}>
-                        {workflow}
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select.Root>
-              </label>
+              ) : (
+                <label>
+                  <Text as="div" size="2" mb="1" weight="medium">
+                    Workflow
+                  </Text>
+                  <Select.Root
+                    value={choices.workflow}
+                    onValueChange={(value) =>
+                      setChoices({ ...choices, workflow: startWorkflowOrder.find((workflow) => workflow === value) ?? choices.workflow })
+                    }
+                  >
+                    <Select.Trigger />
+                    <Select.Content>
+                      {startWorkflowOrder.map((workflow) => (
+                        <Select.Item key={workflow} value={workflow}>
+                          {workflow}
+                        </Select.Item>
+                      ))}
+                    </Select.Content>
+                  </Select.Root>
+                </label>
+              )}
               <Flex direction="column" gap="1">
                 <Text size="2" weight="medium">
                   Where it runs
@@ -145,7 +168,9 @@ export const StartSessionDialog = ({ repository, issue }: StartSessionDialogProp
                 )}
                 <RadioCards.Root
                   value={chosenTarget ?? undefined}
-                  onValueChange={(value) => setChoices({ ...choices, target: startTargetOrder.find((target) => target === value) ?? null })}
+                  onValueChange={(value) =>
+                    setChoices({ ...choices, target: startTargetOrder.find((target) => target === value) ?? null })
+                  }
                   columns={{ initial: '1', sm: '2' }}
                 >
                   {startTargetOrder.map((target) => {
