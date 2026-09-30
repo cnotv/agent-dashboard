@@ -1,4 +1,5 @@
-import { AlertDialog, Button, Flex, Tooltip } from '@radix-ui/themes'
+import { CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons'
+import { AlertDialog, Button, Flex, IconButton, Tooltip } from '@radix-ui/themes'
 import { useState } from 'react'
 import type { PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
 import { useToast } from '@/hooks/useToast'
@@ -20,7 +21,7 @@ const mergeBlockerOf = (pullRequest: PullRequestSummary): string | null => {
 }
 
 /**
- * The Merge and Close buttons at the foot of a board card. Each asks for confirmation, because
+ * The Merge and Close icons at the end of a board card's icon row. Each asks for confirmation, because
  * both act on GitHub at once and neither is undone from here; afterwards the board reloads.
  */
 export const PullRequestActions = ({ repository, pullRequest, onChanged }: PullRequestActionsProps) => {
@@ -42,14 +43,14 @@ export const PullRequestActions = ({ repository, pullRequest, onChanged }: PullR
   }
 
   return (
-    <Flex gap="2" align="center">
+    <Flex gap="2" align="center" ml="auto">
       <AlertDialog.Root>
         <Tooltip content={mergeBlocker ?? 'Squash and merge on GitHub'}>
           <span>
             <AlertDialog.Trigger>
-              <Button size="1" variant="soft" color="green" disabled={mergeBlocker !== null || isWorking}>
-                Merge
-              </Button>
+              <IconButton size="1" variant="ghost" color="green" disabled={mergeBlocker !== null || isWorking} aria-label="Merge">
+                <CheckCircledIcon />
+              </IconButton>
             </AlertDialog.Trigger>
           </span>
         </Tooltip>
@@ -78,11 +79,13 @@ export const PullRequestActions = ({ repository, pullRequest, onChanged }: PullR
       </AlertDialog.Root>
 
       <AlertDialog.Root>
-        <AlertDialog.Trigger>
-          <Button size="1" variant="ghost" color="red" disabled={isWorking}>
-            Close
-          </Button>
-        </AlertDialog.Trigger>
+        <Tooltip content="Close without merging">
+          <AlertDialog.Trigger>
+            <IconButton size="1" variant="ghost" color="red" disabled={isWorking} aria-label="Close">
+              <CrossCircledIcon />
+            </IconButton>
+          </AlertDialog.Trigger>
+        </Tooltip>
         <AlertDialog.Content maxWidth="440px">
           <AlertDialog.Title>Close #{pullRequest.number}?</AlertDialog.Title>
           <AlertDialog.Description size="2">

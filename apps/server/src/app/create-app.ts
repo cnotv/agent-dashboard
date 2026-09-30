@@ -140,7 +140,7 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   const findDefinition = (name: string) => secretDefinitions.find((definition) => definition.name === name)
 
   app.get('/api/secrets', (context) =>
-    context.json(vault.listSecrets(secretDefinitions.map(({ name, label, description }) => ({ name, label, description })))),
+    context.json(vault.listSecrets(secretDefinitions.map(({ name, label, description, tokenPageUrl }) => ({ name, label, description, tokenPageUrl })))),
   )
 
   app.put('/api/secrets/:name', async (context) => {

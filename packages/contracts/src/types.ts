@@ -105,12 +105,14 @@ export interface SecretDefinition {
   name: string
   label: string
   description: string
+  tokenPageUrl: string
 }
 
 export interface SecretSummary {
   name: string
   label: string
   description: string
+  tokenPageUrl: string
   isSet: boolean
   lastFour: string | null
   updatedAt: string | null

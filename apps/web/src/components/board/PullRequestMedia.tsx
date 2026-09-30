@@ -106,9 +106,9 @@ interface PullRequestMediaProps {
   pullRequest: PullRequestSummary
 }
 
-/** The screenshot and video buttons at the foot of a board card. */
+/** The screenshot and video buttons, placed in the icon row at the foot of a board card. */
 export const PullRequestMedia = ({ repository, pullRequest }: PullRequestMediaProps) => (
-  <Flex gap="3" align="center">
+  <>
     <MediaButton
       kind="image"
       isAvailable={pullRequest.media.hasImage}
@@ -119,5 +119,5 @@ export const PullRequestMedia = ({ repository, pullRequest }: PullRequestMediaPr
       isAvailable={pullRequest.media.hasVideo}
       mediaUrl={dashboardApi.pullRequestMediaUrl(repository, pullRequest, 'video')}
     />
-  </Flex>
+  </>
 )

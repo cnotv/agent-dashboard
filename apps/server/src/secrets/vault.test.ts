@@ -7,8 +7,8 @@ import { decryptValue, encryptValue, generateKeyMaterial } from './crypto.ts'
 import { createVault } from './vault.ts'
 
 const definitions = [
-  { name: 'github-token', label: 'GitHub token', description: '' },
-  { name: 'openrouter-api-key', label: 'OpenRouter', description: '' },
+  { name: 'github-token', label: 'GitHub token', description: '', tokenPageUrl: 'https://github.com/settings/tokens' },
+  { name: 'openrouter-api-key', label: 'OpenRouter', description: '', tokenPageUrl: 'https://openrouter.ai/settings/keys' },
 ]
 const sampleToken = 'ghp_exampleTokenValue1234567890abcd'
 const strongPassphrase = 'correct horse battery staple'

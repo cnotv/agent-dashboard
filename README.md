@@ -124,6 +124,8 @@ and Close). API keys for
 Anthropic, OpenAI and OpenRouter are stored the same way, for sessions that are not on a
 subscription, and so is a Netlify personal access token for the board's Netlify button.
 
+Each credential's dialog links to the page where that token or key is created.
+
 Values are encrypted with AES-256-GCM before they reach the SQLite database, each bound to its
 own name. The browser can add, replace, test and remove a value, but never reads one back; it
 sees the last four characters only. The key comes from one of two places:
@@ -163,10 +165,12 @@ inactive, since a closed terminal never reports that it ended.
 Each open pull request gets one card, listing every issue it closes (by a `Closes #n` line or
 by its `<type>/<n>-description` branch). An issue without a pull request has a card of its own.
 
-Checks show as a ring with one coloured arc per state: red failed, amber running, green passed,
-grey skipped or neutral. The passed count sits beside it, and hovering it lists every check
-with its state and a link to its run. When Netlify reports a deploy preview for the pull
-request, **Preview** opens it.
+The card ends in one row of icons, each named in its tooltip: the checks, a red warning when
+the branch has a merge conflict, the deploy preview, the screenshot and video, then Merge and
+Close. Checks show as a ring with one coloured arc per state (red failed, amber running, green
+passed, grey skipped or neutral) and the passed count; hovering it lists every check with its
+state and a link to its run. The globe opens the Netlify deploy preview once Netlify reports
+one.
 
 ## Netlify
 
