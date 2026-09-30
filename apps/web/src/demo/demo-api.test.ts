@@ -62,20 +62,28 @@ describe('createDemoApi', () => {
     expect(demoApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'example' }, pullRequest!, 'video')).toBe('/demo-media/video.webm')
   })
 
-  it('shows a merged pull request gone with its issue, and a closed one leaving its issue behind', async () => {
+  it('shows a merged pull request gone with its issues, and a closed one leaving each issue behind', async () => {
     const demoApi = createDemoApi()
     const repository = { owner: 'cnotv', name: 'example' }
     const cardsOf = async () => (await demoApi.readBoard(repository, false)).columns.flatMap((column) => column.cards)
-    const [issueCard, pullRequestOnlyCard] = [
-      (await cardsOf()).find((card) => card.issue !== null && card.pullRequest !== null),
-      (await cardsOf()).find((card) => card.issue === null && card.pullRequest !== null),
+    const [multiIssueCard, pullRequestOnlyCard] = [
+      (await cardsOf()).find((card) => card.issues.length > 1 && card.pullRequest !== null),
+      (await cardsOf()).find((card) => card.issues.length === 0 && card.pullRequest !== null),
     ]
-    await demoApi.closePullRequest(repository, issueCard!.pullRequest!)
-    expect((await cardsOf()).find((card) => card.issue?.number === issueCard!.issue!.number)).toMatchObject({
-      pullRequest: null,
-      status: 'no-pull-request',
-    })
+    await demoApi.closePullRequest(repository, multiIssueCard!.pullRequest!)
+    const issueOnlyCards = (await cardsOf()).filter((card) => card.pullRequest === null)
+    multiIssueCard!.issues.forEach((issue) =>
+      expect(issueOnlyCards).toContainEqual({ issues: [issue], pullRequest: null, status: 'no-pull-request' }),
+    )
     await demoApi.mergePullRequest(repository, pullRequestOnlyCard!.pullRequest!)
     expect((await cardsOf()).some((card) => card.pullRequest?.number === pullRequestOnlyCard!.pullRequest!.number)).toBe(false)
+  })
+
+  it('enables Netlify for a repository in memory only', async () => {
+    const demoApi = createDemoApi()
+    const repository = { owner: 'cnotv', name: 'example-api' }
+    expect(await demoApi.readNetlifyStatus(repository)).toEqual({ state: 'inactive' })
+    await demoApi.enableNetlify(repository)
+    expect(await demoApi.readNetlifyStatus(repository)).toMatchObject({ state: 'active', siteName: 'cnotv-example-api' })
   })
 })

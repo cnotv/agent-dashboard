@@ -3,6 +3,7 @@ import { Badge, Button, Callout, Flex, Select, Skeleton, Text } from '@radix-ui/
 import { useMemo } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router'
 import { BoardCardItem } from '@/components/board/BoardCardItem'
+import { NetlifyControl } from '@/components/board/NetlifyControl'
 import { useBoard, useRepositories } from '@/hooks/useBoard'
 import { issueStatusColors, issueStatusLabels, parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 
@@ -43,6 +44,11 @@ export const IssuesBoardView = () => {
             Updated {new Date(board.fetchedAt).toLocaleTimeString()}
           </Text>
         )}
+        {selectedRepository && (
+          <Flex ml="auto">
+            <NetlifyControl repository={selectedRepository} />
+          </Flex>
+        )}
       </Flex>
 
       {loadError && (
@@ -75,7 +81,7 @@ export const IssuesBoardView = () => {
               </Flex>
               {column.cards.map((card) => (
                 <BoardCardItem
-                  key={card.issue ? `issue-${card.issue.number}` : `pull-${card.pullRequest?.number}`}
+                  key={card.pullRequest ? `pull-${card.pullRequest.number}` : `issue-${card.issues[0]?.number}`}
                   card={card}
                   repository={board.repository}
                   onPullRequestChanged={refresh}

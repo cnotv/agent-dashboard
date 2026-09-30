@@ -4,6 +4,7 @@ import type {
   CreatedIngestToken,
   IngestTokenSummary,
   MediaKind,
+  NetlifyStatus,
   PullRequestSummary,
   RepositoryReference,
   SecretSummary,
@@ -15,6 +16,15 @@ import type {
 } from '@agent-dashboard/contracts'
 
 export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky' | 'orange'
+
+export type GateRingGroup = 'failure' | 'pending' | 'success' | 'other'
+
+export interface GateRingSegment {
+  group: GateRingGroup
+  gateCount: number
+  startFraction: number
+  lengthFraction: number
+}
 
 export type ToastTone = 'success' | 'error'
 
@@ -46,6 +56,8 @@ export interface DashboardApi {
   pullRequestMediaUrl: (repository: RepositoryReference, pullRequest: PullRequestSummary, kind: MediaKind) => string
   mergePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
   closePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
+  readNetlifyStatus: (repository: RepositoryReference) => Promise<NetlifyStatus>
+  enableNetlify: (repository: RepositoryReference) => Promise<NetlifyStatus>
   readSessions: (hours: number) => Promise<SessionsOverview>
   readUsage: (days: number) => Promise<UsageReport>
   listIngestTokens: () => Promise<IngestTokenSummary[]>

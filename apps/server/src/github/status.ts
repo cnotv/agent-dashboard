@@ -97,22 +97,28 @@ const newestFirst = (first: { updatedAt: string }, second: { updatedAt: string }
   second.updatedAt.localeCompare(first.updatedAt)
 
 /**
- * Pairs each issue with its newest pull request, and gives pull requests without an issue cards of their own.
+ * Gives each pull request one card listing every issue it works on, gives each issue without a
+ * pull request a card of its own, and keeps pull requests without an issue as cards too.
+ * An issue with several pull requests goes with the most recently updated one.
  * @param issues The open issues.
  * @param pullRequests The open pull requests.
- * @returns One card per issue and per unpaired pull request.
+ * @returns One card per pull request and per issue that has none.
  */
 export const buildBoardCards = (issues: IssueSummary[], pullRequests: PullRequestSummary[]): BoardCard[] => {
-  const issueCards = issues.map((issue) => {
-    const linkedPullRequest =
-      [...pullRequests].sort(newestFirst).find((pullRequest) => pullRequestClosesIssue(pullRequest, issue)) ?? null
-    return { issue, pullRequest: linkedPullRequest, status: deriveIssueStatus(linkedPullRequest) }
-  })
-  const linkedPullRequestNumbers = new Set(issueCards.flatMap((card) => (card.pullRequest ? [card.pullRequest.number] : [])))
-  const unlinkedPullRequestCards = pullRequests
-    .filter((pullRequest) => !linkedPullRequestNumbers.has(pullRequest.number))
-    .map((pullRequest) => ({ issue: null, pullRequest, status: deriveIssueStatus(pullRequest) }))
-  return [...issueCards, ...unlinkedPullRequestCards]
+  const pullRequestsNewestFirst = [...pullRequests].sort(newestFirst)
+  const issuesWithPullRequest = issues.map((issue) => ({
+    issue,
+    pullRequest: pullRequestsNewestFirst.find((pullRequest) => pullRequestClosesIssue(pullRequest, issue)) ?? null,
+  }))
+  const pullRequestCards = pullRequestsNewestFirst.map((pullRequest) => ({
+    issues: issuesWithPullRequest.filter((pairing) => pairing.pullRequest === pullRequest).map((pairing) => pairing.issue),
+    pullRequest,
+    status: deriveIssueStatus(pullRequest),
+  }))
+  const issueOnlyCards = issuesWithPullRequest
+    .filter((pairing) => pairing.pullRequest === null)
+    .map((pairing) => ({ issues: [pairing.issue], pullRequest: null, status: deriveIssueStatus(null) }))
+  return [...pullRequestCards, ...issueOnlyCards]
 }
 
 /**

@@ -9,8 +9,8 @@ describe('fetchRepositoryBoard', () => {
     const board = await fetchRepositoryBoard(async () => boardResponseFixture, repository)
     const cardsByStatus = Object.fromEntries(board.columns.map((column) => [column.status, column.cards]))
 
-    expect(cardsByStatus['no-pull-request']?.map((card) => card.issue?.number)).toEqual([12])
-    expect(cardsByStatus['checks-failing']?.map((card) => card.issue?.number)).toEqual([7])
+    expect(cardsByStatus['no-pull-request']?.map((card) => card.issues.map((issue) => issue.number))).toEqual([[12]])
+    expect(cardsByStatus['checks-failing']?.map((card) => card.issues.map((issue) => issue.number))).toEqual([[7]])
 
     const failingPullRequest = cardsByStatus['checks-failing']?.[0]?.pullRequest
     expect(failingPullRequest?.headSha).toBe('0123abcd')

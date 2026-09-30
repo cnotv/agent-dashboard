@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
 import { z } from 'zod'
-import type { Board } from '@agent-dashboard/contracts'
+import type { Board, NetlifyStatus } from '@agent-dashboard/contracts'
 import { createActivityRoutes, createIngestRoutes, ingestApiPaths } from '../activity/activity-routes.ts'
 import type { PullRequestFinder } from '../activity/aggregate.ts'
 import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
@@ -13,6 +13,7 @@ import type { PullRequestActionResult } from '../github/types.ts'
 import { readStoredMedia, storePreviewFiles } from '../media/media-store.ts'
 import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '../media/preview-artifacts.ts'
 import type { PreviewArtifactsBySha } from '../media/types.ts'
+import { activeStatusOf, enableNetlifyForRepository, fetchNetlifySites, findSiteForRepository } from '../netlify/sites.ts'
 import { findRepository } from '../repos/load-repositories.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
 import { createRedactor } from '../secrets/redact.ts'
@@ -254,6 +255,42 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     if (githubToken === null) return context.json(missingTokenError, 412)
     const result = await closePullRequest(dependencies.createGithubRestFetcher(githubToken), repository, parsedNumber.data)
     return answerPullRequestAction(context, repository, result)
+  })
+
+  const netlifyStatusCache = new Map<string, { status: NetlifyStatus; storedAt: number }>()
+  const missingNetlifyTokenError = { error: 'Save a Netlify token under Credentials first' }
+
+  app.get('/api/repositories/:owner/:name/netlify', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
+    const netlifyToken = vault.readSecretValue('netlify-token')
+    if (netlifyToken === null) return context.json<NetlifyStatus>({ state: 'missing-token' })
+    const cacheKey = `${repository.owner}/${repository.name}`
+    const cachedStatus = netlifyStatusCache.get(cacheKey)
+    if (cachedStatus && dependencies.now() - cachedStatus.storedAt < dependencies.boardCacheMilliseconds) {
+      return context.json(cachedStatus.status)
+    }
+    const site = findSiteForRepository(await fetchNetlifySites(dependencies.createNetlifyFetcher(netlifyToken)), repository)
+    const status: NetlifyStatus = site ? activeStatusOf(site) : { state: 'inactive' }
+    netlifyStatusCache.set(cacheKey, { status, storedAt: dependencies.now() })
+    return context.json(status)
+  })
+
+  app.post('/api/repositories/:owner/:name/netlify', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
+    const netlifyToken = vault.readSecretValue('netlify-token')
+    if (netlifyToken === null) return context.json(missingNetlifyTokenError, 412)
+    const githubToken = githubTokenOf(context.get('session'))
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const result = await enableNetlifyForRepository(
+      dependencies.createNetlifyFetcher(netlifyToken),
+      dependencies.createGithubRestFetcher(githubToken),
+      repository,
+    )
+    if (!result.ok) return context.json({ error: result.message }, result.status === 401 || result.status === 403 ? 403 : 409)
+    netlifyStatusCache.set(`${repository.owner}/${repository.name}`, { status: result.status, storedAt: dependencies.now() })
+    return context.json(result.status)
   })
 
   // The pr-preview recording of the pull request's head commit comes first, served from this

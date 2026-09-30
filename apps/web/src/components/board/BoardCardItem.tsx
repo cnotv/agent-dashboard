@@ -1,7 +1,7 @@
-import { FileTextIcon, Link2Icon } from '@radix-ui/react-icons'
+import { FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, Link, Separator, Text } from '@radix-ui/themes'
-import type { BoardCard, RepositoryReference } from '@agent-dashboard/contracts'
-import { GateStrip } from './GateStrip'
+import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'
 import { PullRequestMedia } from './PullRequestMedia'
 
@@ -11,31 +11,37 @@ interface BoardCardItemProps {
   onPullRequestChanged: () => void
 }
 
+const IssueHeading = ({ issue }: { issue: IssueSummary }) => (
+  <Flex direction="column" gap="1">
+    <Link href={issue.url} target="_blank" rel="noopener noreferrer" size="2" weight="medium" highContrast underline="hover">
+      #{issue.number} {issue.title}
+    </Link>
+    {issue.labels.length > 0 && (
+      <Flex gap="1" wrap="wrap">
+        {issue.labels.map((label) => (
+          <Badge key={label.name} variant="outline" color="gray" radius="full">
+            {label.name}
+          </Badge>
+        ))}
+      </Flex>
+    )}
+  </Flex>
+)
+
 /**
- * One board card: the issue, its labels, and its pull request with the check gates, the
- * screenshot and video, and the merge and close buttons.
+ * One board card: every issue its pull request works on, then the pull request with its checks,
+ * its deploy preview, the screenshot and video, and the merge and close buttons.
  */
 export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
     <Flex direction="column" gap="3">
       <Flex direction="column" gap="2">
-        {card.issue ? (
-          <Link href={card.issue.url} target="_blank" rel="noopener noreferrer" size="2" weight="medium" highContrast underline="hover">
-            #{card.issue.number} {card.issue.title}
-          </Link>
-        ) : (
+        {card.issues.length === 0 ? (
           <Text size="2" color="gray">
             No linked issue
           </Text>
-        )}
-        {card.issue && card.issue.labels.length > 0 && (
-          <Flex gap="1" wrap="wrap">
-            {card.issue.labels.map((label) => (
-              <Badge key={label.name} variant="outline" color="gray" radius="full">
-                {label.name}
-              </Badge>
-            ))}
-          </Flex>
+        ) : (
+          card.issues.map((issue) => <IssueHeading key={issue.number} issue={issue} />)
         )}
       </Flex>
       {card.pullRequest && (
@@ -53,7 +59,18 @@ export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardC
                 Merge conflict
               </Badge>
             )}
-            <GateStrip gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
+            <Flex justify="between" align="center" gap="3" wrap="wrap">
+              <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
+              {card.pullRequest.previewUrl && (
+                <Link href={card.pullRequest.previewUrl} target="_blank" rel="noopener noreferrer" size="1">
+                  <Flex gap="1" align="center" asChild>
+                    <span>
+                      <GlobeIcon /> Preview
+                    </span>
+                  </Flex>
+                </Link>
+              )}
+            </Flex>
           </Flex>
           <Separator size="4" />
           <Flex justify="between" align="center" gap="3" wrap="wrap">

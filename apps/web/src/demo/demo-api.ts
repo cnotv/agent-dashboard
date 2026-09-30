@@ -1,8 +1,14 @@
-import type { IngestTokenSummary, SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
+import type { IngestTokenSummary, NetlifyStatus, RepositoryReference, SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
+import { repositoryKey } from '@/lib/presentation'
 import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'
 import { sampleIngestTokens, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
 import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
+
+const demoNetlifySite = (repository: RepositoryReference): NetlifyStatus => {
+  const siteName = `${repository.owner}-${repository.name}`
+  return { state: 'active', siteName, siteUrl: `https://${siteName}.netlify.app`, adminUrl: `https://app.netlify.com/projects/${siteName}` }
+}
 
 /**
  * Creates the in-page API that demo mode uses in place of a server.
@@ -17,10 +23,12 @@ export const createDemoApi = (): DashboardApi => {
     secrets: SecretSummary[]
     ingestTokens: IngestTokenSummary[]
     pullRequestOutcomes: Map<number, DemoPullRequestOutcome>
+    netlifyRepositoryKeys: Set<string>
   } = {
     secrets: sampleSecrets.map((secret) => ({ ...secret })),
     ingestTokens: sampleIngestTokens.map((ingestToken) => ({ ...ingestToken })),
     pullRequestOutcomes: new Map(),
+    netlifyRepositoryKeys: new Set(['cnotv/example']),
   }
 
   const replaceSecret = (name: string, update: Partial<SecretSummary>): void => {
@@ -51,6 +59,12 @@ export const createDemoApi = (): DashboardApi => {
     },
     closePullRequest: async (_repository, pullRequest) => {
       demoMemory.pullRequestOutcomes = new Map([...demoMemory.pullRequestOutcomes, [pullRequest.number, 'closed']])
+    },
+    readNetlifyStatus: async (repository) =>
+      demoMemory.netlifyRepositoryKeys.has(repositoryKey(repository)) ? demoNetlifySite(repository) : { state: 'inactive' },
+    enableNetlify: async (repository) => {
+      demoMemory.netlifyRepositoryKeys = new Set([...demoMemory.netlifyRepositoryKeys, repositoryKey(repository)])
+      return demoNetlifySite(repository)
     },
     readSessions: async (hours) => sampleSessionsOverview(hours, Date.now()),
     readUsage: async (days) => sampleUsageReport(days, Date.now()),

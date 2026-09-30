@@ -1,5 +1,5 @@
 import type { AgentProvider, AgentSessionState, GateOverallState, GateState, IssueStatus, RepositoryReference } from '@agent-dashboard/contracts'
-import type { RadixColor } from './types'
+import type { GateRingGroup, RadixColor } from './types'
 
 export const issueStatusLabels: Record<IssueStatus, string> = {
   'no-pull-request': 'No pull request',
@@ -25,6 +25,28 @@ export const gateStateColors: Record<GateState, RadixColor> = {
   pending: 'amber',
   neutral: 'gray',
   skipped: 'gray',
+}
+
+export const gateOverallColors: Record<GateOverallState, RadixColor> = {
+  none: 'gray',
+  passing: 'green',
+  running: 'amber',
+  failing: 'red',
+}
+
+export const gateStateLabels: Record<GateState, string> = {
+  success: 'Passed',
+  failure: 'Failed',
+  pending: 'Running',
+  neutral: 'Neutral',
+  skipped: 'Skipped',
+}
+
+export const gateRingColors: Record<GateRingGroup, string> = {
+  failure: 'var(--red-9)',
+  pending: 'var(--amber-9)',
+  success: 'var(--green-9)',
+  other: 'var(--gray-8)',
 }
 
 export const gateOverallLabels: Record<GateOverallState, string> = {
