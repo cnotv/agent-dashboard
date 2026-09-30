@@ -1,5 +1,5 @@
 import type { Board, CheckGate, IssueSummary, PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
-import { deployPreviewUrlFromGates } from '../netlify/deploy-preview.ts'
+import { deployPreviewUrlFromGates, previewPageUrl } from '../netlify/deploy-preview.ts'
 import { mediaPresenceFromMarkdown } from './media.ts'
 import { boardQuery, boardResponseSchema, pullRequestBodyHtmlQuery, pullRequestBodyHtmlResponseSchema } from './schema.ts'
 import { buildBoard, gateStateFromCheckRun, gateStateFromStatusContext, summariseGates } from './status.ts'
@@ -40,7 +40,7 @@ export const mapPullRequestNode = (node: PullRequestNode): PullRequestSummary =>
     gates,
     gateSummary: summariseGates(gates),
     media: mediaPresenceFromMarkdown(node.body),
-    previewUrl: deployPreviewUrlFromGates(gates),
+    previewUrl: previewPageUrl(deployPreviewUrlFromGates(gates), node.body),
   }
 }
 
