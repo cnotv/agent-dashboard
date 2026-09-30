@@ -53,9 +53,13 @@ jobs:
 
       # The two SSH steps hold the server key and the app secret, so they are pinned to the
       # exact commit of their release rather than a tag that could be moved.
+      # rm clears the directory first: copying on top of the previous copy leaves files deleted
+      # from the repository behind, and a stale source file breaks the image build. The data is
+      # in the dashboard-data volume, not in this directory.
       - name: Copy the sources and settings to the server
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
         with:
+          rm: true
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USERNAME }}
           key: ${{ secrets.HETZNER_SSH_KEY }}

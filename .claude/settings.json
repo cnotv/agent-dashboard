@@ -3,7 +3,7 @@
     "cnotv": { "source": { "source": "github", "repo": "cnotv/agent-base" } }
   },
   "enabledPlugins": {
-    "base@cnotv": true
+    "workflow@cnotv": true
   },
   "permissions": {
     "allow": [

@@ -2,7 +2,7 @@ import { Badge, Button, Card, Code, Dialog, Flex, Heading, Table, Text, TextFiel
 import { useState, type FormEvent } from 'react'
 import { useIngestTokens } from '@/hooks/useActivity'
 import { useToast } from '@/hooks/useToast'
-import { connectSnippet } from '@/lib/connect-snippet'
+import { connectSnippet, pluginInstallCommands } from '@/lib/connect-snippet'
 import { runtimeConfiguration } from '@/lib/runtime-configuration'
 
 const dashboardUrl = (): string => runtimeConfiguration.apiBaseUrl || window.location.origin
@@ -102,10 +102,17 @@ export const ConnectAgentsPanel = () => {
               ) : (
                 <Flex direction="column" gap="3">
                   <Dialog.Description size="2" color="gray">
-                    Merge this into <Code>~/.claude/settings.json</Code> on that machine, then start a new Claude Code
-                    session. The token is shown only now; the dashboard keeps just its hash.
+                    Merge this into <Code>~/.claude/settings.json</Code> on that machine. It enables agent-base's workflow
+                    plugin, whose hook reports each session, and points it here. The token is shown only now; the
+                    dashboard keeps just its hash.
                   </Dialog.Description>
                   <pre className="connect-snippet">{snippet}</pre>
+                  <Text as="p" size="2" color="gray">
+                    Then start a new Claude Code session: one already open keeps its old settings. Its first
+                    report fills in <Text weight="medium">Last report</Text> below. If it stays at Never, install the
+                    plugin by hand and start another session:
+                  </Text>
+                  <pre className="connect-snippet">{pluginInstallCommands.join('\n')}</pre>
                   <Flex gap="3" justify="end">
                     <Button variant="soft" color="gray" onClick={() => void copySnippet()}>
                       Copy
