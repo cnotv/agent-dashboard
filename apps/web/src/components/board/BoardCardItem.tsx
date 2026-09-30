@@ -1,4 +1,4 @@
-import { ExclamationTriangleIcon, FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
+import { FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, IconButton, Link, Separator, Text, Tooltip } from '@radix-ui/themes'
 import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashboard/contracts'
 import { GateIndicator } from './GateIndicator'
@@ -83,13 +83,7 @@ export const BoardCardItem = ({ card, repository, onPullRequestChanged }: BoardC
           <>
             <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
             {card.pullRequest.mergeable === 'CONFLICTING' && (
-              <Tooltip content="Merge conflict">
-                <IconButton size="1" variant="ghost" color="red" aria-label="Merge conflict" asChild>
-                  <a href={card.pullRequest.url} target="_blank" rel="noopener noreferrer">
-                    <ExclamationTriangleIcon />
-                  </a>
-                </IconButton>
-              </Tooltip>
+              <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} conflictingPullRequest={card.pullRequest} />
             )}
             <PreviewButton previewUrl={card.pullRequest.previewUrl} />
             <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />

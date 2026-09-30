@@ -240,6 +240,7 @@ export type StartWorkflow =
   | 'security'
   | 'tests'
   | 'chore'
+  | 'conflicts'
 
 export type StartTarget = 'laptop-remote-control' | 'laptop-headless' | 'laptop-cloud' | 'cloud-routine'
 
@@ -250,6 +251,7 @@ export type SessionStartState = 'queued' | 'claimed' | 'started' | 'failed'
 export interface SessionStartRequest {
   repository: RepositoryReference
   issueNumber: number | null
+  pullRequestNumber: number | null
   workflow: StartWorkflow
   target: StartTarget
   permissionMode: HeadlessPermissionMode
