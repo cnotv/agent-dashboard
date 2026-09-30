@@ -5,12 +5,12 @@ const agentBaseMarketplace = 'cnotv'
 /** The commands that install the reporting plugin by hand, for when the settings alone do not. */
 export const pluginInstallCommands = [
   'claude plugin marketplace add cnotv/agent-base',
-  `claude plugin install base@${agentBaseMarketplace}`,
+  `claude plugin install workflow@${agentBaseMarketplace}`,
 ]
 
 /**
  * Builds the ~/.claude/settings.json snippet that connects a machine to this dashboard.
- * Sessions are reported by the hook in agent-base's base plugin, so the snippet enables the
+ * Sessions are reported by the hook in agent-base's workflow plugin, so the snippet enables the
  * plugin as well as setting the variables: without it nothing is ever sent. Claude Code only
  * reads telemetry settings from the user's own settings (or managed settings and the shell),
  * never from a repository's .claude/settings.json, which is why all of it goes in the user file.
@@ -24,7 +24,7 @@ export const connectSnippet = ({ dashboardUrl, ingestToken }: ConnectSnippetInpu
       extraKnownMarketplaces: {
         [agentBaseMarketplace]: { source: { source: 'github', repo: 'cnotv/agent-base' } },
       },
-      enabledPlugins: { [`base@${agentBaseMarketplace}`]: true },
+      enabledPlugins: { [`workflow@${agentBaseMarketplace}`]: true },
       env: {
         AGENT_DASHBOARD_URL: baseUrl,
         AGENT_DASHBOARD_TOKEN: ingestToken,

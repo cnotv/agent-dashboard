@@ -6,7 +6,7 @@ describe('connectSnippet', () => {
     const settings: unknown = JSON.parse(connectSnippet({ dashboardUrl: 'https://agents.example.com/', ingestToken: 'adt_example' }))
     expect(settings).toEqual({
       extraKnownMarketplaces: { cnotv: { source: { source: 'github', repo: 'cnotv/agent-base' } } },
-      enabledPlugins: { 'base@cnotv': true },
+      enabledPlugins: { 'workflow@cnotv': true },
       env: {
         AGENT_DASHBOARD_URL: 'https://agents.example.com',
         AGENT_DASHBOARD_TOKEN: 'adt_example',

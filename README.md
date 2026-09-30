@@ -143,7 +143,7 @@ model. It counts tokens only; subscription sessions have no per-token price to s
 Both are fed by the machines running Claude Code, not read from them:
 
 1. In **Credentials, Connect Claude Code**, create a token for the machine and merge the
-   snippet it shows into that machine's `~/.claude/settings.json`. It enables the `base`
+   snippet it shows into that machine's `~/.claude/settings.json`. It enables the `workflow`
    plugin from agent-base, whose hook posts each session event to `/api/events`, sets the
    hook's `AGENT_DASHBOARD_URL` and `AGENT_DASHBOARD_TOKEN`, and turns on Claude Code's
    OpenTelemetry metrics, exported to `/api/telemetry/v1/metrics`. It has to be the user
@@ -152,7 +152,7 @@ Both are fed by the machines running Claude Code, not read from them:
 2. Start a new session; one already open keeps its old settings. The token's **Last report**
    shows when the machine last reached the dashboard. If it stays at **Never**, install the
    plugin by hand (`claude plugin marketplace add cnotv/agent-base`, then
-   `claude plugin install base@cnotv`) and start another session.
+   `claude plugin install workflow@cnotv`) and start another session.
 
 The token is shown once and stored as a hash. It can only send events and metrics, never
 read anything, and **Revoke** cuts one machine off. A session silent for six hours counts as

@@ -102,7 +102,7 @@ export const ConnectAgentsPanel = () => {
               ) : (
                 <Flex direction="column" gap="3">
                   <Dialog.Description size="2" color="gray">
-                    Merge this into <Code>~/.claude/settings.json</Code> on that machine. It enables the agent-base
+                    Merge this into <Code>~/.claude/settings.json</Code> on that machine. It enables agent-base's workflow
                     plugin, whose hook reports each session, and points it here. The token is shown only now; the
                     dashboard keeps just its hash.
                   </Dialog.Description>
