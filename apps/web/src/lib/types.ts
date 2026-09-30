@@ -1,10 +1,8 @@
 import type {
   AgentSessionState,
   Board,
-  BoardCard,
   CreatedIngestToken,
   IngestTokenSummary,
-  IssueStatus,
   MediaKind,
   PullRequestSummary,
   RepositoryReference,
@@ -17,17 +15,6 @@ import type {
 } from '@agent-dashboard/contracts'
 
 export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky' | 'orange'
-
-export interface BoardTableRow {
-  rowKey: string
-  card: BoardCard
-  status: IssueStatus
-  statusLabel: string
-  issueTitle: string
-  pullRequestTitle: string
-  gatesPassed: number
-  updatedAt: string
-}
 
 export type ToastTone = 'success' | 'error'
 

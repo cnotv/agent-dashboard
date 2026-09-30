@@ -194,8 +194,8 @@ without all three configured.
 ## UI
 
 React 19 with [Radix Themes](https://www.radix-ui.com/themes) (light and dark follow the
-system) and [TanStack Table](https://tanstack.com/table) for sorting, searching, expanding
-and paging. No Tailwind.
+system) and [TanStack Table](https://tanstack.com/table) for the sortable tables on Sessions
+and Usage. No Tailwind.
 
 ## Develop
 

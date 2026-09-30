@@ -10,8 +10,6 @@ interface SecretDialogProps {
 }
 
 /** The dialog that adds or replaces one stored secret; the value is cleared as soon as it is sent. */
-/** The dialog that adds or replaces one stored secret; the value is cleared as soon as it is sent. */
-/** The dialog that adds or replaces one stored secret; the value is cleared as soon as it is sent. */
 export const SecretDialog = ({ secret, disabled, onSave }: SecretDialogProps) => {
   const toast = useToast()
   const [isOpen, setIsOpen] = useState(false)

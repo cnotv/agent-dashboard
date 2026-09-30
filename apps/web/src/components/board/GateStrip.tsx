@@ -3,8 +3,6 @@ import type { CheckGate, GateSummary } from '@agent-dashboard/contracts'
 import { gateOverallLabels, gateStateColors } from '@/lib/presentation'
 
 /** The check gates of a pull request as a summary line and one badge per check. */
-/** The check gates of a pull request as a summary line and one badge per check. */
-/** The check gates of a pull request as a summary line and one badge per check. */
 export const GateStrip = ({ gates, summary }: { gates: CheckGate[]; summary: GateSummary }) => (
   <Flex direction="column" gap="2">
     <Text size="1" color="gray">

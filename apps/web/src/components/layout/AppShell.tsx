@@ -18,8 +18,6 @@ const readPageTitle = (handle: unknown): string | null =>
   typeof handle === 'object' && handle !== null && 'title' in handle && typeof handle.title === 'string' ? handle.title : null
 
 /** The page frame: the sidebar, the page title and the current view, or the sign-in screen when sign-in is required. */
-/** The page frame: the sidebar, the page title and the current view, or the sign-in screen when sign-in is required. */
-/** The page frame: the sidebar, the page title and the current view, or the sign-in screen when sign-in is required. */
 export const AppShell = () => {
   const pageTitle = useMatches()
     .map((match) => readPageTitle(match.handle))

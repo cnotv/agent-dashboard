@@ -12,8 +12,6 @@ interface VaultPanelProps {
 }
 
 /** The vault's state, with the passphrase form to set it up or unlock it, and the lock button. */
-/** The vault's state, with the passphrase form to set it up or unlock it, and the lock button. */
-/** The vault's state, with the passphrase form to set it up or unlock it, and the lock button. */
 export const VaultPanel = ({ vaultState, onSetUp, onUnlock, onLock }: VaultPanelProps) => {
   const toast = useToast()
   const [passphrase, setPassphrase] = useState('')

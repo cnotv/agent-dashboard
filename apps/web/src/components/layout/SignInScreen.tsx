@@ -4,8 +4,6 @@ import { useSearchParams } from 'react-router'
 import { signInErrorMessages } from '@/lib/presentation'
 
 /** The full-page sign-in shown when the dashboard requires GitHub sign-in, with the reason a previous attempt failed. */
-/** The full-page sign-in shown when the dashboard requires GitHub sign-in, with the reason a previous attempt failed. */
-/** The full-page sign-in shown when the dashboard requires GitHub sign-in, with the reason a previous attempt failed. */
 export const SignInScreen = ({ signInUrl }: { signInUrl: string }) => {
   const [searchParams] = useSearchParams()
   const signInError = searchParams.get('sign-in-error')

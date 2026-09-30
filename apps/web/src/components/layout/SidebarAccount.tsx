@@ -9,8 +9,6 @@ interface Props {
 }
 
 /** The signed-in account at the foot of the sidebar, or the sign-in button when sign-in is optional. */
-/** The signed-in account at the foot of the sidebar, or the sign-in button when sign-in is optional. */
-/** The signed-in account at the foot of the sidebar, or the sign-in button when sign-in is optional. */
 export const SidebarAccount = ({ sessionState, signInUrl, onSignOut }: Props) => {
   const { user } = sessionState
   if (user === null) {
