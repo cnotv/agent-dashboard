@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDemoApi } from './demo-api'
+import { sampleBoardColumns } from './sample-board'
 
 describe('createDemoApi', () => {
   it('serves a board for whichever repository is asked for', async () => {
@@ -53,5 +54,11 @@ describe('createDemoApi', () => {
     expect((await demoApi.listIngestTokens()).map((ingestToken) => ingestToken.label)).toContain('Desk')
     await demoApi.revokeIngestToken(createdToken.summary.tokenId)
     expect((await demoApi.listIngestTokens()).map((ingestToken) => ingestToken.label)).not.toContain('Desk')
+  })
+
+  it('points media at the bundled demo recording', () => {
+    const demoApi = createDemoApi()
+    const [pullRequest] = sampleBoardColumns.flatMap((column) => column.cards).flatMap((card) => (card.pullRequest ? [card.pullRequest] : []))
+    expect(demoApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'example' }, pullRequest!, 'video')).toBe('/demo-media/video.webm')
   })
 })

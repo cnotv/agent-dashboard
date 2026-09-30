@@ -1,7 +1,7 @@
 import type { IngestTokenSummary, SecretSummary, SessionState, VaultState } from '@agent-dashboard/contracts'
 import type { DashboardApi } from '@/lib/types'
 import { sampleIngestTokens, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
-import { sampleBoardColumns } from './sample-board'
+import { demoMediaUrls, sampleBoardColumns } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
 // Demo mode has no server: everything below lives in this page and is gone on reload, so a
@@ -44,5 +44,6 @@ export const createDemoApi = (): DashboardApi => {
     revokeIngestToken: async (tokenId) => {
       demoMemory.ingestTokens = demoMemory.ingestTokens.filter((ingestToken) => ingestToken.tokenId !== tokenId)
     },
+    pullRequestMediaUrl: (_repository, _pullRequest, kind) => demoMediaUrls[kind],
   }
 }

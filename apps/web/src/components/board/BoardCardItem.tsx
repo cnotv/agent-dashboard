@@ -1,9 +1,10 @@
 import { FileTextIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, Link, Separator, Text } from '@radix-ui/themes'
-import type { BoardCard } from '@agent-dashboard/contracts'
+import type { BoardCard, RepositoryReference } from '@agent-dashboard/contracts'
 import { GateStrip } from './GateStrip'
+import { PullRequestMedia } from './PullRequestMedia'
 
-export const BoardCardItem = ({ card }: { card: BoardCard }) => (
+export const BoardCardItem = ({ card, repository }: { card: BoardCard; repository: RepositoryReference }) => (
   <Card size="2">
     <Flex direction="column" gap="3">
       <Flex direction="column" gap="2">
@@ -43,6 +44,8 @@ export const BoardCardItem = ({ card }: { card: BoardCard }) => (
             )}
             <GateStrip gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
           </Flex>
+          <Separator size="4" />
+          <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
         </>
       )}
     </Flex>

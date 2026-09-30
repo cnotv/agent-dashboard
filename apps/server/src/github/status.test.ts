@@ -34,6 +34,7 @@ const makePullRequest = (overrides: Partial<PullRequestSummary>): PullRequestSum
     mergeable: 'MERGEABLE',
     body: '',
     updatedAt: '2026-09-02T00:00:00Z',
+    media: { hasImage: false, hasVideo: false },
     ...overrides,
     gates,
     gateSummary: summariseGates(gates),

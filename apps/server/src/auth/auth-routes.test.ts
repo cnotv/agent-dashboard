@@ -98,7 +98,7 @@ describe('GitHub sign-in flow', () => {
 
     const boardResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/board', { cookie }))
     expect(boardResponse.status).toBe(200)
-    expect(receivedTokens).toEqual([userToken])
+    expect([...new Set(receivedTokens)]).toEqual([userToken])
   })
 
   it('sends the verifier that matches the challenge it advertised', async () => {

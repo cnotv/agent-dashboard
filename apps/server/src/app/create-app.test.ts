@@ -1,5 +1,6 @@
+import { zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
-import { createTestApp, getRequest, jsonRequest, testHost } from './test-app.ts'
+import { createTestApp, getRequest, jsonRequest, signedVideoUrl, testHost } from './test-app.ts'
 
 const sampleToken = 'ghp_exampleTokenValue1234567890abcd'
 const host = testHost
@@ -90,13 +91,99 @@ describe('board route', () => {
     const firstResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/board'))
     await app.request(getRequest('/api/repositories/cnotv/generative-art/board'))
     expect(firstResponse.status).toBe(200)
-    expect(receivedTokens).toEqual([sampleToken])
+    // One GraphQL call for the board and one REST call for its recordings, both with the token.
+    expect(receivedTokens).toEqual([sampleToken, sampleToken])
     await app.request(getRequest('/api/repositories/cnotv/generative-art/board?refresh=1'))
-    expect(receivedTokens).toHaveLength(2)
+    expect(receivedTokens).toHaveLength(4)
   })
 
   it('refuses a repository that is not configured', async () => {
     const { app } = createTestApp()
     expect((await app.request(getRequest('/api/repositories/someone/else/board'))).status).toBe(404)
+  })
+})
+
+describe('pull request media route', () => {
+  const mediaPath = (kind: string) => `/api/repositories/cnotv/generative-art/pulls/7/media/${kind}`
+
+  it('sends the browser to the signed GitHub link, and reuses the rendered body for a while', async () => {
+    const { app, vault, receivedTokens } = createTestApp()
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(getRequest(mediaPath('video')))
+    expect(response.status).toBe(302)
+    expect(response.headers.get('location')).toBe(signedVideoUrl)
+    expect(response.headers.get('cache-control')).toBe('no-store')
+    await app.request(getRequest(mediaPath('video')))
+    expect(receivedTokens).toHaveLength(1)
+  })
+
+  it('answers 404 for a kind the body does not have, or one that does not exist', async () => {
+    const { app, vault } = createTestApp()
+    vault.saveSecret('github-token', sampleToken)
+    expect((await app.request(getRequest(mediaPath('image')))).status).toBe(404)
+    expect((await app.request(getRequest(mediaPath('audio')))).status).toBe(404)
+    expect((await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/abc/media/video'))).status).toBe(404)
+  })
+
+  it('asks for a GitHub token first', async () => {
+    const { app } = createTestApp()
+    expect((await app.request(getRequest(mediaPath('video')))).status).toBe(412)
+  })
+})
+
+describe('pull request recordings', () => {
+  const artifactListPath = '/repos/cnotv/generative-art/actions/artifacts?name=pr-preview&per_page=100'
+  const recordedScreenshot = new Uint8Array([137, 80, 78, 71, 1, 2, 3])
+  const recordedVideo = new Uint8Array([26, 69, 223, 163, 4, 5, 6])
+  const artifactList = {
+    artifacts: [
+      { id: 11, name: 'pr-preview', expired: false, created_at: '2026-09-01T00:00:00Z', workflow_run: { head_sha: 'fedc9876' } },
+      { id: 12, name: 'pr-preview', expired: false, created_at: '2026-09-02T00:00:00Z', workflow_run: { head_sha: 'fedc9876' } },
+      { id: 13, name: 'lighthouse-results', expired: false, created_at: '2026-09-02T00:00:00Z', workflow_run: { head_sha: 'fedc9876' } },
+    ],
+  }
+  const recordingResponses = () => ({
+    [artifactListPath]: Response.json(artifactList),
+    '/repos/cnotv/generative-art/actions/artifacts/12/zip': new Response(
+      zipSync({ 'screenshot.png': recordedScreenshot, 'video.webm': recordedVideo }),
+    ),
+  })
+
+  it('marks a pull request with a recording as having both media', async () => {
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, recordingResponses())
+    vault.saveSecret('github-token', sampleToken)
+    const board: unknown = await (await app.request(getRequest('/api/repositories/cnotv/generative-art/board'))).json()
+    expect(JSON.stringify(board)).toContain('"headSha":"fedc9876"')
+    expect(board).toEqual(
+      expect.objectContaining({
+        columns: expect.arrayContaining([
+          expect.objectContaining({
+            status: 'draft',
+            cards: [expect.objectContaining({ pullRequest: expect.objectContaining({ media: { hasImage: true, hasVideo: true } }) })],
+          }),
+        ]),
+      }),
+    )
+  })
+
+  it('serves the newest recording of the head commit from this origin, downloading it once', async () => {
+    const { app, vault, receivedRestPaths } = createTestApp({}, {}, { now: 0 }, recordingResponses())
+    vault.saveSecret('github-token', sampleToken)
+    const videoResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/video?sha=fedc9876'))
+    expect(videoResponse.status).toBe(200)
+    expect(videoResponse.headers.get('content-type')).toBe('video/webm')
+    expect(videoResponse.headers.get('content-security-policy')).toContain('sandbox')
+    expect(new Uint8Array(await videoResponse.arrayBuffer())).toEqual(recordedVideo)
+    const imageResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/image?sha=fedc9876'))
+    expect(new Uint8Array(await imageResponse.arrayBuffer())).toEqual(recordedScreenshot)
+    expect(receivedRestPaths.filter((path) => path.endsWith('/zip'))).toEqual(['/repos/cnotv/generative-art/actions/artifacts/12/zip'])
+  })
+
+  it('falls back to the body when the commit has no recording', async () => {
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, recordingResponses())
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/7/media/video?sha=0123abcd'))
+    expect(response.status).toBe(302)
+    expect(response.headers.get('location')).toBe(signedVideoUrl)
   })
 })

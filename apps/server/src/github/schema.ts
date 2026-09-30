@@ -50,6 +50,22 @@ export const issueNodeSchema = z.object({
   closedByPullRequestsReferences: z.object({ nodes: z.array(z.object({ number: z.number() })) }),
 })
 
+export const pullRequestBodyHtmlQuery = `
+  query PullRequestBodyHtml($owner: String!, $name: String!, $number: Int!) {
+    repository(owner: $owner, name: $name) {
+      pullRequest(number: $number) {
+        bodyHTML
+      }
+    }
+  }
+`
+
+export const pullRequestBodyHtmlResponseSchema = z.object({
+  data: z.object({
+    repository: z.object({ pullRequest: z.object({ bodyHTML: z.string() }).nullable() }),
+  }),
+})
+
 export const boardResponseSchema = z.object({
   data: z.object({
     repository: z.object({

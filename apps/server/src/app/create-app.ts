@@ -6,15 +6,26 @@ import type { Board } from '@agent-dashboard/contracts'
 import { createActivityRoutes, createIngestRoutes, ingestApiPaths } from '../activity/activity-routes.ts'
 import type { PullRequestFinder } from '../activity/aggregate.ts'
 import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
-import { fetchRepositoryBoard } from '../github/board.ts'
+import { fetchPullRequestBodyHtml, fetchRepositoryBoard } from '../github/board.ts'
+import { mediaUrlFromBodyHtml } from '../github/media.ts'
+import { readStoredMedia, storePreviewFiles } from '../media/media-store.ts'
+import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '../media/preview-artifacts.ts'
+import type { PreviewArtifactsBySha } from '../media/types.ts'
 import { findRepository } from '../repos/load-repositories.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
 import { createRedactor } from '../secrets/redact.ts'
+import type { DashboardSession } from '../auth/types.ts'
 import type { AppDependencies, AppEnvironment } from './types.ts'
 
 const passphraseBodySchema = z.object({ passphrase: z.string().min(1) })
 const secretBodySchema = z.object({ value: z.string().min(1).max(4096) })
 const rotateBodySchema = z.object({ nextKey: z.string().min(1) })
+const mediaParamsSchema = z.object({ number: z.coerce.number().int().positive(), kind: z.enum(['image', 'video']) })
+const commitShaSchema = z.string().regex(/^[0-9a-f]{7,40}$/)
+
+// GitHub's signed attachment links last about five minutes, so a rendered body is reused for
+// less than half of that and every link handed to the browser still has time left to play.
+const bodyHtmlCacheMilliseconds = 2 * 60_000
 
 const readJsonBody = async (request: Request): Promise<unknown> => {
   try {
@@ -28,6 +39,8 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   const { vault, auth, activity, repositories, secretDefinitions } = dependencies
   const sessionCookieName = authCookieNamesFor(auth.secureCookies).session
   const boardCache = new Map<string, { board: Board; storedAt: number }>()
+  const bodyHtmlCache = new Map<string, { bodyHtml: string | null; storedAt: number }>()
+  const artifactCache = new Map<string, { artifactsBySha: PreviewArtifactsBySha; storedAt: number }>()
   const app = new Hono<AppEnvironment>()
 
   // Set here rather than in the reverse proxy, so they hold whichever proxy is in front.
@@ -136,24 +149,98 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
 
   app.get('/api/repositories', (context) => context.json(repositories))
 
+  // Each signed-in user reads GitHub through their own token, so caches are kept per reader.
+  const readerKeyOf = (session: DashboardSession | null): string => session?.user.login ?? '(stored token)'
+  const githubTokenOf = (session: DashboardSession | null): string | null => session?.githubToken ?? vault.readSecretValue('github-token')
+  const readBodyHtml = async (cacheKey: string, loadBodyHtml: () => Promise<string | null>): Promise<string | null> => {
+    const cachedBodyHtml = bodyHtmlCache.get(cacheKey)
+    if (cachedBodyHtml && dependencies.now() - cachedBodyHtml.storedAt < bodyHtmlCacheMilliseconds) return cachedBodyHtml.bodyHtml
+    const bodyHtml = await loadBodyHtml()
+    bodyHtmlCache.set(cacheKey, { bodyHtml, storedAt: dependencies.now() })
+    return bodyHtml
+  }
+  const readPreviewArtifacts = async (
+    cacheKey: string,
+    loadArtifacts: () => Promise<PreviewArtifactsBySha>,
+    wantsFresh: boolean,
+  ): Promise<PreviewArtifactsBySha> => {
+    const cachedArtifacts = artifactCache.get(cacheKey)
+    if (!wantsFresh && cachedArtifacts && dependencies.now() - cachedArtifacts.storedAt < dependencies.boardCacheMilliseconds) {
+      return cachedArtifacts.artifactsBySha
+    }
+    const artifactsBySha = await loadArtifacts()
+    artifactCache.set(cacheKey, { artifactsBySha, storedAt: dependencies.now() })
+    return artifactsBySha
+  }
+  const missingTokenError = { error: 'Sign in with GitHub, or save a GitHub token under Credentials' }
+
   app.get('/api/repositories/:owner/:name/board', async (context) => {
     const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
     if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
     const session = context.get('session')
-    // Each signed-in user sees the board through their own token, so the cache is per reader.
-    const cacheKey = `${session?.user.login ?? '(stored token)'}:${repository.owner}/${repository.name}`
+    const cacheKey = `${readerKeyOf(session)}:${repository.owner}/${repository.name}`
     const cachedBoard = boardCache.get(cacheKey)
     const wantsFresh = context.req.query('refresh') === '1'
     if (cachedBoard && !wantsFresh && dependencies.now() - cachedBoard.storedAt < dependencies.boardCacheMilliseconds) {
       return context.json(cachedBoard.board)
     }
-    const githubToken = session?.githubToken ?? vault.readSecretValue('github-token')
-    if (githubToken === null) {
-      return context.json({ error: 'Sign in with GitHub, or save a GitHub token under Credentials' }, 412)
-    }
-    const board = await fetchRepositoryBoard(dependencies.createGraphqlFetcher(githubToken), repository)
+    const githubToken = githubTokenOf(session)
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const [boardFromGithub, artifactsBySha] = await Promise.all([
+      fetchRepositoryBoard(dependencies.createGraphqlFetcher(githubToken), repository),
+      readPreviewArtifacts(cacheKey, () => fetchPreviewArtifacts(dependencies.createGithubRestFetcher(githubToken), repository), true),
+    ])
+    const board = withPreviewMedia(boardFromGithub, artifactsBySha)
     boardCache.set(cacheKey, { board, storedAt: dependencies.now() })
     return context.json(board)
+  })
+
+  // The pr-preview recording of the pull request's head commit comes first, served from this
+  // origin. Without one, the browser is sent on to the first image or video in the body through
+  // a link GitHub signed for this reader, which works for private repositories too.
+  app.get('/api/repositories/:owner/:name/pulls/:number/media/:kind', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    const parsedParams = mediaParamsSchema.safeParse(context.req.param())
+    if (repository === undefined || !parsedParams.success) return context.json({ error: 'Unknown media' }, 404)
+    const { kind, number: pullRequestNumber } = parsedParams.data
+    const session = context.get('session')
+    const githubToken = githubTokenOf(session)
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const repositoryCacheKey = `${readerKeyOf(session)}:${repository.owner}/${repository.name}`
+
+    const parsedSha = commitShaSchema.safeParse(context.req.query('sha'))
+    const artifactsBySha = parsedSha.success
+      ? await readPreviewArtifacts(
+          repositoryCacheKey,
+          () => fetchPreviewArtifacts(dependencies.createGithubRestFetcher(githubToken), repository),
+          false,
+        )
+      : new Map<string, number>()
+    const artifactId = parsedSha.success ? artifactsBySha.get(parsedSha.data) : undefined
+    if (artifactId !== undefined) {
+      const storedMedia =
+        (await readStoredMedia(dependencies.mediaCacheDirectory, artifactId, kind)) ??
+        (await downloadPreviewFiles(dependencies.createGithubRestFetcher(githubToken), repository, artifactId)
+          .then((files) => storePreviewFiles(dependencies.mediaCacheDirectory, artifactId, files))
+          .then(() => readStoredMedia(dependencies.mediaCacheDirectory, artifactId, kind)))
+      if (storedMedia !== null) {
+        return context.body(storedMedia.bytes, 200, {
+          'content-type': storedMedia.contentType,
+          'cache-control': 'private, max-age=86400, immutable',
+          // The bytes come from whoever ran the workflow; a sandbox keeps them from ever acting as a page.
+          'content-security-policy': "sandbox; default-src 'none'",
+        })
+      }
+    }
+
+    const cacheKey = `${repositoryCacheKey}#${pullRequestNumber}`
+    const bodyHtml = await readBodyHtml(cacheKey, () =>
+      fetchPullRequestBodyHtml(dependencies.createGraphqlFetcher(githubToken), repository, pullRequestNumber),
+    )
+    const mediaUrl = bodyHtml === null ? null : mediaUrlFromBodyHtml(bodyHtml, kind)
+    if (mediaUrl === null) return context.json({ error: `This pull request has no ${kind}` }, 404)
+    context.header('cache-control', 'no-store')
+    return context.redirect(mediaUrl, 302)
   })
 
   return app

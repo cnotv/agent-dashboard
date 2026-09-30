@@ -151,6 +151,20 @@ The token is shown once and stored as a hash. It can only send events and metric
 read anything, and **Revoke** cuts one machine off. A session silent for six hours counts as
 inactive, since a closed terminal never reports that it ended.
 
+## Screenshots and videos
+
+A board card with a pull request has an image and a video button at its bottom. The video
+opens in a popover, plays on its own and can go full screen. Each comes from the first of:
+
+1. The `pr-preview` artifact of the pull request's head commit, recorded by the shared
+   workflow in agent-base. The server downloads it once with the reader's GitHub token (the App
+   needs **Actions: read**), keeps it under `<data dir>/pr-media`, and serves it itself.
+2. The first image or video in the pull request body. The server sends the browser on to the
+   link GitHub signed for that reader, so attachments of private repositories load too; a link
+   to any host other than GitHub's is never followed.
+
+A button is greyed out when neither has one.
+
 ## Access
 
 Locally, the server only listens on loopback and rejects requests whose `Host` header is not

@@ -20,6 +20,7 @@ const pullRequestOnlyCard: BoardCard = {
     reviewDecision: null,
     mergeable: 'UNKNOWN',
     body: '',
+    media: { hasImage: false, hasVideo: false },
     updatedAt: '2026-09-28T10:00:00Z',
     gates: [],
     gateSummary: { passed: 0, failed: 0, pending: 0, total: 0, overallState: 'none' },

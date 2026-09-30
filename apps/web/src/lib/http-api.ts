@@ -25,6 +25,8 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     requestJson<ResponseBody>(path, { method, body: JSON.stringify(body) })
 
   const ingestTokenPath = (tokenId: string): string => `/api/ingest-tokens/${encodeURIComponent(tokenId)}`
+  const repositoryPath = (repository: { owner: string; name: string }): string =>
+    `/api/repositories/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}`
   const secretPath = (name: string): string => `/api/secrets/${encodeURIComponent(name)}`
 
   return {
@@ -40,14 +42,13 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     deleteSecret: (name) => sendJson('DELETE', secretPath(name)),
     testSecret: (name) => sendJson('POST', `${secretPath(name)}/test`),
     listRepositories: () => requestJson('/api/repositories'),
-    readBoard: (repository, refresh) =>
-      requestJson(
-        `/api/repositories/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/board${refresh ? '?refresh=1' : ''}`,
-      ),
+    readBoard: (repository, refresh) => requestJson(`${repositoryPath(repository)}/board${refresh ? '?refresh=1' : ''}`),
     readSessions: (hours) => requestJson(`/api/sessions?hours=${hours}`),
     readUsage: (days) => requestJson(`/api/usage?days=${days}`),
     listIngestTokens: () => requestJson('/api/ingest-tokens'),
     createIngestToken: (label) => sendJson('POST', '/api/ingest-tokens', { label }),
     revokeIngestToken: (tokenId) => sendJson('DELETE', ingestTokenPath(tokenId)),
+    pullRequestMediaUrl: (repository, pullRequest, kind) =>
+      `${apiBaseUrl}${repositoryPath(repository)}/pulls/${pullRequest.number}/media/${kind}${pullRequest.headSha ? `?sha=${encodeURIComponent(pullRequest.headSha)}` : ''}`,
   }
 }

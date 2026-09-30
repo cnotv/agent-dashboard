@@ -1,5 +1,6 @@
 import type { Board, CheckGate, IssueSummary, PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
-import { boardQuery, boardResponseSchema } from './schema.ts'
+import { mediaPresenceFromMarkdown } from './media.ts'
+import { boardQuery, boardResponseSchema, pullRequestBodyHtmlQuery, pullRequestBodyHtmlResponseSchema } from './schema.ts'
 import { buildBoard, gateStateFromCheckRun, gateStateFromStatusContext, summariseGates } from './status.ts'
 import type { GraphqlFetcher, IssueNode, PullRequestNode, RollupContext } from './types.ts'
 
@@ -27,6 +28,7 @@ export const mapPullRequestNode = (node: PullRequestNode): PullRequestSummary =>
     updatedAt: node.updatedAt,
     gates,
     gateSummary: summariseGates(gates),
+    media: mediaPresenceFromMarkdown(node.body),
   }
 }
 
@@ -58,4 +60,19 @@ export const fetchRepositoryBoard = async (fetchGraphql: GraphqlFetcher, reposit
   if (!parsedResponse.success) throw new Error(`Unexpected GitHub response for ${repository.owner}/${repository.name}`)
   const { issues, pullRequests } = parsedResponse.data.data.repository
   return buildBoard(repository, issues.nodes.map(mapIssueNode), pullRequests.nodes.map(mapPullRequestNode), new Date().toISOString())
+}
+
+export const fetchPullRequestBodyHtml = async (
+  fetchGraphql: GraphqlFetcher,
+  repository: RepositoryReference,
+  pullRequestNumber: number,
+): Promise<string | null> => {
+  const rawResponse = await fetchGraphql(pullRequestBodyHtmlQuery, {
+    owner: repository.owner,
+    name: repository.name,
+    number: pullRequestNumber,
+  })
+  const parsedResponse = pullRequestBodyHtmlResponseSchema.safeParse(rawResponse)
+  if (!parsedResponse.success) throw new Error(`Unexpected GitHub response for pull request ${pullRequestNumber}`)
+  return parsedResponse.data.data.repository.pullRequest?.bodyHTML ?? null
 }

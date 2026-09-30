@@ -25,6 +25,13 @@ export type ReviewDecision = 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED
 
 export type Mergeable = 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
 
+export type MediaKind = 'image' | 'video'
+
+export interface PullRequestMedia {
+  hasImage: boolean
+  hasVideo: boolean
+}
+
 export interface PullRequestSummary {
   number: number
   title: string
@@ -38,6 +45,7 @@ export interface PullRequestSummary {
   updatedAt: string
   gates: CheckGate[]
   gateSummary: GateSummary
+  media: PullRequestMedia
 }
 
 export interface IssueLabel {
