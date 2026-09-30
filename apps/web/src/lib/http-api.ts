@@ -1,3 +1,4 @@
+import type { MachineTokenKind } from '@agent-dashboard/contracts'
 import type { DashboardApi } from './types'
 
 const readErrorMessage = async (response: Response): Promise<string> => {
@@ -29,7 +30,7 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
   const sendJson = <ResponseBody>(method: string, path: string, body: unknown = {}): Promise<ResponseBody> =>
     requestJson<ResponseBody>(path, { method, body: JSON.stringify(body) })
 
-  const ingestTokenPath = (tokenId: string): string => `/api/ingest-tokens/${encodeURIComponent(tokenId)}`
+  const machineTokensPath = (kind: MachineTokenKind): string => `/api/${kind}-tokens`
   const repositoryPath = (repository: { owner: string; name: string }): string =>
     `/api/repositories/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}`
   const secretPath = (name: string): string => `/api/secrets/${encodeURIComponent(name)}`
@@ -50,9 +51,16 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     readBoard: (repository, refresh) => requestJson(`${repositoryPath(repository)}/board${refresh ? '?refresh=1' : ''}`),
     readSessions: (hours) => requestJson(`/api/sessions?hours=${hours}`),
     readUsage: (days) => requestJson(`/api/usage?days=${days}`),
-    listIngestTokens: () => requestJson('/api/ingest-tokens'),
-    createIngestToken: (label) => sendJson('POST', '/api/ingest-tokens', { label }),
-    revokeIngestToken: (tokenId) => sendJson('DELETE', ingestTokenPath(tokenId)),
+    listMachineTokens: (kind) => requestJson(machineTokensPath(kind)),
+    createMachineToken: (kind, label) => sendJson('POST', machineTokensPath(kind), { label }),
+    revokeMachineToken: (kind, tokenId) => sendJson('DELETE', `${machineTokensPath(kind)}/${encodeURIComponent(tokenId)}`),
+    readStartOptions: (repository) =>
+      requestJson(`/api/start-options?owner=${encodeURIComponent(repository.owner)}&name=${encodeURIComponent(repository.name)}`),
+    listSessionStarts: () => requestJson('/api/session-starts'),
+    startSession: (request) => sendJson('POST', '/api/session-starts', request),
+    readRoutineSettings: (repository) => requestJson(`${repositoryPath(repository)}/routine`),
+    saveRoutineSettings: (repository, routineId, token) => sendJson('PUT', `${repositoryPath(repository)}/routine`, { routineId, token }),
+    deleteRoutineSettings: (repository) => sendJson('DELETE', `${repositoryPath(repository)}/routine`),
     mergePullRequest: (repository, pullRequest) =>
       sendJson('POST', `${repositoryPath(repository)}/pulls/${pullRequest.number}/merge`, {
         title: pullRequest.title,

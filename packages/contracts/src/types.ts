@@ -215,14 +215,69 @@ export interface UsageReport {
   byModel: UsageByModel[]
 }
 
-export interface IngestTokenSummary {
+export interface MachineTokenSummary {
   tokenId: string
   label: string
   createdAt: string
   lastUsedAt: string | null
 }
 
-export interface CreatedIngestToken {
-  summary: IngestTokenSummary
+export type MachineTokenKind = 'ingest' | 'runner'
+
+export interface CreatedMachineToken {
+  summary: MachineTokenSummary
   token: string
+}
+
+export type StartWorkflow =
+  | 'research'
+  | 'feature'
+  | 'fix'
+  | 'refactor'
+  | 'docs'
+  | 'design'
+  | '3d'
+  | 'security'
+  | 'tests'
+  | 'chore'
+
+export type StartTarget = 'laptop-remote-control' | 'laptop-headless' | 'laptop-cloud' | 'cloud-routine'
+
+export type HeadlessPermissionMode = 'auto' | 'acceptEdits' | 'dontAsk'
+
+export type SessionStartState = 'queued' | 'claimed' | 'started' | 'failed'
+
+export interface SessionStartRequest {
+  repository: RepositoryReference
+  issueNumber: number | null
+  workflow: StartWorkflow
+  target: StartTarget
+  permissionMode: HeadlessPermissionMode
+  note: string
+}
+
+export interface SessionStart extends SessionStartRequest {
+  startId: string
+  state: SessionStartState
+  runnerLabel: string | null
+  sessionUrl: string | null
+  message: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RunnerPresence {
+  label: string
+  lastSeenAt: string
+  isOnline: boolean
+}
+
+export interface StartOptions {
+  runners: RunnerPresence[]
+  routineConfigured: boolean
+}
+
+export interface RoutineSettings {
+  configured: boolean
+  routineId: string | null
 }

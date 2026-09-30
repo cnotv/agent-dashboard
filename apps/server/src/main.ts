@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { createActivityStore } from './activity/activity-store.ts'
-import { createIngestTokenStore } from './activity/ingest-tokens.ts'
+import { createMachineTokenStore } from './machine-tokens/machine-token-store.ts'
 import { createApp } from './app/create-app.ts'
 import { createGitHubAuthClient } from './auth/github-auth.ts'
 import { createSessionStore } from './auth/session-store.ts'
@@ -13,6 +13,8 @@ import { createGithubGraphqlFetcher } from './github/board.ts'
 import { createGithubRestFetcher } from './github/rest.ts'
 import { createNetlifyFetcher } from './netlify/rest.ts'
 import { loadRepositories } from './repos/load-repositories.ts'
+import { fireRoutine } from './session-starts/routine.ts'
+import { createRoutineStore, createSessionStartStore } from './session-starts/start-store.ts'
 import { resolveRuntimeSettings } from './runtime/settings.ts'
 import { parseEncodedKey } from './secrets/crypto.ts'
 import { secretDefinitions } from './secrets/definitions.ts'
@@ -54,9 +56,16 @@ const app = createApp({
     secureCookies: settings.secureCookies,
     now: Date.now,
   },
+  sessionStarts: {
+    startStore: createSessionStartStore(database, Date.now),
+    routineStore: createRoutineStore(database),
+    runnerTokens: createMachineTokenStore(database, Date.now, 'runner'),
+    fireRoutine,
+    runnerScriptPath: join(workspaceRoot, 'apps/runner/src/runner.ts'),
+  },
   activity: {
     activityStore: createActivityStore(database),
-    ingestTokens: createIngestTokenStore(database, Date.now),
+    ingestTokens: createMachineTokenStore(database, Date.now, 'ingest'),
     now: Date.now,
   },
   repositories: loadRepositories(settings.repositoriesFile),

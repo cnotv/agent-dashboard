@@ -50,10 +50,11 @@ describe('createDemoApi', () => {
 
   it('creates and revokes ingest tokens in memory', async () => {
     const demoApi = createDemoApi()
-    const createdToken = await demoApi.createIngestToken('Desk')
-    expect((await demoApi.listIngestTokens()).map((ingestToken) => ingestToken.label)).toContain('Desk')
-    await demoApi.revokeIngestToken(createdToken.summary.tokenId)
-    expect((await demoApi.listIngestTokens()).map((ingestToken) => ingestToken.label)).not.toContain('Desk')
+    const createdToken = await demoApi.createMachineToken('runner', 'Desk')
+    expect((await demoApi.listMachineTokens('runner')).map((runnerToken) => runnerToken.label)).toContain('Desk')
+    expect((await demoApi.listMachineTokens('ingest')).map((ingestToken) => ingestToken.label)).not.toContain('Desk')
+    await demoApi.revokeMachineToken('runner', createdToken.summary.tokenId)
+    expect((await demoApi.listMachineTokens('runner')).map((runnerToken) => runnerToken.label)).not.toContain('Desk')
   })
 
   it('points media at the bundled demo recording', () => {
