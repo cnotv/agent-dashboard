@@ -10,6 +10,7 @@ import type {
   VaultState,
 } from '@agent-dashboard/contracts'
 import { repositoryKey } from '@/lib/presentation'
+import { chatKeyOf } from '@/lib/session-chat'
 import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'
 import {
   sampleChatMessages,
@@ -53,7 +54,7 @@ export const createDemoApi = (): DashboardApi => {
     netlifyRepositoryKeys: new Set(['cnotv/example']),
     chatMessages: new Map(),
   }
-  const chatMessagesOf = (sessionId: string): ChatMessage[] => demoMemory.chatMessages.get(sessionId) ?? sampleChatMessages
+  const chatMessagesOf = (chatKey: string): ChatMessage[] => demoMemory.chatMessages.get(chatKey) ?? sampleChatMessages
 
   const replaceSecret = (name: string, update: Partial<SecretSummary>): void => {
     demoMemory.secrets = demoMemory.secrets.map((secret) => (secret.name === name ? { ...secret, ...update } : secret))
@@ -92,16 +93,16 @@ export const createDemoApi = (): DashboardApi => {
       return demoNetlifySite(repository)
     },
     readSessions: async (hours) => sampleSessionsOverview(hours, Date.now()),
-    readSessionChat: async (sessionId) => ({
-      sessionId,
+    readSessionChat: async (target) => ({
+      sessionId: chatKeyOf(target),
       availability: 'on-laptop',
       deliveryRoute: 'tmux',
       sendBlocker: null,
-      messages: chatMessagesOf(sessionId),
+      messages: chatMessagesOf(chatKeyOf(target)),
       deliveries: [],
       updatedAt: new Date().toISOString(),
     }),
-    sendChatMessage: async (sessionId, text) => {
+    sendChatMessage: async (target, text) => {
       const createdAt = new Date().toISOString()
       const typedMessage: ChatMessage = { messageId: `demo-typed-${createdAt}`, role: 'user', kind: 'text', text, toolName: null, createdAt }
       const reply: ChatMessage = {
@@ -112,7 +113,8 @@ export const createDemoApi = (): DashboardApi => {
         toolName: null,
         createdAt,
       }
-      demoMemory.chatMessages = new Map([...demoMemory.chatMessages, [sessionId, [...chatMessagesOf(sessionId), typedMessage, reply]]])
+      const chatKey = chatKeyOf(target)
+      demoMemory.chatMessages = new Map([...demoMemory.chatMessages, [chatKey, [...chatMessagesOf(chatKey), typedMessage, reply]]])
       return { deliveryId: `demo-${createdAt}`, text, state: 'delivered', message: null, createdAt }
     },
     readUsage: async (days) => sampleUsageReport(days, Date.now()),

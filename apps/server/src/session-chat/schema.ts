@@ -7,6 +7,8 @@ export const chatMessageCountLimit = 150
 
 export const sessionIdSchema = z.string().regex(/^[A-Za-z0-9_-]{8,100}$/)
 
+export const startIdSchema = z.string().uuid()
+
 export const chatMessageBodySchema = z.object({ text: z.string().trim().min(1).max(8000) })
 
 const chatMessageSchema = z.object({

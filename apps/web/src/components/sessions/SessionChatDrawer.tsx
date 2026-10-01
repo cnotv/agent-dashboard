@@ -1,16 +1,15 @@
 import { Cross2Icon, ExternalLinkIcon, GearIcon, PaperPlaneIcon } from '@radix-ui/react-icons'
 import { Badge, Callout, Dialog, Flex, IconButton, Link, Skeleton, Text, TextArea, Tooltip } from '@radix-ui/themes'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { AgentSessionSummary, ChatDelivery, ChatMessage, SessionChat } from '@agent-dashboard/contracts'
+import type { ChatDelivery, ChatMessage, SessionChat } from '@agent-dashboard/contracts'
 import { usePolledResource } from '@/hooks/usePolledResource'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'
-import { sessionDetail, sessionLabel } from '@/lib/session-timeline'
-import { chatTimelineOf } from '@/lib/session-chat'
-import { sessionStateColors, sessionStateLabels } from '@/lib/presentation'
+import { chatKeyOf, chatTimelineOf } from '@/lib/session-chat'
+import type { ChatSubject, ChatTarget } from '@/lib/types'
 
 interface SessionChatDrawerProps {
-  session: AgentSessionSummary | null
+  subject: ChatSubject | null
   onClose: () => void
 }
 
@@ -95,7 +94,7 @@ const AvailabilityNotice = ({ chat }: { chat: SessionChat }) => {
   return null
 }
 
-const ChatComposer = ({ sessionId, sendBlocker }: { sessionId: string; sendBlocker: string | null }) => {
+const ChatComposer = ({ target, sendBlocker }: { target: ChatTarget; sendBlocker: string | null }) => {
   const toast = useToast()
   const [draft, setDraft] = useState('')
   const [isSending, setIsSending] = useState(false)
@@ -105,7 +104,7 @@ const ChatComposer = ({ sessionId, sendBlocker }: { sessionId: string; sendBlock
     if (!canSend) return
     setIsSending(true)
     try {
-      await dashboardApi.sendChatMessage(sessionId, draft.trim())
+      await dashboardApi.sendChatMessage(target, draft.trim())
       setDraft('')
     } catch (sendError) {
       toast.notifyError(sendError)
@@ -152,10 +151,10 @@ const ChatComposer = ({ sessionId, sendBlocker }: { sessionId: string; sendBlock
   )
 }
 
-const ChatBody = ({ session }: { session: AgentSessionSummary }) => {
+const ChatBody = ({ target }: { target: ChatTarget }) => {
   const { resource: chat, errorMessage } = usePolledResource(
-    `chat-${session.sessionId}`,
-    () => dashboardApi.readSessionChat(session.sessionId),
+    `chat-${chatKeyOf(target)}`,
+    () => dashboardApi.readSessionChat(target),
     chatPollMilliseconds,
   )
   const endRef = useRef<HTMLDivElement | null>(null)
@@ -188,7 +187,7 @@ const ChatBody = ({ session }: { session: AgentSessionSummary }) => {
         )}
         <div ref={endRef} />
       </Flex>
-      {chat.availability === 'on-laptop' && <ChatComposer sessionId={session.sessionId} sendBlocker={chat.sendBlocker} />}
+      {chat.availability === 'on-laptop' && <ChatComposer target={target} sendBlocker={chat.sendBlocker} />}
     </>
   )
 }
@@ -197,22 +196,22 @@ const ChatBody = ({ session }: { session: AgentSessionSummary }) => {
  * A session's conversation as a chat, in a drawer from the side: the transcript the laptop runner
  * reads live, and a box that sends the next message through it.
  */
-export const SessionChatDrawer = ({ session, onClose }: SessionChatDrawerProps) => (
-  <Dialog.Root open={session !== null} onOpenChange={(isOpen) => !isOpen && onClose()}>
+export const SessionChatDrawer = ({ subject, onClose }: SessionChatDrawerProps) => (
+  <Dialog.Root open={subject !== null} onOpenChange={(isOpen) => !isOpen && onClose()}>
     <Dialog.Content className="side-drawer chat-drawer" aria-describedby={undefined}>
-      {session && (
+      {subject && (
         <Flex direction="column" gap="4" className="chat-drawer-layout">
           <Flex gap="3" align="start" justify="between">
             <Flex direction="column" gap="1">
               <Dialog.Title size="4" mb="0">
-                {sessionLabel(session)}
+                {subject.title}
               </Dialog.Title>
               <Flex gap="2" align="center">
-                <Badge color={sessionStateColors[session.state]} variant="soft" radius="full">
-                  {sessionStateLabels[session.state]}
+                <Badge color={subject.badgeColor} variant="soft" radius="full">
+                  {subject.badgeLabel}
                 </Badge>
                 <Text size="1" color="gray">
-                  {sessionDetail(session)}
+                  {subject.detail}
                 </Text>
               </Flex>
             </Flex>
@@ -222,7 +221,7 @@ export const SessionChatDrawer = ({ session, onClose }: SessionChatDrawerProps) 
               </IconButton>
             </Dialog.Close>
           </Flex>
-          <ChatBody session={session} />
+          <ChatBody key={chatKeyOf(subject.target)} target={subject.target} />
         </Flex>
       )}
     </Dialog.Content>

@@ -1,5 +1,7 @@
-import type { ChatDelivery, ChatMessage, SessionChat } from '@agent-dashboard/contracts'
-import type { ChatTimelineItem } from './types'
+import type { AgentSessionSummary, ChatDelivery, ChatMessage, SessionChat, SessionStart } from '@agent-dashboard/contracts'
+import { sessionStartStateColors, sessionStartStateLabels, sessionStateColors, sessionStateLabels, startTargetLabels } from './presentation'
+import { sessionDetail, sessionLabel } from './session-timeline'
+import type { ChatSubject, ChatTarget, ChatTimelineItem } from './types'
 
 // The laptop's clock and the server's can disagree by a little, so a transcript message counts
 // as the delivered one when it is at most this much older than the delivery.
@@ -26,3 +28,46 @@ export const chatTimelineOf = (chat: SessionChat): ChatTimelineItem[] => [
     .filter((delivery) => !(delivery.state === 'delivered' && isInTranscript(delivery, chat.messages)))
     .map((delivery): ChatTimelineItem => ({ itemKey: delivery.deliveryId, source: 'pending', delivery })),
 ]
+
+/**
+ * Names a chat for caching and polling, distinct for a session and a start.
+ * @param target The session or start the chat belongs to.
+ * @returns The key.
+ */
+export const chatKeyOf = (target: ChatTarget): string =>
+  target.kind === 'session' ? `session-${target.sessionId}` : `start-${target.startId}`
+
+/**
+ * The drawer heading for a session from the sessions table.
+ * @param session The session.
+ * @returns Its chat subject.
+ */
+export const chatSubjectOfSession = (session: AgentSessionSummary): ChatSubject => ({
+  target: { kind: 'session', sessionId: session.sessionId },
+  title: sessionLabel(session),
+  detail: sessionDetail(session),
+  badgeLabel: sessionStateLabels[session.state],
+  badgeColor: sessionStateColors[session.state],
+})
+
+/**
+ * Tells whether a start from the board has a chat: one that runs on the laptop and has started.
+ * A cloud start has none, since its conversation lives only in the Claude app.
+ * @param start The start.
+ * @returns True when the runner can read and steer its session.
+ */
+export const canChatWithStart = (start: SessionStart): boolean =>
+  start.state === 'started' && (start.target === 'laptop-remote-control' || start.target === 'laptop-headless')
+
+/**
+ * The drawer heading for a start from the board.
+ * @param start The start.
+ * @returns Its chat subject.
+ */
+export const chatSubjectOfStart = (start: SessionStart): ChatSubject => ({
+  target: { kind: 'start', startId: start.startId },
+  title: `${start.repository.name}${start.issueNumber === null ? '' : ` #${start.issueNumber}`} · ${start.workflow}`,
+  detail: startTargetLabels[start.target].name,
+  badgeLabel: sessionStartStateLabels[start.state],
+  badgeColor: sessionStartStateColors[start.state],
+})

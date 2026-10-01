@@ -1,5 +1,5 @@
 import type { MachineTokenKind } from '@agent-dashboard/contracts'
-import type { DashboardApi } from './types'
+import type { ChatTarget, DashboardApi } from './types'
 
 const readErrorMessage = async (response: Response): Promise<string> => {
   try {
@@ -34,6 +34,10 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
   const repositoryPath = (repository: { owner: string; name: string }): string =>
     `/api/repositories/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}`
   const secretPath = (name: string): string => `/api/secrets/${encodeURIComponent(name)}`
+  const chatPathOf = (target: ChatTarget): string =>
+    target.kind === 'session'
+      ? `/api/sessions/${encodeURIComponent(target.sessionId)}/chat`
+      : `/api/session-starts/${encodeURIComponent(target.startId)}/chat`
 
   return {
     signInUrl: `${apiBaseUrl}/api/auth/github/start`,
@@ -50,8 +54,8 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     listRepositories: () => requestJson('/api/repositories'),
     readBoard: (repository, refresh) => requestJson(`${repositoryPath(repository)}/board${refresh ? '?refresh=1' : ''}`),
     readSessions: (hours) => requestJson(`/api/sessions?hours=${hours}`),
-    readSessionChat: (sessionId) => requestJson(`/api/sessions/${encodeURIComponent(sessionId)}/chat`),
-    sendChatMessage: (sessionId, text) => sendJson('POST', `/api/sessions/${encodeURIComponent(sessionId)}/chat`, { text }),
+    readSessionChat: (target) => requestJson(chatPathOf(target)),
+    sendChatMessage: (target, text) => sendJson('POST', chatPathOf(target), { text }),
     readUsage: (days) => requestJson(`/api/usage?days=${days}`),
     listMachineTokens: (kind) => requestJson(machineTokensPath(kind)),
     createMachineToken: (kind, label) => sendJson('POST', machineTokensPath(kind), { label }),

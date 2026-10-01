@@ -162,18 +162,21 @@ inactive, since a closed terminal never reports that it ended.
 
 ### Chat with a session
 
-The speech-bubble icon at the end of a session's row opens its conversation in a drawer, as
-in Claude: what was typed, Claude's answers, and each tool it used, updated live, with a box
-for the next message (Enter sends, Shift+Enter starts a new line). It needs the laptop runner
-below, because the conversation lives on the laptop:
+The speech-bubble icon opens a session's conversation in a drawer, as in Claude: what was
+typed, Claude's answers, and each tool it used, updated live, with a box for the next message
+(Enter sends, Shift+Enter starts a new line). It leads each laptop start under **Started from
+the board**, and each row of the sessions table, which lists only sessions whose hooks report
+here. It needs the laptop runner below, because the conversation lives on the laptop:
 
 - While the drawer is open, the runner reads the session's transcript in
   `~/.claude/projects` every couple of seconds and sends its last 150 messages, without tool
   results or thinking. The server keeps them in memory only, with every stored secret
   scrubbed, and forgets them about 20 seconds after the drawer closes; nothing is written to
   disk.
-- A message goes into a session running in tmux (every session started from Dashi does), pasted
-  into its pane and sent. An ended session is resumed unattended with
+- For a start, the runner finds its session as the newest transcript of the start's worktree.
+- A message goes into a session running in tmux (every steerable start from Dashi does), pasted
+  into its pane and sent. An unattended start takes one once its transcript has been quiet for a
+  minute, by being resumed. An ended session is resumed unattended with
   `claude --resume <id> -p <message>`, its output going to `~/agent-dashboard/logs`. A session
   waiting on a permission, or running in a plain terminal, can't take one, and the drawer says
   why.
