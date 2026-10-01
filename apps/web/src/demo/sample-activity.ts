@@ -1,4 +1,5 @@
 import type {
+  ChatMessage,
   SessionStart,
   AgentSessionState,
   AgentSessionSummary,
@@ -234,5 +235,41 @@ export const sampleSessionStarts: SessionStart[] = [
     message: 'Open "example #7 fix" in the Claude app; on the laptop, tmux attach -t agent-example-demo',
     createdAt: '2026-09-30T11:40:00Z',
     updatedAt: '2026-09-30T11:40:05Z',
+  },
+]
+
+export const sampleChatMessages: ChatMessage[] = [
+  {
+    messageId: 'demo-1',
+    role: 'user',
+    kind: 'text',
+    text: '/workflow:start fix https://github.com/cnotv/example/issues/7',
+    toolName: null,
+    createdAt: '2026-09-30T10:00:00Z',
+  },
+  {
+    messageId: 'demo-2',
+    role: 'assistant',
+    kind: 'text',
+    text: 'Reading issue #7: marbles stick to the ramp edge. I will reproduce it with a unit test first.',
+    toolName: null,
+    createdAt: '2026-09-30T10:00:04Z',
+  },
+  { messageId: 'demo-3', role: 'assistant', kind: 'tool', text: 'gh issue view 7 --comments', toolName: 'Bash', createdAt: '2026-09-30T10:00:05Z' },
+  {
+    messageId: 'demo-4',
+    role: 'assistant',
+    kind: 'tool',
+    text: 'src/views/Games/MarbleMadness/physics.ts',
+    toolName: 'Read',
+    createdAt: '2026-09-30T10:00:09Z',
+  },
+  {
+    messageId: 'demo-5',
+    role: 'assistant',
+    kind: 'text',
+    text: 'The speed is never clamped, so a fast marble tunnels through the edge collider.\n\nI added a failing test and a clamp of 40 units a second; the test passes now. Shall I open the draft pull request?',
+    toolName: null,
+    createdAt: '2026-09-30T10:03:40Z',
   },
 ]

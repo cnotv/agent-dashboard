@@ -16,6 +16,8 @@ import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '.
 import type { PreviewArtifactsBySha } from '../media/types.ts'
 import { activeStatusOf, enableNetlifyForRepository, fetchNetlifySites, findSiteForRepository } from '../netlify/sites.ts'
 import { findRepository } from '../repos/load-repositories.ts'
+import { createChatRelay } from '../session-chat/chat-relay.ts'
+import { createRunnerChatRoutes, createSessionChatRoutes } from '../session-chat/session-chat-routes.ts'
 import { createRunnerRoutes, createSessionStartRoutes, runnerApiPathPrefix } from '../session-starts/session-start-routes.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
 import { createRedactor } from '../secrets/redact.ts'
@@ -110,6 +112,15 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   const sessionStartDependencies = { ...dependencies.sessionStarts, vault, repositories, now: dependencies.now }
   app.route('/api', createSessionStartRoutes(sessionStartDependencies))
   app.route('/api/runner', createRunnerRoutes(sessionStartDependencies))
+  const sessionChatDependencies = {
+    chatRelay: createChatRelay(dependencies.now),
+    activityStore: activity.activityStore,
+    runnerTokens: dependencies.sessionStarts.runnerTokens,
+    vault,
+    now: dependencies.now,
+  }
+  app.route('/api', createSessionChatRoutes(sessionChatDependencies))
+  app.route('/api/runner', createRunnerChatRoutes(sessionChatDependencies))
 
   app.get('/api/health', (context) => context.json({ ok: true }))
 

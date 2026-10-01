@@ -8,6 +8,7 @@ import type { AppEnvironment } from '../app/types.ts'
 import { findRepository } from '../repos/load-repositories.ts'
 import { sessionNameFor, sessionPromptFor } from './prompt.ts'
 import { routineSettingsBodySchema, runnerReportSchema, sessionStartRequestSchema } from './schema.ts'
+import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import type { SessionStartDependencies } from './types.ts'
 
 // A runner asks every few seconds, so one silent for this long is taken to be off.
@@ -23,6 +24,28 @@ const routineTokenSecretName = (repository: RepositoryReference): string =>
 
 const presenceOf = (lastUsedAt: string | null, label: string, now: number): RunnerPresence[] =>
   lastUsedAt === null ? [] : [{ label, lastSeenAt: lastUsedAt, isOnline: now - Date.parse(lastUsedAt) < runnerOnlineMilliseconds }]
+
+/**
+ * Tells whether any laptop runner has asked for work recently.
+ * @param runnerTokens The runner tokens, which record when each was last used.
+ * @param now The current time in milliseconds.
+ * @returns True when at least one runner is online.
+ */
+export const isAnyRunnerOnline = (runnerTokens: MachineTokenStore, now: number): boolean =>
+  runnerTokens.listTokens().some((runnerToken) => presenceOf(runnerToken.lastUsedAt, runnerToken.label, now).some((presence) => presence.isOnline))
+
+/**
+ * Builds the guard on every route the runner calls: a valid runner token, whose label is kept for the handler.
+ * @param runnerTokens The runner tokens.
+ * @returns The middleware.
+ */
+export const createRunnerTokenGuard = (runnerTokens: MachineTokenStore) =>
+  createMiddleware<{ Variables: { runnerLabel: string } }>(async (context, next) => {
+    const runnerToken = runnerTokens.verifyToken(bearerTokenOf(context.req.header('authorization')))
+    if (runnerToken === null) return context.json({ error: 'Send a valid runner token' }, 401)
+    context.set('runnerLabel', runnerToken.label)
+    return next()
+  })
 
 /**
  * Builds the routes that start sessions from the board: the Start dialog's options, the list
@@ -119,12 +142,7 @@ export const createSessionStartRoutes = (dependencies: SessionStartDependencies)
 export const createRunnerRoutes = ({ startStore, runnerTokens, runnerScriptPath }: SessionStartDependencies) => {
   const routes = new Hono<AppEnvironment & { Variables: { runnerLabel: string } }>()
 
-  const requireRunnerToken = createMiddleware<{ Variables: { runnerLabel: string } }>(async (context, next) => {
-    const runnerToken = runnerTokens.verifyToken(bearerTokenOf(context.req.header('authorization')))
-    if (runnerToken === null) return context.json({ error: 'Send a valid runner token' }, 401)
-    context.set('runnerLabel', runnerToken.label)
-    return next()
-  })
+  const requireRunnerToken = createRunnerTokenGuard(runnerTokens)
 
   routes.get('/script', async (context) => {
     context.header('content-type', 'text/plain; charset=utf-8')

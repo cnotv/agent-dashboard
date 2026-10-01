@@ -1,5 +1,7 @@
 import type {
   AgentSessionState,
+  ChatDelivery,
+  ChatMessage,
   Board,
   BoardCard,
   CreatedMachineToken,
@@ -10,6 +12,7 @@ import type {
   NetlifyStatus,
   PullRequestFiles,
   PullRequestSummary,
+  SessionChat,
   RepositoryReference,
   RoutineSettings,
   SecretSummary,
@@ -95,6 +98,8 @@ export interface DashboardApi {
   readNetlifyStatus: (repository: RepositoryReference) => Promise<NetlifyStatus>
   enableNetlify: (repository: RepositoryReference) => Promise<NetlifyStatus>
   readSessions: (hours: number) => Promise<SessionsOverview>
+  readSessionChat: (sessionId: string) => Promise<SessionChat>
+  sendChatMessage: (sessionId: string, text: string) => Promise<ChatDelivery>
   readUsage: (days: number) => Promise<UsageReport>
   listMachineTokens: (kind: MachineTokenKind) => Promise<MachineTokenSummary[]>
   createMachineToken: (kind: MachineTokenKind, label: string) => Promise<CreatedMachineToken>
@@ -158,3 +163,5 @@ export interface DiffLine {
   newLineNumber: number | null
   text: string
 }
+
+export type ChatTimelineItem = { itemKey: string; source: 'transcript'; message: ChatMessage } | { itemKey: string; source: 'pending'; delivery: ChatDelivery }

@@ -50,6 +50,8 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     listRepositories: () => requestJson('/api/repositories'),
     readBoard: (repository, refresh) => requestJson(`${repositoryPath(repository)}/board${refresh ? '?refresh=1' : ''}`),
     readSessions: (hours) => requestJson(`/api/sessions?hours=${hours}`),
+    readSessionChat: (sessionId) => requestJson(`/api/sessions/${encodeURIComponent(sessionId)}/chat`),
+    sendChatMessage: (sessionId, text) => sendJson('POST', `/api/sessions/${encodeURIComponent(sessionId)}/chat`, { text }),
     readUsage: (days) => requestJson(`/api/usage?days=${days}`),
     listMachineTokens: (kind) => requestJson(machineTokensPath(kind)),
     createMachineToken: (kind, label) => sendJson('POST', machineTokensPath(kind), { label }),

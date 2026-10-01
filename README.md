@@ -160,6 +160,26 @@ The token is shown once and stored as a hash. It can only send events and metric
 read anything, and **Revoke** cuts one machine off. A session silent for six hours counts as
 inactive, since a closed terminal never reports that it ended.
 
+### Chat with a session
+
+The speech-bubble icon at the end of a session's row opens its conversation in a drawer, as
+in Claude: what was typed, Claude's answers, and each tool it used, updated live, with a box
+for the next message (Enter sends, Shift+Enter starts a new line). It needs the laptop runner
+below, because the conversation lives on the laptop:
+
+- While the drawer is open, the runner reads the session's transcript in
+  `~/.claude/projects` every couple of seconds and sends its last 150 messages, without tool
+  results or thinking. The server keeps them in memory only, with every stored secret
+  scrubbed, and forgets them about 20 seconds after the drawer closes; nothing is written to
+  disk.
+- A message goes into a session running in tmux (every session started from Dashi does), pasted
+  into its pane and sent. An ended session is resumed unattended with
+  `claude --resume <id> -p <message>`, its output going to `~/agent-dashboard/logs`. A session
+  waiting on a permission, or running in a plain terminal, can't take one, and the drawer says
+  why.
+- Claude cloud sessions have no public API to read or write them, so their drawer points to the
+  Claude app instead.
+
 ## Board cards
 
 The board opens on **All repositories**: every configured repository's issues on one board,
@@ -220,8 +240,9 @@ runner from `/api/runner/script` and install it as a login agent, so it starts w
 restarts if it stops (its log is `~/agent-dashboard/runner.log`). It needs Node 22.18 or later,
 git and Claude Code, logged in; `brew install tmux` for sessions steered from the phone.
 
-It asks for work every five seconds with its own runner token, which can only take and report
-starts, never read anything else. It accepts only a known workflow, target and permission mode
+It asks for work every five seconds, every second and a half while a chat drawer is open, with
+its own runner token, which can only take and report starts, send the transcript of a session
+whose drawer is open, and report on the messages it delivers, never read anything else. It accepts only a known workflow, target and permission mode
 and a repository in `owner/name` form; it clones under `~/agent-dashboard/repos` with your own git
 credentials, and every command is an argument list, never a shell string. **Revoke** cuts it off.
 

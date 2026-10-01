@@ -300,3 +300,42 @@ export interface RoutineSettings {
   configured: boolean
   routineId: string | null
 }
+
+export type ChatMessageRole = 'user' | 'assistant'
+
+export type ChatMessageKind = 'text' | 'tool'
+
+export interface ChatMessage {
+  messageId: string
+  role: ChatMessageRole
+  kind: ChatMessageKind
+  text: string
+  toolName: string | null
+  createdAt: string | null
+}
+
+// How the runner can put a message into a session: pasted into its tmux pane, or by resuming an
+// ended session headless.
+export type ChatDeliveryRoute = 'tmux' | 'resume' | 'none'
+
+export type ChatDeliveryState = 'queued' | 'sent' | 'delivered' | 'failed'
+
+export interface ChatDelivery {
+  deliveryId: string
+  text: string
+  state: ChatDeliveryState
+  message: string | null
+  createdAt: string
+}
+
+export type SessionChatAvailability = 'runner-offline' | 'waiting-for-runner' | 'on-laptop' | 'not-on-laptop'
+
+export interface SessionChat {
+  sessionId: string
+  availability: SessionChatAvailability
+  deliveryRoute: ChatDeliveryRoute
+  sendBlocker: string | null
+  messages: ChatMessage[]
+  deliveries: ChatDelivery[]
+  updatedAt: string | null
+}
