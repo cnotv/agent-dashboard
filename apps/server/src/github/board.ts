@@ -54,6 +54,7 @@ export const mapIssueNode = (node: IssueNode): IssueSummary => ({
   title: node.title,
   url: node.url,
   updatedAt: node.updatedAt,
+  closedAt: node.closedAt,
   labels: node.labels.nodes,
   linkedPullRequestNumbers: node.closedByPullRequestsReferences.nodes.map((reference) => reference.number),
 })
@@ -77,7 +78,8 @@ export const createGithubGraphqlFetcher =
   }
 
 /**
- * Reads a repository's open issues and pull requests in one query and sorts them into board columns.
+ * Reads a repository's open issues and pull requests, and its most recently closed issues, in one
+ * query and sorts them into board columns.
  * @param fetchGraphql The GraphQL caller.
  * @param repository The repository to read.
  * @returns The board.
@@ -86,8 +88,13 @@ export const fetchRepositoryBoard = async (fetchGraphql: GraphqlFetcher, reposit
   const rawResponse = await fetchGraphql(boardQuery, { owner: repository.owner, name: repository.name })
   const parsedResponse = boardResponseSchema.safeParse(rawResponse)
   if (!parsedResponse.success) throw new Error(`Unexpected GitHub response for ${repository.owner}/${repository.name}`)
-  const { issues, pullRequests } = parsedResponse.data.data.repository
-  return buildBoard(repository, issues.nodes.map(mapIssueNode), pullRequests.nodes.map(mapPullRequestNode), new Date().toISOString())
+  const { issues, closedIssues, pullRequests } = parsedResponse.data.data.repository
+  return buildBoard(
+    repository,
+    { open: issues.nodes.map(mapIssueNode), closed: closedIssues.nodes.map(mapIssueNode) },
+    pullRequests.nodes.map(mapPullRequestNode),
+    new Date().toISOString(),
+  )
 }
 
 /**

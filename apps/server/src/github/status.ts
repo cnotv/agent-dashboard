@@ -19,6 +19,7 @@ export const boardColumnOrder: IssueStatus[] = [
   'checks-failing',
   'ready-for-review',
   'approved',
+  'closed',
 ]
 
 /**
@@ -122,20 +123,22 @@ export const buildBoardCards = (issues: IssueSummary[], pullRequests: PullReques
 }
 
 /**
- * Builds a repository's board, with the cards sorted into columns in the board's order.
+ * Builds a repository's board, with the cards sorted into columns in the board's order. Each closed
+ * issue gets a card of its own in the last column, without its pull request, which is no longer open.
  * @param repository The repository.
- * @param issues The open issues.
+ * @param issues The open issues, and the most recently closed ones.
  * @param pullRequests The open pull requests.
  * @param fetchedAt When GitHub was read.
  * @returns The board.
  */
 export const buildBoard = (
   repository: RepositoryReference,
-  issues: IssueSummary[],
+  issues: { open: IssueSummary[]; closed: IssueSummary[] },
   pullRequests: PullRequestSummary[],
   fetchedAt: string,
 ): Board => {
-  const boardCards = buildBoardCards(issues, pullRequests)
+  const closedCards: BoardCard[] = issues.closed.map((issue) => ({ issues: [issue], pullRequest: null, status: 'closed' }))
+  const boardCards = [...buildBoardCards(issues.open, pullRequests), ...closedCards]
   return {
     repository,
     columns: boardColumnOrder.map((status) => ({ status, cards: boardCards.filter((card) => card.status === status) })),

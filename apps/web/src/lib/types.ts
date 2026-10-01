@@ -26,7 +26,7 @@ import type {
   VaultState,
 } from '@agent-dashboard/contracts'
 
-export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky' | 'orange'
+export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky' | 'orange' | 'purple'
 
 export type GateRingGroup = 'failure' | 'pending' | 'success' | 'other'
 

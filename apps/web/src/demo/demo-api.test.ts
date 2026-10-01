@@ -59,11 +59,13 @@ describe('createDemoApi', () => {
 
   it('points media at the bundled demo recording', () => {
     const demoApi = createDemoApi()
-    const [pullRequest] = sampleBoardColumns.flatMap((column) => column.cards).flatMap((card) => (card.pullRequest ? [card.pullRequest] : []))
+    const [pullRequest] = sampleBoardColumns
+      .flatMap((column) => column.cards)
+      .flatMap((card) => (card.pullRequest ? [card.pullRequest] : []))
     expect(demoApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'example' }, pullRequest!, 'video')).toBe('/demo-media/video.webm')
   })
 
-  it('shows a merged pull request gone with its issues, and a closed one leaving each issue behind', async () => {
+  it("moves the issues of a merged pull request to Closed, and leaves a closed one's issues behind", async () => {
     const demoApi = createDemoApi()
     const repository = { owner: 'cnotv', name: 'example' }
     const cardsOf = async () => (await demoApi.readBoard(repository, false)).columns.flatMap((column) => column.cards)
@@ -78,6 +80,14 @@ describe('createDemoApi', () => {
     )
     await demoApi.mergePullRequest(repository, pullRequestOnlyCard!.pullRequest!)
     expect((await cardsOf()).some((card) => card.pullRequest?.number === pullRequestOnlyCard!.pullRequest!.number)).toBe(false)
+    const freshDemoApi = createDemoApi()
+    const freshCardsOf = async () => (await freshDemoApi.readBoard(repository, false)).columns.flatMap((column) => column.cards)
+    const mergedCard = (await freshCardsOf()).find((card) => card.issues.length > 1 && card.pullRequest !== null)
+    await freshDemoApi.mergePullRequest(repository, mergedCard!.pullRequest!)
+    const closedCards = (await freshCardsOf()).filter((card) => card.status === 'closed')
+    expect(closedCards.flatMap((card) => card.issues.map((issue) => issue.number))).toEqual(
+      expect.arrayContaining(mergedCard!.issues.map((issue) => issue.number)),
+    )
   })
 
   it('enables Netlify for a repository in memory only', async () => {

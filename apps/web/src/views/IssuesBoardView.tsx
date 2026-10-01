@@ -1,10 +1,11 @@
-import { ReloadIcon } from '@radix-ui/react-icons'
-import { Badge, Button, Callout, Flex, SegmentedControl, Select, Skeleton, Text } from '@radix-ui/themes'
+import { ChevronDownIcon, ChevronRightIcon, ReloadIcon } from '@radix-ui/react-icons'
+import { Badge, Button, Callout, Flex, IconButton, SegmentedControl, Select, Skeleton, Text } from '@radix-ui/themes'
 import { useMemo } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router'
 import { BoardCardItem } from '@/components/board/BoardCardItem'
 import { NetlifyControl } from '@/components/board/NetlifyControl'
 import { useBoards, useRepositories } from '@/hooks/useBoard'
+import { useCollapsedColumns } from '@/hooks/useCollapsedColumns'
 import { mergeBoards } from '@/lib/board-merge'
 import { issueStatusColors, issueStatusLabels, parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 
@@ -37,6 +38,7 @@ export const IssuesBoardView = () => {
     scope === allRepositoriesKey ? setSearchParams({}, { replace: true }) : selectRepository(firstRepositoryKey)
 
   const loadError = repositoriesError ?? errorMessage
+  const { collapsedStatuses, toggleColumn } = useCollapsedColumns()
 
   return (
     <Flex direction="column" gap="5">
@@ -87,34 +89,53 @@ export const IssuesBoardView = () => {
       {isLoading && boards.length === 0 && (
         <div className="board-columns">
           {Array.from({ length: skeletonColumnCount }, (_, placeholderIndex) => (
-            <Skeleton key={placeholderIndex} height="160px" />
+            <Skeleton key={placeholderIndex} className="board-column" height="160px" />
           ))}
         </div>
       )}
 
       {columns.length > 0 && (
         <div className="board-columns">
-          {columns.map((column) => (
-            <Flex key={column.status} direction="column" gap="3">
-              <Flex justify="between" align="center">
-                <Text size="2" weight="medium">
-                  {issueStatusLabels[column.status]}
-                </Text>
-                <Badge color={issueStatusColors[column.status]} variant="soft" radius="full">
-                  {column.cards.length}
-                </Badge>
-              </Flex>
-              {column.cards.map(({ card, repository }) => (
-                <BoardCardItem
-                  key={`${repositoryKey(repository)}-${card.pullRequest ? `pull-${card.pullRequest.number}` : `issue-${card.issues[0]?.number}`}`}
-                  card={card}
-                  repository={repository}
-                  showRepository={showsAllRepositories}
-                  onPullRequestChanged={refresh}
-                />
-              ))}
-            </Flex>
-          ))}
+          {columns.map((column) => {
+            const isCollapsed = collapsedStatuses.includes(column.status)
+            const columnLabel = issueStatusLabels[column.status]
+            return (
+              <section
+                key={column.status}
+                className={isCollapsed ? 'board-column board-column-collapsed' : 'board-column'}
+                aria-label={columnLabel}
+              >
+                <div className="board-column-header">
+                  <IconButton
+                    size="1"
+                    variant="ghost"
+                    color="gray"
+                    aria-expanded={!isCollapsed}
+                    aria-label={isCollapsed ? `Show ${columnLabel}` : `Fold ${columnLabel}`}
+                    onClick={() => toggleColumn(column.status)}
+                  >
+                    {isCollapsed ? <ChevronRightIcon /> : <ChevronDownIcon />}
+                  </IconButton>
+                  <Text size="2" weight="medium" className="board-column-title">
+                    {columnLabel}
+                  </Text>
+                  <Badge color={issueStatusColors[column.status]} variant="soft" radius="full">
+                    {column.cards.length}
+                  </Badge>
+                </div>
+                {!isCollapsed &&
+                  column.cards.map(({ card, repository }) => (
+                    <BoardCardItem
+                      key={`${repositoryKey(repository)}-${card.pullRequest ? `pull-${card.pullRequest.number}` : `issue-${card.issues[0]?.number}`}`}
+                      card={card}
+                      repository={repository}
+                      showRepository={showsAllRepositories}
+                      onPullRequestChanged={refresh}
+                    />
+                  ))}
+              </section>
+            )
+          })}
         </div>
       )}
     </Flex>

@@ -8,16 +8,56 @@
             "title": "Add a camera preset",
             "url": "https://github.com/cnotv/generative-art/issues/12",
             "updatedAt": "2026-09-27T10:00:00Z",
-            "labels": { "nodes": [{ "name": "enhancement", "color": "a2eeef" }] },
-            "closedByPullRequestsReferences": { "nodes": [] }
+            "labels": {
+              "nodes": [
+                {
+                  "name": "enhancement",
+                  "color": "a2eeef"
+                }
+              ]
+            },
+            "closedByPullRequestsReferences": {
+              "nodes": []
+            },
+            "closedAt": null
           },
           {
             "number": 7,
             "title": "Fix marble stickiness",
             "url": "https://github.com/cnotv/generative-art/issues/7",
             "updatedAt": "2026-09-26T10:00:00Z",
-            "labels": { "nodes": [] },
-            "closedByPullRequestsReferences": { "nodes": [{ "number": 30 }] }
+            "labels": {
+              "nodes": []
+            },
+            "closedByPullRequestsReferences": {
+              "nodes": [
+                {
+                  "number": 30
+                }
+              ]
+            },
+            "closedAt": null
+          }
+        ]
+      },
+      "closedIssues": {
+        "nodes": [
+          {
+            "number": 4,
+            "title": "Show the frame rate",
+            "url": "https://github.com/cnotv/generative-art/issues/4",
+            "updatedAt": "2026-09-20T10:00:00Z",
+            "closedAt": "2026-09-20T10:00:00Z",
+            "labels": {
+              "nodes": []
+            },
+            "closedByPullRequestsReferences": {
+              "nodes": [
+                {
+                  "number": 5
+                }
+              ]
+            }
           }
         ]
       },
@@ -41,9 +81,26 @@
                     "statusCheckRollup": {
                       "contexts": {
                         "nodes": [
-                          { "__typename": "CheckRun", "name": "lint", "status": "COMPLETED", "conclusion": "SUCCESS", "detailsUrl": "https://github.com/cnotv/generative-art/runs/1" },
-                          { "__typename": "CheckRun", "name": "test", "status": "COMPLETED", "conclusion": "FAILURE", "detailsUrl": "https://github.com/cnotv/generative-art/runs/2" },
-                          { "__typename": "StatusContext", "context": "deploy/netlify", "state": "PENDING", "targetUrl": "https://app.netlify.com/x" }
+                          {
+                            "__typename": "CheckRun",
+                            "name": "lint",
+                            "status": "COMPLETED",
+                            "conclusion": "SUCCESS",
+                            "detailsUrl": "https://github.com/cnotv/generative-art/runs/1"
+                          },
+                          {
+                            "__typename": "CheckRun",
+                            "name": "test",
+                            "status": "COMPLETED",
+                            "conclusion": "FAILURE",
+                            "detailsUrl": "https://github.com/cnotv/generative-art/runs/2"
+                          },
+                          {
+                            "__typename": "StatusContext",
+                            "context": "deploy/netlify",
+                            "state": "PENDING",
+                            "targetUrl": "https://app.netlify.com/x"
+                          }
                         ]
                       }
                     }
@@ -62,7 +119,16 @@
             "mergeable": "UNKNOWN",
             "body": "",
             "updatedAt": "2026-09-25T12:00:00Z",
-            "commits": { "nodes": [{ "commit": { "oid": "fedc9876", "statusCheckRollup": null } }] }
+            "commits": {
+              "nodes": [
+                {
+                  "commit": {
+                    "oid": "fedc9876",
+                    "statusCheckRollup": null
+                  }
+                }
+              ]
+            }
           }
         ]
       }

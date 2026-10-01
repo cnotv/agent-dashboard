@@ -21,6 +21,9 @@ describe('fetchRepositoryBoard', () => {
     ])
     expect(failingPullRequest?.gateSummary.overallState).toBe('failing')
     expect(cardsByStatus['draft']?.map((card) => card.pullRequest?.number)).toEqual([31])
+    expect(cardsByStatus['closed']?.map((card) => card.issues.map((issue) => [issue.number, issue.closedAt, issue.linkedPullRequestNumbers]))).toEqual([
+      [[4, '2026-09-20T10:00:00Z', [5]]],
+    ])
   })
 
   it('passes owner and name as variables, never inside the query text', async () => {

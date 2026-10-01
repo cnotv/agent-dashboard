@@ -19,6 +19,7 @@ export const issueStatusLabels: Record<IssueStatus, string> = {
   'checks-failing': 'Checks failing',
   'ready-for-review': 'Ready for review',
   approved: 'Approved',
+  closed: 'Closed',
 }
 
 export const issueStatusColors: Record<IssueStatus, RadixColor> = {
@@ -28,6 +29,7 @@ export const issueStatusColors: Record<IssueStatus, RadixColor> = {
   'checks-failing': 'red',
   'ready-for-review': 'indigo',
   approved: 'green',
+  closed: 'purple',
 }
 
 export const gateStateColors: Record<GateState, RadixColor> = {

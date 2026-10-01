@@ -7,6 +7,7 @@ const issueUpdatedAt = (issueNumber: number, updatedAt: string): IssueSummary =>
   title: `Issue ${issueNumber}`,
   url: `https://github.com/o/r/issues/${issueNumber}`,
   updatedAt,
+  closedAt: null,
   labels: [],
   linkedPullRequestNumbers: [],
 })
