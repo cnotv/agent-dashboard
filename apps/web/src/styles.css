@@ -652,3 +652,65 @@ body {
   color: var(--gray-a10);
   font-style: italic;
 }
+
+.chat-drawer.rt-DialogContent {
+  width: min(720px, 100vw);
+  padding-bottom: 0;
+}
+
+.chat-drawer-layout {
+  min-height: 100%;
+}
+
+.chat-messages {
+  flex: 1;
+  padding-bottom: var(--space-4);
+}
+
+.chat-bubble {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.chat-bubble-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-5);
+  background: var(--gray-a3);
+}
+
+.chat-bubble-pending {
+  opacity: 0.7;
+}
+
+.chat-tool {
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  background: var(--gray-a2);
+  color: var(--gray-11);
+}
+
+.chat-tool-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--code-font-family);
+}
+
+.chat-composer {
+  position: sticky;
+  bottom: 0;
+  margin: 0 calc(-1 * var(--space-5));
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  background: var(--color-panel-solid);
+  border-top: 1px solid var(--gray-a4);
+}
+
+.chat-composer-input {
+  flex: 1;
+}

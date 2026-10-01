@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { cloudSessionUrlFrom, launchPlanFor, parseClaim, readRunnerSettings, runnerPathsFor, tmuxSessionNameFor } from './runner.ts'
+import {
+  cloudSessionUrlFrom,
+  deliveryPlanFor,
+  launchPlanFor,
+  parseChatWork,
+  parseClaim,
+  parseTmuxPanes,
+  readRunnerSettings,
+  resumeArgumentsFor,
+  runnerPathsFor,
+  summariseTranscript,
+  tmuxSessionNameFor,
+} from './runner.ts'
 
 const startId = '0123abcd-0000-4000-8000-000000000000'
 const claimBody = (overrides: Record<string, unknown> = {}) => ({
@@ -96,7 +108,124 @@ describe('readRunnerSettings', () => {
       expect.stringContaining('runner token'),
     )
     expect(
-      readRunnerSettings({ AGENT_DASHBOARD_URL: 'https://dashi.example/', AGENT_DASHBOARD_RUNNER_TOKEN: 'adr_x', AGENT_DASHBOARD_RUNNER_HOME: '/tmp/r' }),
-    ).toEqual({ dashboardUrl: 'https://dashi.example', runnerToken: 'adr_x', runnerHome: '/tmp/r', pollMilliseconds: 5000 })
+      readRunnerSettings({
+        AGENT_DASHBOARD_URL: 'https://dashi.example/',
+        AGENT_DASHBOARD_RUNNER_TOKEN: 'adr_x',
+        AGENT_DASHBOARD_RUNNER_HOME: '/tmp/r',
+        CLAUDE_CONFIG_DIR: '/tmp/claude',
+      }),
+    ).toEqual({ dashboardUrl: 'https://dashi.example', runnerToken: 'adr_x', runnerHome: '/tmp/r', claudeHome: '/tmp/claude', pollMilliseconds: 5000 })
+  })
+})
+
+const sessionId = '0f6f1a2b-3c4d-4e5f-8a9b-0c1d2e3f4a5b'
+const deliveryId = '1a2b3c4d-0000-4000-8000-000000000000'
+
+describe('parseChatWork', () => {
+  it('keeps sessions and deliveries whose ids are safe, and drops the rest', () => {
+    const work = parseChatWork({
+      sessions: [
+        { sessionId, sessionState: 'working' },
+        { sessionId: '../../etc/passwd', sessionState: 'working' },
+        { sessionId, sessionState: 'mystery' },
+      ],
+      deliveries: [
+        { deliveryId, sessionId, text: 'Also the docs', sessionState: null },
+        { deliveryId: 'x; rm -rf', sessionId, text: 'no', sessionState: null },
+      ],
+    })
+    expect(work).toEqual({
+      sessions: [{ sessionId, sessionState: 'working' }],
+      deliveries: [{ deliveryId, sessionId, text: 'Also the docs', sessionState: null }],
+    })
+    expect(parseChatWork(null)).toEqual({ sessions: [], deliveries: [] })
+  })
+})
+
+describe('summariseTranscript', () => {
+  const line = (entry: Record<string, unknown>) => JSON.stringify(entry)
+  const transcript = [
+    line({ type: 'summary', summary: 'x' }),
+    line({
+      type: 'user',
+      uuid: 'u1',
+      cwd: '/Users/me/agent-dashboard/worktrees/x',
+      timestamp: '2026-09-30T10:00:00Z',
+      message: { role: 'user', content: '<command-message>workflow:start</command-message>\n<command-name>/workflow:start</command-name>\n<command-args>fix https://github.com/x/y/issues/1</command-args>' },
+    }),
+    line({ type: 'user', uuid: 'u0', isMeta: true, message: { role: 'user', content: 'Caveat: meta' } }),
+    line({
+      type: 'assistant',
+      uuid: 'a1',
+      timestamp: '2026-09-30T10:00:05Z',
+      message: {
+        role: 'assistant',
+        content: [
+          { type: 'thinking', thinking: 'hidden' },
+          { type: 'text', text: 'Reading the issue.' },
+          { type: 'tool_use', name: 'Bash', input: { command: 'gh issue view 1\n  --comments' } },
+        ],
+      },
+    }),
+    line({ type: 'user', uuid: 'u2', message: { role: 'user', content: [{ type: 'tool_result', content: 'secret output' }] } }),
+    line({ type: 'assistant', uuid: 'a2', isSidechain: true, message: { role: 'assistant', content: [{ type: 'text', text: 'subagent' }] } }),
+    'not json',
+  ].join('\n')
+
+  it('keeps typed messages, answers and tool uses, and leaves out results, thinking and side conversations', () => {
+    const summary = summariseTranscript(transcript)
+    expect(summary.directory).toBe('/Users/me/agent-dashboard/worktrees/x')
+    expect(summary.messages.map(({ role, kind, text, toolName }) => ({ role, kind, text, toolName }))).toEqual([
+      { role: 'user', kind: 'text', text: '/workflow:start fix https://github.com/x/y/issues/1', toolName: null },
+      { role: 'assistant', kind: 'text', text: 'Reading the issue.', toolName: null },
+      { role: 'assistant', kind: 'tool', text: 'gh issue view 1 --comments', toolName: 'Bash' },
+    ])
+    expect(JSON.stringify(summary)).not.toContain('secret output')
+  })
+
+  it('keeps only the most recent messages, each clipped', () => {
+    const longTranscript = Array.from({ length: 200 }, (_, index) =>
+      line({ type: 'assistant', uuid: `a${index}`, message: { role: 'assistant', content: [{ type: 'text', text: 'y'.repeat(5000) }] } }),
+    ).join('\n')
+    const { messages } = summariseTranscript(longTranscript)
+    expect(messages).toHaveLength(150)
+    expect(messages[0]?.messageId).toBe('a50-0')
+    expect(messages[0]?.text.length).toBe(4001)
+  })
+})
+
+describe('deliveryPlanFor', () => {
+  const directory = '/Users/me/agent-dashboard/worktrees/x'
+  const panes = parseTmuxPanes(`%1 zsh ${directory}\n%2 claude ${directory}\n%3 claude /elsewhere\nbroken line`)
+
+  it('reads a folder with spaces from the end of the line', () => {
+    expect(parseTmuxPanes('%7 node /Users/me/My Projects/x')).toEqual([{ paneId: '%7', command: 'node', directory: '/Users/me/My Projects/x' }])
+  })
+
+  it('types into the pane running Claude in the session folder, never a shell there', () => {
+    expect(deliveryPlanFor('working', panes, directory)).toEqual({ route: 'tmux', paneId: '%2' })
+    expect(deliveryPlanFor('idle', panes.filter((pane) => pane.paneId !== '%2'), directory)).toMatchObject({ route: 'none' })
+    const withDevServer = parseTmuxPanes(`%4 node ${directory}\n%5 claude ${directory}`)
+    expect(deliveryPlanFor('working', withDevServer, directory)).toEqual({ route: 'tmux', paneId: '%5' })
+    expect(deliveryPlanFor('working', withDevServer.slice(0, 1), directory)).toEqual({ route: 'tmux', paneId: '%4' })
+  })
+
+  it('resumes an ended session and leaves one waiting on a permission alone', () => {
+    expect(deliveryPlanFor('ended', [], directory)).toEqual({ route: 'resume', directory })
+    expect(deliveryPlanFor('waiting', panes, directory)).toMatchObject({ route: 'none', reason: expect.stringContaining('permission') })
+    expect(deliveryPlanFor('working', panes, null)).toMatchObject({ route: 'none' })
+  })
+
+  it('passes the message to a resumed session as one argument', () => {
+    expect(resumeArgumentsFor(sessionId, 'a; $(rm -rf ~)')).toEqual([
+      '--resume',
+      sessionId,
+      '-p',
+      'a; $(rm -rf ~)',
+      '--permission-mode',
+      'auto',
+      '--output-format',
+      'json',
+    ])
   })
 })

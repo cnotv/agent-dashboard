@@ -1,4 +1,5 @@
-import { Badge, Card, Link, Text } from '@radix-ui/themes'
+import { ChatBubbleIcon } from '@radix-ui/react-icons'
+import { Badge, Card, IconButton, Link, Text, Tooltip } from '@radix-ui/themes'
 import { createColumnHelper } from '@tanstack/react-table'
 import type { AgentSessionSummary } from '@agent-dashboard/contracts'
 import { SortableTable } from '@/components/tables/SortableTable'
@@ -17,7 +18,7 @@ import { sessionDetail, sessionLabel, sessionStateOrder } from '@/lib/session-ti
 
 const columnHelper = createColumnHelper<typeof sortableTableFeatures, AgentSessionSummary>()
 
-const sessionColumns = (now: number) =>
+const sessionColumns = (now: number, onOpenChat: (session: AgentSessionSummary) => void) =>
   columnHelper.columns([
     columnHelper.accessor((session) => (session.repository ? repositoryKey(session.repository) : sessionLabel(session)), {
       id: 'session',
@@ -69,13 +70,30 @@ const sessionColumns = (now: number) =>
       sortFn: 'basic',
       cell: ({ getValue }) => <span title={`${formatFullCount(getValue())} tokens`}>{formatCompactCount(getValue())}</span>,
     }),
+    columnHelper.display({
+      id: 'chat',
+      header: 'Chat',
+      cell: ({ row }) => (
+        <Tooltip content="Open the conversation">
+          <IconButton size="1" variant="ghost" aria-label={`Chat with ${sessionLabel(row.original)}`} onClick={() => onOpenChat(row.original)}>
+            <ChatBubbleIcon />
+          </IconButton>
+        </Tooltip>
+      ),
+    }),
   ])
 
-/** Every session in the window as a sortable table. */
-export const SessionsTable = ({ sessions, now }: { sessions: AgentSessionSummary[]; now: number }) => (
+interface SessionsTableProps {
+  sessions: AgentSessionSummary[]
+  now: number
+  onOpenChat: (session: AgentSessionSummary) => void
+}
+
+/** Every session in the window as a sortable table, each with a button that opens its conversation. */
+export const SessionsTable = ({ sessions, now, onOpenChat }: SessionsTableProps) => (
   <Card size="1">
     <SortableTable
-      columns={sessionColumns(now)}
+      columns={sessionColumns(now, onOpenChat)}
       rows={sessions}
       rowKeyOf={(session) => session.sessionId}
       numericColumnIds={['tokens']}

@@ -1,4 +1,5 @@
 import type {
+  ChatMessage,
   MachineTokenKind,
   MachineTokenSummary,
   NetlifyStatus,
@@ -10,7 +11,14 @@ import type {
 } from '@agent-dashboard/contracts'
 import { repositoryKey } from '@/lib/presentation'
 import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'
-import { sampleIngestTokens, sampleRunnerTokens, sampleSessionStarts, sampleSessionsOverview, sampleUsageReport } from './sample-activity'
+import {
+  sampleChatMessages,
+  sampleIngestTokens,
+  sampleRunnerTokens,
+  sampleSessionStarts,
+  sampleSessionsOverview,
+  sampleUsageReport,
+} from './sample-activity'
 import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns, samplePullRequestFiles } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
@@ -35,6 +43,7 @@ export const createDemoApi = (): DashboardApi => {
     routineRepositoryKeys: Set<string>
     pullRequestOutcomes: Map<number, DemoPullRequestOutcome>
     netlifyRepositoryKeys: Set<string>
+    chatMessages: Map<string, ChatMessage[]>
   } = {
     secrets: sampleSecrets.map((secret) => ({ ...secret })),
     machineTokens: { ingest: sampleIngestTokens.map((token) => ({ ...token })), runner: sampleRunnerTokens.map((token) => ({ ...token })) },
@@ -42,7 +51,9 @@ export const createDemoApi = (): DashboardApi => {
     routineRepositoryKeys: new Set(['cnotv/example']),
     pullRequestOutcomes: new Map(),
     netlifyRepositoryKeys: new Set(['cnotv/example']),
+    chatMessages: new Map(),
   }
+  const chatMessagesOf = (sessionId: string): ChatMessage[] => demoMemory.chatMessages.get(sessionId) ?? sampleChatMessages
 
   const replaceSecret = (name: string, update: Partial<SecretSummary>): void => {
     demoMemory.secrets = demoMemory.secrets.map((secret) => (secret.name === name ? { ...secret, ...update } : secret))
@@ -81,6 +92,29 @@ export const createDemoApi = (): DashboardApi => {
       return demoNetlifySite(repository)
     },
     readSessions: async (hours) => sampleSessionsOverview(hours, Date.now()),
+    readSessionChat: async (sessionId) => ({
+      sessionId,
+      availability: 'on-laptop',
+      deliveryRoute: 'tmux',
+      sendBlocker: null,
+      messages: chatMessagesOf(sessionId),
+      deliveries: [],
+      updatedAt: new Date().toISOString(),
+    }),
+    sendChatMessage: async (sessionId, text) => {
+      const createdAt = new Date().toISOString()
+      const typedMessage: ChatMessage = { messageId: `demo-typed-${createdAt}`, role: 'user', kind: 'text', text, toolName: null, createdAt }
+      const reply: ChatMessage = {
+        messageId: `demo-reply-${createdAt}`,
+        role: 'assistant',
+        kind: 'text',
+        text: 'Demo mode: this reply is canned, and your message went to no session.',
+        toolName: null,
+        createdAt,
+      }
+      demoMemory.chatMessages = new Map([...demoMemory.chatMessages, [sessionId, [...chatMessagesOf(sessionId), typedMessage, reply]]])
+      return { deliveryId: `demo-${createdAt}`, text, state: 'delivered', message: null, createdAt }
+    },
     readUsage: async (days) => sampleUsageReport(days, Date.now()),
     listMachineTokens: async (kind) => demoMemory.machineTokens[kind],
     createMachineToken: async (kind, label) => {
