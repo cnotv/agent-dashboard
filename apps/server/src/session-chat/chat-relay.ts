@@ -112,7 +112,7 @@ export const createChatRelay = (now: () => number): ChatRelay => {
       return delivery
     },
 
-    takeWork: (sessionStateOf) => {
+    takeWork: (contextOf) => {
       const before = pruneRelayState(relay.state, now())
       const queued = [...before.deliveries.values()].filter((tracked) => tracked.delivery.state === 'queued')
       const state = update((current) => ({
@@ -126,12 +126,12 @@ export const createChatRelay = (now: () => number): ChatRelay => {
         ),
       }))
       return {
-        sessions: [...state.watchedUntil.keys()].map((sessionId) => ({ sessionId, sessionState: sessionStateOf(sessionId) })),
+        sessions: [...state.watchedUntil.keys()].map((sessionId) => ({ sessionId, ...contextOf(sessionId) })),
         deliveries: queued.map((tracked) => ({
           deliveryId: tracked.delivery.deliveryId,
           sessionId: tracked.sessionId,
           text: tracked.delivery.text,
-          sessionState: sessionStateOf(tracked.sessionId),
+          ...contextOf(tracked.sessionId),
         })),
       }
     },

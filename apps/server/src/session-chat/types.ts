@@ -6,9 +6,21 @@ export type RunnerChatReport = z.infer<typeof runnerChatReportSchema>
 
 export type DeliveryReport = z.infer<typeof deliveryReportSchema>
 
-export interface ChatWorkSession {
-  sessionId: string
+// A chat opened from a board start names the start; the runner finds its Claude session from the
+// start's worktree.
+export interface ChatWorkStart {
+  repositoryName: string
+  startId: string
+  target: 'laptop-remote-control' | 'laptop-headless'
+}
+
+export interface ChatWorkContext {
   sessionState: AgentSessionState | null
+  start: ChatWorkStart | null
+}
+
+export interface ChatWorkSession extends ChatWorkContext {
+  sessionId: string
 }
 
 export interface ChatWorkDelivery extends ChatWorkSession {
@@ -36,7 +48,7 @@ export interface ChatRelayState {
 export interface ChatRelay {
   readChat: (sessionId: string, isRunnerOnline: boolean) => SessionChat
   queueMessage: (sessionId: string, text: string) => ChatDelivery | null
-  takeWork: (sessionStateOf: (sessionId: string) => AgentSessionState | null) => ChatWork
+  takeWork: (contextOf: (sessionId: string) => ChatWorkContext) => ChatWork
   recordTranscript: (sessionId: string, report: RunnerChatReport) => boolean
   recordDeliveryReport: (deliveryId: string, report: DeliveryReport) => boolean
 }

@@ -20,6 +20,22 @@ const columnHelper = createColumnHelper<typeof sortableTableFeatures, AgentSessi
 
 const sessionColumns = (now: number, onOpenChat: (session: AgentSessionSummary) => void) =>
   columnHelper.columns([
+    columnHelper.display({
+      id: 'chat',
+      header: '',
+      cell: ({ row }) => (
+        <Tooltip content="Open the conversation">
+          <IconButton
+            size="1"
+            variant="ghost"
+            aria-label={`Chat with ${sessionLabel(row.original)}`}
+            onClick={() => onOpenChat(row.original)}
+          >
+            <ChatBubbleIcon />
+          </IconButton>
+        </Tooltip>
+      ),
+    }),
     columnHelper.accessor((session) => (session.repository ? repositoryKey(session.repository) : sessionLabel(session)), {
       id: 'session',
       header: 'Session',
@@ -70,17 +86,6 @@ const sessionColumns = (now: number, onOpenChat: (session: AgentSessionSummary) 
       sortFn: 'basic',
       cell: ({ getValue }) => <span title={`${formatFullCount(getValue())} tokens`}>{formatCompactCount(getValue())}</span>,
     }),
-    columnHelper.display({
-      id: 'chat',
-      header: 'Chat',
-      cell: ({ row }) => (
-        <Tooltip content="Open the conversation">
-          <IconButton size="1" variant="ghost" aria-label={`Chat with ${sessionLabel(row.original)}`} onClick={() => onOpenChat(row.original)}>
-            <ChatBubbleIcon />
-          </IconButton>
-        </Tooltip>
-      ),
-    }),
   ])
 
 interface SessionsTableProps {
@@ -89,7 +94,7 @@ interface SessionsTableProps {
   onOpenChat: (session: AgentSessionSummary) => void
 }
 
-/** Every session in the window as a sortable table, each with a button that opens its conversation. */
+/** Every session in the window as a sortable table, each led by the button that opens its conversation, so it stays in view on a phone. */
 export const SessionsTable = ({ sessions, now, onOpenChat }: SessionsTableProps) => (
   <Card size="1">
     <SortableTable

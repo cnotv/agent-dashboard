@@ -19,9 +19,19 @@ const transcriptReport = (text: string) => ({
   sendBlocker: null,
 })
 
+const workStartSchema = z.object({ repositoryName: z.string(), startId: z.string(), target: z.string() }).nullable()
+
 const chatWorkSchema = z.object({
-  sessions: z.array(z.object({ sessionId: z.string(), sessionState: z.string().nullable() })),
-  deliveries: z.array(z.object({ deliveryId: z.string(), sessionId: z.string(), text: z.string(), sessionState: z.string().nullable() })),
+  sessions: z.array(z.object({ sessionId: z.string(), sessionState: z.string().nullable(), start: workStartSchema })),
+  deliveries: z.array(
+    z.object({
+      deliveryId: z.string(),
+      sessionId: z.string(),
+      text: z.string(),
+      sessionState: z.string().nullable(),
+      start: workStartSchema,
+    }),
+  ),
 })
 
 const sessionChatSchema = z.object({
@@ -61,7 +71,7 @@ describe('session chat', () => {
       occurredAt: new Date(clock.now).toISOString(),
     })
     await readChat()
-    expect((await takeWork()).sessions).toEqual([{ sessionId, sessionState: 'working' }])
+    expect((await takeWork()).sessions).toEqual([{ sessionId, sessionState: 'working', start: null }])
 
     const report = transcriptReport(`Pushed with ${githubToken}`)
     expect((await app.request(runnerRequest(`/chat/${sessionId}`, token, report))).status).toBe(204)
@@ -87,7 +97,9 @@ describe('session chat', () => {
     expect(queued.status).toBe(201)
     const { deliveryId } = z.object({ deliveryId: z.string() }).parse(await queued.json())
 
-    expect((await takeWork()).deliveries).toEqual([{ deliveryId, sessionId, text: 'Also update the docs', sessionState: null }])
+    expect((await takeWork()).deliveries).toEqual([
+      { deliveryId, sessionId, text: 'Also update the docs', sessionState: null, start: null },
+    ])
     expect((await takeWork()).deliveries).toEqual([])
     expect((await readChat()).deliveries).toMatchObject([{ deliveryId, state: 'sent' }])
 
@@ -103,6 +115,36 @@ describe('session chat', () => {
     await takeWork()
     clock.now += 150_000
     expect((await readChat()).deliveries).toMatchObject([{ state: 'failed', message: 'The runner did not confirm it' }])
+  })
+
+  it('opens the chat of a laptop start from the board, which the runner finds by its worktree', async () => {
+    const { app, readChat, takeWork } = setUp()
+    const startResponse = await app.request(
+      jsonRequest('POST', '/api/session-starts', {
+        repository: { owner: 'cnotv', name: 'generative-art' },
+        issueNumber: 42,
+        workflow: 'fix',
+        target: 'laptop-headless',
+        permissionMode: 'auto',
+        note: '',
+      }),
+    )
+    const { startId } = z.object({ startId: z.string() }).parse(await startResponse.json())
+    const startChatPath = `/api/session-starts/${startId}/chat`
+
+    expect(sessionChatSchema.parse(await (await app.request(getRequest(startChatPath))).json())).toMatchObject({ messages: [] })
+    expect((await app.request(jsonRequest('POST', startChatPath, { text: 'Carry on' }))).status).toBe(201)
+    const work = await takeWork()
+    const start = { repositoryName: 'generative-art', startId, target: 'laptop-headless' }
+    expect(work.sessions).toEqual([{ sessionId: `start-${startId}`, sessionState: null, start }])
+    expect(work.deliveries).toMatchObject([{ sessionId: `start-${startId}`, text: 'Carry on', start }])
+    expect((await readChat()).messages).toEqual([])
+  })
+
+  it('refuses a start that does not exist, and a start id passed as a session', async () => {
+    const { app } = setUp()
+    expect((await app.request(getRequest('/api/session-starts/0123abcd-0000-4000-8000-000000000000/chat'))).status).toBe(404)
+    expect((await app.request(getRequest('/api/sessions/start-0123abcd-0000-4000-8000-000000000000/chat'))).status).toBe(404)
   })
 
   it('refuses a malformed session id, an empty message, and a runner without a token', async () => {

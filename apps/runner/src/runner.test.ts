@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  chatDeliveryPlanFor,
   cloudSessionUrlFrom,
   deliveryPlanFor,
+  isStartProjectFolder,
   launchPlanFor,
+  newestTranscriptOf,
   parseChatWork,
   parseClaim,
   parseTmuxPanes,
@@ -135,10 +138,57 @@ describe('parseChatWork', () => {
       ],
     })
     expect(work).toEqual({
-      sessions: [{ sessionId, sessionState: 'working' }],
-      deliveries: [{ deliveryId, sessionId, text: 'Also the docs', sessionState: null }],
+      sessions: [{ sessionId, sessionState: 'working', start: null }],
+      deliveries: [{ deliveryId, sessionId, text: 'Also the docs', sessionState: null, start: null }],
     })
     expect(parseChatWork(null)).toEqual({ sessions: [], deliveries: [] })
+  })
+
+  it("keeps a board start's repository, id and target, and drops one that could escape the runner folder", () => {
+    const start = { repositoryName: 'generative-art', startId, target: 'laptop-headless' }
+    const startChatId = `start-${startId}`
+    expect(parseChatWork({ sessions: [{ sessionId: startChatId, sessionState: null, start }], deliveries: [] }).sessions).toEqual([
+      { sessionId: startChatId, sessionState: null, start },
+    ])
+    const escaping = { sessionId: startChatId, sessionState: null, start: { ...start, repositoryName: '..' } }
+    const cloud = { sessionId: startChatId, sessionState: null, start: { ...start, target: 'laptop-cloud' } }
+    expect(parseChatWork({ sessions: [escaping, cloud], deliveries: [] }).sessions).toEqual([])
+  })
+})
+
+describe('finding a board start\'s transcript', () => {
+  const start = { repositoryName: 'generative.art', startId, target: 'laptop-remote-control' as const }
+
+  it("matches the project folder Claude Code names after the start's worktree", () => {
+    expect(isStartProjectFolder('-Users-me-agent-dashboard-worktrees-generative-art-0123abcd', start)).toBe(true)
+    expect(isStartProjectFolder('-Users-me-agent-dashboard-worktrees-generative-art-99999999', start)).toBe(false)
+    expect(isStartProjectFolder('-Users-me-code-generative-art', start)).toBe(false)
+  })
+
+  it('takes the transcript written to last, ignoring other files', () => {
+    expect(
+      newestTranscriptOf([
+        { name: 'a.jsonl', modifiedAt: 10 },
+        { name: 'b.jsonl', modifiedAt: 30 },
+        { name: 'notes.txt', modifiedAt: 99 },
+      ]),
+    ).toEqual({ name: 'b.jsonl', modifiedAt: 30 })
+    expect(newestTranscriptOf([])).toBeNull()
+  })
+})
+
+describe('chatDeliveryPlanFor', () => {
+  const directory = '/Users/me/agent-dashboard/worktrees/generative-art-0123abcd'
+  const headlessStart = { sessionId: `start-${startId}`, sessionState: null, start: { repositoryName: 'generative-art', startId, target: 'laptop-headless' as const } }
+
+  it('waits for an unattended start to go quiet, then resumes it', () => {
+    expect(chatDeliveryPlanFor(headlessStart, [], directory, 5_000)).toMatchObject({ route: 'none', reason: expect.stringContaining('still running') })
+    expect(chatDeliveryPlanFor(headlessStart, [], directory, 120_000)).toEqual({ route: 'resume', directory })
+  })
+
+  it('types into the tmux pane of a steerable start', () => {
+    const steerableStart = { ...headlessStart, start: { ...headlessStart.start, target: 'laptop-remote-control' as const } }
+    expect(chatDeliveryPlanFor(steerableStart, parseTmuxPanes(`%9 claude ${directory}`), directory, 1_000)).toEqual({ route: 'tmux', paneId: '%9' })
   })
 })
 

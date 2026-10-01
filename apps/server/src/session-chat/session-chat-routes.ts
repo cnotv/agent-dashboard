@@ -1,5 +1,5 @@
-import { Hono } from 'hono'
-import type { AgentSessionState } from '@agent-dashboard/contracts'
+import { Hono, type Context } from 'hono'
+import type { SessionStart } from '@agent-dashboard/contracts'
 import { effectiveState } from '../activity/aggregate.ts'
 import type { ActivityStore } from '../activity/types.ts'
 import { limitTo, readJsonBody } from '../app/http.ts'
@@ -8,43 +8,74 @@ import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import { createRedactor } from '../secrets/redact.ts'
 import type { Vault } from '../secrets/types.ts'
 import { createRunnerTokenGuard, isAnyRunnerOnline } from '../session-starts/session-start-routes.ts'
-import { chatMessageBodySchema, deliveryReportSchema, runnerChatReportSchema, sessionIdSchema } from './schema.ts'
-import type { ChatRelay } from './types.ts'
+import type { SessionStartStore } from '../session-starts/types.ts'
+import { chatMessageBodySchema, deliveryReportSchema, runnerChatReportSchema, sessionIdSchema, startIdSchema } from './schema.ts'
+import type { ChatRelay, ChatWorkContext, ChatWorkStart } from './types.ts'
 
 export interface SessionChatRouteDependencies {
   chatRelay: ChatRelay
   activityStore: ActivityStore
   runnerTokens: MachineTokenStore
+  startStore: SessionStartStore
   vault: Vault
   now: () => number
 }
 
 const unknownSessionError = { error: 'Unknown session' }
+const startChatIdPrefix = 'start-'
+
+const chatStartOf = (start: SessionStart): ChatWorkStart | null =>
+  start.target === 'laptop-remote-control' || start.target === 'laptop-headless'
+    ? { repositoryName: start.repository.name, startId: start.startId, target: start.target }
+    : null
+
+const findLaptopStart = (startStore: SessionStartStore, startId: string): ChatWorkStart | null => {
+  const start = startStore.listRecentStarts().find((recentStart) => recentStart.startId === startId)
+  return start === undefined ? null : chatStartOf(start)
+}
 
 /**
- * Builds the chat drawer's routes: reading a session's conversation, which also keeps the runner
- * sending it, and queueing a message for the runner to deliver.
- * @param dependencies The relay, and the runner tokens that tell whether a laptop is online.
+ * Builds the chat drawer's routes, for a session by its id or for a laptop start from the board:
+ * reading its conversation, which also keeps the runner sending it, and queueing a message for the
+ * runner to deliver.
+ * @param dependencies The relay, the starts, and the runner tokens that tell whether a laptop is online.
  * @returns The routes, mounted under /api.
  */
-export const createSessionChatRoutes = ({ chatRelay, runnerTokens, now }: SessionChatRouteDependencies) => {
+export const createSessionChatRoutes = ({ chatRelay, runnerTokens, startStore, now }: SessionChatRouteDependencies) => {
   const routes = new Hono<AppEnvironment>()
 
-  routes.get('/sessions/:sessionId/chat', (context) => {
+  const sessionChatIdOf = (context: Context<AppEnvironment>): string | null => {
     const parsedSessionId = sessionIdSchema.safeParse(context.req.param('sessionId'))
-    if (!parsedSessionId.success) return context.json(unknownSessionError, 404)
-    return context.json(chatRelay.readChat(parsedSessionId.data, isAnyRunnerOnline(runnerTokens, now())))
-  })
+    return parsedSessionId.success && !parsedSessionId.data.startsWith(startChatIdPrefix) ? parsedSessionId.data : null
+  }
+  // A start is chatted with under its own id until its Claude session is known; only starts that
+  // run on the laptop have a transcript the runner can read.
+  const startChatIdOf = (context: Context<AppEnvironment>): string | null => {
+    const parsedStartId = startIdSchema.safeParse(context.req.param('startId'))
+    if (!parsedStartId.success || findLaptopStart(startStore, parsedStartId.data) === null) return null
+    return `${startChatIdPrefix}${parsedStartId.data}`
+  }
 
-  routes.post('/sessions/:sessionId/chat', limitTo(16 * 1024), async (context) => {
-    const parsedSessionId = sessionIdSchema.safeParse(context.req.param('sessionId'))
-    if (!parsedSessionId.success) return context.json(unknownSessionError, 404)
-    const { text } = chatMessageBodySchema.parse(await readJsonBody(context.req.raw))
-    const delivery = chatRelay.queueMessage(parsedSessionId.data, text)
-    return delivery === null
-      ? context.json({ error: 'Too many messages are still waiting for the laptop' }, 429)
-      : context.json(delivery, 201)
-  })
+  const addChatRoutes = (path: string, chatIdOf: (context: Context<AppEnvironment>) => string | null): void => {
+    routes.get(path, (context) => {
+      const chatId = chatIdOf(context)
+      if (chatId === null) return context.json(unknownSessionError, 404)
+      return context.json(chatRelay.readChat(chatId, isAnyRunnerOnline(runnerTokens, now())))
+    })
+
+    routes.post(path, limitTo(16 * 1024), async (context) => {
+      const chatId = chatIdOf(context)
+      if (chatId === null) return context.json(unknownSessionError, 404)
+      const { text } = chatMessageBodySchema.parse(await readJsonBody(context.req.raw))
+      const delivery = chatRelay.queueMessage(chatId, text)
+      return delivery === null
+        ? context.json({ error: 'Too many messages are still waiting for the laptop' }, 429)
+        : context.json(delivery, 201)
+    })
+  }
+
+  addChatRoutes('/sessions/:sessionId/chat', sessionChatIdOf)
+  addChatRoutes('/session-starts/:startId/chat', startChatIdOf)
 
   return routes
 }
@@ -53,19 +84,29 @@ export const createSessionChatRoutes = ({ chatRelay, runnerTokens, now }: Sessio
  * Builds the runner's side of the chat: which sessions to read and which messages to deliver,
  * and the transcripts and delivery results it sends back. Transcripts are scrubbed of every
  * stored secret before the relay holds them.
- * @param dependencies The relay, the activity store for each session's state, the runner tokens and the vault.
+ * @param dependencies The relay, the activity store for each session's state, the starts, the runner tokens and the vault.
  * @returns The routes, mounted under /api/runner.
  */
-export const createRunnerChatRoutes = ({ chatRelay, activityStore, runnerTokens, vault, now }: SessionChatRouteDependencies) => {
+export const createRunnerChatRoutes = ({
+  chatRelay,
+  activityStore,
+  runnerTokens,
+  startStore,
+  vault,
+  now,
+}: SessionChatRouteDependencies) => {
   const routes = new Hono<AppEnvironment & { Variables: { runnerLabel: string } }>()
   const requireRunnerToken = createRunnerTokenGuard(runnerTokens)
 
-  const sessionStateOf = (sessionId: string): AgentSessionState | null => {
-    const storedSession = activityStore.readSessions().find((session) => session.sessionId === sessionId)
-    return storedSession === undefined ? null : effectiveState(storedSession, now())
+  const contextOf = (chatId: string): ChatWorkContext => {
+    if (chatId.startsWith(startChatIdPrefix)) {
+      return { sessionState: null, start: findLaptopStart(startStore, chatId.slice(startChatIdPrefix.length)) }
+    }
+    const storedSession = activityStore.readSessions().find((session) => session.sessionId === chatId)
+    return { sessionState: storedSession === undefined ? null : effectiveState(storedSession, now()), start: null }
   }
 
-  routes.post('/chat-work', requireRunnerToken, (context) => context.json(chatRelay.takeWork(sessionStateOf)))
+  routes.post('/chat-work', requireRunnerToken, (context) => context.json(chatRelay.takeWork(contextOf)))
 
   routes.post('/chat/:sessionId', requireRunnerToken, limitTo(1024 * 1024), async (context) => {
     const parsedSessionId = sessionIdSchema.safeParse(context.req.param('sessionId'))

@@ -98,8 +98,8 @@ export interface DashboardApi {
   readNetlifyStatus: (repository: RepositoryReference) => Promise<NetlifyStatus>
   enableNetlify: (repository: RepositoryReference) => Promise<NetlifyStatus>
   readSessions: (hours: number) => Promise<SessionsOverview>
-  readSessionChat: (sessionId: string) => Promise<SessionChat>
-  sendChatMessage: (sessionId: string, text: string) => Promise<ChatDelivery>
+  readSessionChat: (target: ChatTarget) => Promise<SessionChat>
+  sendChatMessage: (target: ChatTarget, text: string) => Promise<ChatDelivery>
   readUsage: (days: number) => Promise<UsageReport>
   listMachineTokens: (kind: MachineTokenKind) => Promise<MachineTokenSummary[]>
   createMachineToken: (kind: MachineTokenKind, label: string) => Promise<CreatedMachineToken>
@@ -165,3 +165,15 @@ export interface DiffLine {
 }
 
 export type ChatTimelineItem = { itemKey: string; source: 'transcript'; message: ChatMessage } | { itemKey: string; source: 'pending'; delivery: ChatDelivery }
+
+// A chat is opened on a session whose hooks report to Dashi, or on a laptop start from the board
+// whose Claude session the runner finds from its worktree.
+export type ChatTarget = { kind: 'session'; sessionId: string } | { kind: 'start'; startId: string }
+
+export interface ChatSubject {
+  target: ChatTarget
+  title: string
+  detail: string
+  badgeLabel: string
+  badgeColor: RadixColor
+}

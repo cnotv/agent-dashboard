@@ -116,6 +116,7 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     chatRelay: createChatRelay(dependencies.now),
     activityStore: activity.activityStore,
     runnerTokens: dependencies.sessionStarts.runnerTokens,
+    startStore: dependencies.sessionStarts.startStore,
     vault,
     now: dependencies.now,
   }

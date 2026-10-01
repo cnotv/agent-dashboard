@@ -7,7 +7,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 type StartTarget = 'laptop-remote-control' | 'laptop-headless' | 'laptop-cloud'
@@ -34,9 +34,18 @@ interface RunnerSettings {
 
 type SessionState = 'working' | 'waiting' | 'idle' | 'ended' | 'inactive'
 
+type LaptopTarget = 'laptop-remote-control' | 'laptop-headless'
+
+interface ChatWorkStart {
+  repositoryName: string
+  startId: string
+  target: LaptopTarget
+}
+
 interface ChatWorkSession {
   sessionId: string
   sessionState: SessionState | null
+  start: ChatWorkStart | null
 }
 
 interface ChatWorkDelivery extends ChatWorkSession {
@@ -71,6 +80,17 @@ interface TmuxPane {
 
 type DeliveryPlan = { route: 'tmux'; paneId: string } | { route: 'resume'; directory: string } | { route: 'none'; reason: string }
 
+interface LocatedTranscript {
+  path: string
+  claudeSessionId: string
+  modifiedAt: number
+}
+
+interface TranscriptFile {
+  name: string
+  modifiedAt: number
+}
+
 interface SentTranscript {
   modifiedAt: number
   sentAt: number
@@ -100,6 +120,10 @@ const defaultPollMilliseconds = 5000
 const cloudCommandTimeoutMilliseconds = 180_000
 const cloudSessionUrlPattern = /https:\/\/claude\.ai\/code\/session_[A-Za-z0-9_-]+/
 const chatPollMilliseconds = 1500
+// An unattended session writes to its transcript as it works, so one quiet for a minute has
+// finished and can be resumed with the next message.
+const unattendedQuietMilliseconds = 60_000
+const chatTargets: LaptopTarget[] = ['laptop-remote-control', 'laptop-headless']
 const transcriptResendMilliseconds = 15_000
 const transcriptMessageLimit = 150
 const chatTextLimit = 4000
@@ -154,13 +178,42 @@ export const parseClaim = (claimBody: unknown): ClaimedStart | null => {
  */
 export const runnerPathsFor = (runnerHome: string, claimed: ClaimedStart): RunnerPaths => {
   const { owner, name } = claimed.start.repository
-  const shortId = claimed.start.startId.slice(0, 8)
+  const folderName = startFolderNameFor(name, claimed.start.startId)
   return {
     clonePath: join(runnerHome, 'repos', owner, name),
-    worktreePath: join(runnerHome, 'worktrees', `${name}-${shortId}`),
-    logPath: join(runnerHome, 'logs', `${name}-${shortId}.log`),
+    worktreePath: join(runnerHome, 'worktrees', folderName),
+    logPath: join(runnerHome, 'logs', `${folderName}.log`),
   }
 }
+
+/**
+ * Names a start's worktree and log after its repository and the start's short id.
+ * @param repositoryName The repository's name.
+ * @param startId The start's id.
+ * @returns The folder name, such as generative-art-0123abcd.
+ */
+export const startFolderNameFor = (repositoryName: string, startId: string): string => `${repositoryName}-${startId.slice(0, 8)}`
+
+/**
+ * Tells whether a folder under ~/.claude/projects holds the transcripts of a start's worktree.
+ * Claude Code names that folder after the working directory with every character that is not a
+ * letter or digit turned into a dash.
+ * @param projectFolder The folder's name.
+ * @param start The start.
+ * @returns True when it is the start's worktree.
+ */
+export const isStartProjectFolder = (projectFolder: string, start: ChatWorkStart): boolean =>
+  projectFolder.endsWith(`/worktrees/${startFolderNameFor(start.repositoryName, start.startId)}`.replace(/[^A-Za-z0-9]/g, '-'))
+
+/**
+ * Picks the session a start's worktree is running: the transcript written to last.
+ * @param files The files in the worktree's project folder.
+ * @returns The newest transcript, or null when there is none.
+ */
+export const newestTranscriptOf = (files: TranscriptFile[]): TranscriptFile | null =>
+  files
+    .filter((file) => file.name.endsWith('.jsonl'))
+    .reduce<TranscriptFile | null>((newest, file) => (newest === null || file.modifiedAt > newest.modifiedAt ? file : newest), null)
 
 /**
  * Names the tmux session a steerable start runs in; tmux refuses dots and colons.
@@ -217,10 +270,20 @@ export const launchPlanFor = (claimed: ClaimedStart, paths: RunnerPaths): Launch
  */
 export const cloudSessionUrlFrom = (commandOutput: string): string | null => cloudSessionUrlPattern.exec(commandOutput)?.[0] ?? null
 
+const chatWorkStartOf = (value: unknown): ChatWorkStart | null | undefined => {
+  if (value === null || value === undefined) return null
+  if (!isRecord(value)) return undefined
+  const { repositoryName, startId, target } = value
+  if (typeof repositoryName !== 'string' || typeof startId !== 'string' || !isOneOf(chatTargets, target)) return undefined
+  if (!isSafeRepository({ owner: 'x', name: repositoryName }) || !/^[0-9a-f-]{36}$/.test(startId)) return undefined
+  return { repositoryName, startId, target }
+}
+
 const chatWorkSessionOf = (value: unknown): ChatWorkSession | null => {
   if (!isRecord(value) || typeof value.sessionId !== 'string' || !sessionIdPattern.test(value.sessionId)) return null
   const sessionState = value.sessionState === null ? null : isOneOf(sessionStates, value.sessionState) ? value.sessionState : undefined
-  return sessionState === undefined ? null : { sessionId: value.sessionId, sessionState }
+  const start = chatWorkStartOf(value.start)
+  return sessionState === undefined || start === undefined ? null : { sessionId: value.sessionId, sessionState, start }
 }
 
 const chatWorkDeliveryOf = (value: unknown): ChatWorkDelivery | null => {
@@ -358,6 +421,29 @@ export const deliveryPlanFor = (sessionState: SessionState | null, panes: TmuxPa
     panesInFolder.find((candidate) => candidate.command === fallbackPaneCommand)
   if (pane !== undefined) return { route: 'tmux', paneId: pane.paneId }
   return { route: 'none', reason: 'It runs in a terminal the runner cannot type into; sessions started from Dashi, or run in tmux, can be chatted with' }
+}
+
+/**
+ * Decides how a message reaches a chat's session. A session started unattended from the board has
+ * no hooks state to go by, so it counts as running while its transcript keeps changing and as
+ * ended, ready to be resumed, once it has been quiet for a minute.
+ * @param workSession The chat's session, with its start when it was started from the board.
+ * @param panes The tmux panes on this machine.
+ * @param directory The folder the session runs in, from its transcript.
+ * @param quietMilliseconds How long ago its transcript last changed.
+ * @returns The route, or why there is none.
+ */
+export const chatDeliveryPlanFor = (
+  workSession: ChatWorkSession,
+  panes: TmuxPane[],
+  directory: string | null,
+  quietMilliseconds: number,
+): DeliveryPlan => {
+  if (workSession.start?.target !== 'laptop-headless') return deliveryPlanFor(workSession.sessionState, panes, directory)
+  if (quietMilliseconds < unattendedQuietMilliseconds) {
+    return { route: 'none', reason: 'It is still running unattended; send a message once it finishes' }
+  }
+  return deliveryPlanFor('ended', panes, directory)
 }
 
 /**
@@ -501,21 +587,45 @@ const listTmuxPanes = (): TmuxPane[] => {
   return parseTmuxPanes(result.stdout).map((pane) => ({ ...pane, directory: realDirectoryOf(pane.directory) }))
 }
 
-const readSessionTranscript = (settings: RunnerSettings, sessionId: string): TranscriptSummary | null => {
-  const transcriptPath = findTranscriptPath(settings.claudeHome, sessionId)
+const findStartTranscriptPath = (claudeHome: string, start: ChatWorkStart): string | null => {
+  const projectsPath = join(claudeHome, 'projects')
+  try {
+    const projectFolder = readdirSync(projectsPath).find((folderName) => isStartProjectFolder(folderName, start))
+    if (projectFolder === undefined) return null
+    const folderPath = join(projectsPath, projectFolder)
+    const newest = newestTranscriptOf(
+      readdirSync(folderPath).map((name) => ({ name, modifiedAt: statSync(join(folderPath, name)).mtimeMs })),
+    )
+    return newest === null ? null : join(folderPath, newest.name)
+  } catch {
+    return null
+  }
+}
+
+// A chat opened from the board names its start rather than a Claude session, whose id is only
+// known once the session has written its transcript in the start's worktree.
+const locateTranscript = (settings: RunnerSettings, workSession: ChatWorkSession): LocatedTranscript | null => {
+  const transcriptPath =
+    workSession.start === null
+      ? findTranscriptPath(settings.claudeHome, workSession.sessionId)
+      : findStartTranscriptPath(settings.claudeHome, workSession.start)
   if (transcriptPath === null) return null
-  const summary = summariseTranscript(readFileSync(transcriptPath, 'utf8'))
+  return { path: transcriptPath, claudeSessionId: basename(transcriptPath, '.jsonl'), modifiedAt: statSync(transcriptPath).mtimeMs }
+}
+
+const readSessionTranscript = (located: LocatedTranscript): TranscriptSummary => {
+  const summary = summariseTranscript(readFileSync(located.path, 'utf8'))
   return { ...summary, directory: summary.directory === null ? null : realDirectoryOf(summary.directory) }
 }
 
 // A transcript is sent again only when it changed, or now and then so a reopened drawer fills.
 const sendTranscript = async (settings: RunnerSettings, workSession: ChatWorkSession, sentTranscripts: Map<string, SentTranscript>): Promise<void> => {
-  const transcriptPath = findTranscriptPath(settings.claudeHome, workSession.sessionId)
-  const modifiedAt = transcriptPath === null ? 0 : statSync(transcriptPath).mtimeMs
+  const located = locateTranscript(settings, workSession)
+  const modifiedAt = located?.modifiedAt ?? 0
   const lastSent = sentTranscripts.get(workSession.sessionId)
   if (lastSent && lastSent.modifiedAt === modifiedAt && Date.now() - lastSent.sentAt < transcriptResendMilliseconds) return
-  const summary = readSessionTranscript(settings, workSession.sessionId)
-  const plan = deliveryPlanFor(workSession.sessionState, summary === null ? [] : listTmuxPanes(), summary?.directory ?? null)
+  const summary = located === null ? null : readSessionTranscript(located)
+  const plan = chatDeliveryPlanFor(workSession, summary === null ? [] : listTmuxPanes(), summary?.directory ?? null, Date.now() - modifiedAt)
   const report = {
     found: summary !== null,
     messages: summary?.messages ?? [],
@@ -540,11 +650,11 @@ const typeIntoPane = (paneId: string, text: string): void => {
   runTmux(['send-keys', '-t', paneId, 'Enter'])
 }
 
-const resumeWithMessage = (settings: RunnerSettings, delivery: ChatWorkDelivery, directory: string): string => {
-  const logPath = join(settings.runnerHome, 'logs', `chat-${delivery.sessionId.slice(0, 8)}.log`)
+const resumeWithMessage = (settings: RunnerSettings, claudeSessionId: string, text: string, directory: string): string => {
+  const logPath = join(settings.runnerHome, 'logs', `chat-${claudeSessionId.slice(0, 8)}.log`)
   mkdirSync(dirname(logPath), { recursive: true })
   const logDescriptor = openSync(logPath, 'a')
-  spawn('claude', resumeArgumentsFor(delivery.sessionId, delivery.text), {
+  spawn('claude', resumeArgumentsFor(claudeSessionId, text), {
     cwd: directory,
     detached: true,
     stdio: ['ignore', logDescriptor, logDescriptor],
@@ -553,18 +663,21 @@ const resumeWithMessage = (settings: RunnerSettings, delivery: ChatWorkDelivery,
 }
 
 const deliverMessage = async (settings: RunnerSettings, delivery: ChatWorkDelivery): Promise<void> => {
-  const summary = readSessionTranscript(settings, delivery.sessionId)
-  const plan =
-    summary === null
-      ? { route: 'none' as const, reason: 'The session is not on this laptop' }
-      : deliveryPlanFor(delivery.sessionState, listTmuxPanes(), summary.directory)
+  const located = locateTranscript(settings, delivery)
+  const plan: DeliveryPlan =
+    located === null
+      ? { route: 'none', reason: 'The session is not on this laptop' }
+      : chatDeliveryPlanFor(delivery, listTmuxPanes(), readSessionTranscript(located).directory, Date.now() - located.modifiedAt)
   const outcome = ((): { state: 'delivered' | 'failed'; message: string | null } => {
     try {
       if (plan.route === 'tmux') {
         typeIntoPane(plan.paneId, delivery.text)
         return { state: 'delivered', message: null }
       }
-      if (plan.route === 'resume') return { state: 'delivered', message: resumeWithMessage(settings, delivery, plan.directory) }
+      if (plan.route === 'resume' && located !== null) {
+        return { state: 'delivered', message: resumeWithMessage(settings, located.claudeSessionId, delivery.text, plan.directory) }
+      }
+      if (plan.route === 'resume') return { state: 'failed', message: 'The session is not on this laptop' }
       return { state: 'failed', message: plan.reason }
     } catch (deliveryError) {
       return { state: 'failed', message: deliveryError instanceof Error ? deliveryError.message : String(deliveryError) }

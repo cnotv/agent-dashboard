@@ -1,10 +1,19 @@
-import { ExternalLinkIcon } from '@radix-ui/react-icons'
-import { Badge, Card, Flex, Heading, Link, Table, Text } from '@radix-ui/themes'
+import { ChatBubbleIcon, ExternalLinkIcon } from '@radix-ui/react-icons'
+import { Badge, Card, Flex, Heading, IconButton, Link, Table, Text, Tooltip } from '@radix-ui/themes'
 import type { SessionStart } from '@agent-dashboard/contracts'
 import { sessionStartStateColors, sessionStartStateLabels, startTargetLabels } from '@/lib/presentation'
+import { canChatWithStart } from '@/lib/session-chat'
 
-/** The sessions started from the board, newest first: where each runs, its state, and its link or message. */
-export const SessionStartsList = ({ starts }: { starts: SessionStart[] }) => (
+interface SessionStartsListProps {
+  starts: SessionStart[]
+  onOpenChat: (start: SessionStart) => void
+}
+
+/**
+ * The sessions started from the board, newest first: where each runs, its state, its link or
+ * message, and for one running on the laptop the button that opens its conversation.
+ */
+export const SessionStartsList = ({ starts, onOpenChat }: SessionStartsListProps) => (
   <Card size="2">
     <Flex direction="column" gap="3">
       <Heading as="h2" size="3" weight="medium">
@@ -13,6 +22,7 @@ export const SessionStartsList = ({ starts }: { starts: SessionStart[] }) => (
       <Table.Root variant="ghost" size="1">
         <Table.Header>
           <Table.Row>
+            <Table.ColumnHeaderCell aria-label="Chat" />
             <Table.ColumnHeaderCell>When</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Work</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Where</Table.ColumnHeaderCell>
@@ -22,6 +32,20 @@ export const SessionStartsList = ({ starts }: { starts: SessionStart[] }) => (
         <Table.Body>
           {starts.map((start) => (
             <Table.Row key={start.startId} align="center">
+              <Table.Cell>
+                {canChatWithStart(start) && (
+                  <Tooltip content="Open the conversation">
+                    <IconButton
+                      size="1"
+                      variant="ghost"
+                      aria-label={`Chat with ${start.repository.name} ${start.workflow}`}
+                      onClick={() => onOpenChat(start)}
+                    >
+                      <ChatBubbleIcon />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Table.Cell>
               <Table.Cell>
                 <Text size="1" color="gray">
                   {new Date(start.createdAt).toLocaleString()}
