@@ -12,8 +12,15 @@ const issueOf = (issueNumber: number, title: string, linkedPullRequestNumbers: n
   title,
   url: `https://github.com/cnotv/example/issues/${issueNumber}`,
   updatedAt: '2026-09-27T10:00:00Z',
+  closedAt: null,
   labels,
   linkedPullRequestNumbers,
+})
+
+const closedIssueOf = (issueNumber: number, title: string, closedAt: string, closingPullRequestNumbers: number[]): BoardCard => ({
+  issues: [{ ...issueOf(issueNumber, title, closingPullRequestNumbers), updatedAt: closedAt, closedAt }],
+  pullRequest: null,
+  status: 'closed',
 })
 
 const runUrl = (runNumber: number): string => `https://github.com/cnotv/example/runs/${runNumber}`
@@ -75,7 +82,10 @@ export const sampleBoardColumns: BoardColumn[] = [
     status: 'checks-failing',
     cards: [
       {
-        issues: [issueOf(7, 'Fix marble stickiness', [30]), issueOf(8, 'Marbles pass through the ramp edge', [30], [{ name: 'bug', color: 'd73a4a' }])],
+        issues: [
+          issueOf(7, 'Fix marble stickiness', [30]),
+          issueOf(8, 'Marbles pass through the ramp edge', [30], [{ name: 'bug', color: 'd73a4a' }]),
+        ],
         pullRequest: {
           number: 30,
           title: 'fix: marble collisions (#7)',
@@ -122,26 +132,39 @@ export const sampleBoardColumns: BoardColumn[] = [
     ],
   },
   { status: 'approved', cards: [] },
+  {
+    status: 'closed',
+    cards: [
+      closedIssueOf(4, 'Show the frame rate in the corner', '2026-09-25T16:20:00Z', [26]),
+      closedIssueOf(3, 'Marbles fall through the floor on Safari', '2026-09-22T09:05:00Z', []),
+    ],
+  },
 ]
 
 /**
- * Shows the board as it would look after demo merges and closes: a merged pull request takes its
- * issues with it, as the Closes lines would on GitHub, and a closed one leaves each of its issues
- * behind on a card of its own with no pull request.
+ * Shows the board as it would look after demo merges and closes: a merged pull request closes its
+ * issues, as the Closes lines would on GitHub, moving each to the Closed column, and a closed one
+ * leaves each of its issues behind on a card of its own with no pull request.
  * @param columns The sample board's columns.
  * @param outcomes What happened to each changed pull request, by number.
+ * @param now When the board is read, which stands for when a merged pull request closed its issues.
  * @returns The columns with the changed cards moved or removed.
  */
 export const applyDemoPullRequestOutcomes = (
   columns: BoardColumn[],
   outcomes: Map<number, DemoPullRequestOutcome>,
+  now: string,
 ): BoardColumn[] => {
-  const cards = columns.flatMap((column) => column.cards).flatMap((card): BoardCard[] => {
-    const outcome = card.pullRequest ? outcomes.get(card.pullRequest.number) : undefined
-    if (outcome === undefined) return [card]
-    if (outcome === 'merged') return []
-    return card.issues.map((issue) => ({ issues: [issue], pullRequest: null, status: 'no-pull-request' }))
-  })
+  const cards = columns
+    .flatMap((column) => column.cards)
+    .flatMap((card): BoardCard[] => {
+      const outcome = card.pullRequest ? outcomes.get(card.pullRequest.number) : undefined
+      if (outcome === undefined) return [card]
+      if (outcome === 'merged') {
+        return card.issues.map((issue) => ({ issues: [{ ...issue, closedAt: now, updatedAt: now }], pullRequest: null, status: 'closed' }))
+      }
+      return card.issues.map((issue) => ({ issues: [issue], pullRequest: null, status: 'no-pull-request' }))
+    })
   return columns.map((column) => ({ ...column, cards: cards.filter((card) => card.status === column.status) }))
 }
 
@@ -178,7 +201,8 @@ export const samplePullRequestFiles: PullRequestFiles = {
       status: 'renamed',
       additions: 1,
       deletions: 1,
-      patch: '@@ -1,3 +1,3 @@\n-export const slopeAngle = 0.4\n+export const rampAngle = 0.4\n export const rampWidth = 3\n export const rampLength = 12\n\\ No newline at end of file',
+      patch:
+        '@@ -1,3 +1,3 @@\n-export const slopeAngle = 0.4\n+export const rampAngle = 0.4\n export const rampWidth = 3\n export const rampLength = 12\n\\ No newline at end of file',
       blobUrl: 'https://github.com/cnotv/example/blob/0123abcd/src/views/Games/MarbleMadness/ramp.ts',
     },
     {

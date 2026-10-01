@@ -189,6 +189,11 @@ The board opens on **All repositories**: every configured repository's issues on
 newest first in each column, each card naming its repository. The toggle above it switches to
 one repository, picked from the list and kept in the address (`?repository=owner/name`).
 
+The last column, **Closed**, holds each repository's 20 most recently closed issues, with when
+each closed and the pull request that closed it. Every column's arrow folds it to a strip
+showing only its name and count; **No pull request** and **Closed** start folded, and this
+browser remembers what you fold.
+
 Each open pull request gets one card, listing every issue it closes (by a `Closes #n` line or
 by its `<type>/<n>-description` branch). An issue without a pull request has a card of its own.
 

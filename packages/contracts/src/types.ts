@@ -76,6 +76,7 @@ export interface IssueSummary {
   title: string
   url: string
   updatedAt: string
+  closedAt: string | null
   labels: IssueLabel[]
   linkedPullRequestNumbers: number[]
 }
@@ -87,6 +88,7 @@ export type IssueStatus =
   | 'checks-failing'
   | 'ready-for-review'
   | 'approved'
+  | 'closed'
 
 export interface BoardCard {
   issues: IssueSummary[]

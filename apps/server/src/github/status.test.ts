@@ -17,6 +17,7 @@ const makeIssue = (number: number, linkedPullRequestNumbers: number[] = []): Iss
   title: `Issue ${number}`,
   url: `https://github.com/o/r/issues/${number}`,
   updatedAt: '2026-09-01T00:00:00Z',
+  closedAt: null,
   labels: [],
   linkedPullRequestNumbers,
 })
@@ -149,7 +150,7 @@ describe('buildBoardCards', () => {
 
 describe('buildBoard', () => {
   it('always returns every column in order', () => {
-    const board = buildBoard({ owner: 'o', name: 'r' }, [makeIssue(1)], [], '2026-09-28T00:00:00Z')
+    const board = buildBoard({ owner: 'o', name: 'r' }, { open: [makeIssue(1)], closed: [] }, [], '2026-09-28T00:00:00Z')
     expect(board.columns.map((column) => column.status)).toEqual([
       'no-pull-request',
       'draft',
@@ -157,7 +158,19 @@ describe('buildBoard', () => {
       'checks-failing',
       'ready-for-review',
       'approved',
+      'closed',
     ])
     expect(board.columns[0]?.cards).toHaveLength(1)
+  })
+
+  it('puts each closed issue on a card of its own in the last column, never with an open pull request', () => {
+    const closedIssue = { ...makeIssue(4, [5]), closedAt: '2026-09-20T00:00:00Z' }
+    const board = buildBoard(
+      { owner: 'o', name: 'r' },
+      { open: [], closed: [closedIssue] },
+      [makePullRequest({ number: 5, body: 'Closes #4' })],
+      '2026-09-28T00:00:00Z',
+    )
+    expect(board.columns.at(-1)).toEqual({ status: 'closed', cards: [{ issues: [closedIssue], pullRequest: null, status: 'closed' }] })
   })
 })

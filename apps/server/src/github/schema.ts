@@ -46,6 +46,7 @@ export const issueNodeSchema = z.object({
   title: z.string(),
   url: z.string(),
   updatedAt: z.string(),
+  closedAt: z.string().nullable(),
   labels: z.object({ nodes: z.array(z.object({ name: z.string(), color: z.string() })) }),
   closedByPullRequestsReferences: z.object({ nodes: z.array(z.object({ number: z.number() })) }),
 })
@@ -70,6 +71,7 @@ export const boardResponseSchema = z.object({
   data: z.object({
     repository: z.object({
       issues: z.object({ nodes: z.array(issueNodeSchema) }),
+      closedIssues: z.object({ nodes: z.array(issueNodeSchema) }),
       pullRequests: z.object({ nodes: z.array(pullRequestNodeSchema) }),
     }),
   }),
@@ -84,8 +86,20 @@ export const boardQuery = `
           title
           url
           updatedAt
+          closedAt
           labels(first: 10) { nodes { name color } }
           closedByPullRequestsReferences(first: 5, includeClosedPrs: false) { nodes { number } }
+        }
+      }
+      closedIssues: issues(first: 20, states: CLOSED, orderBy: { field: UPDATED_AT, direction: DESC }) {
+        nodes {
+          number
+          title
+          url
+          updatedAt
+          closedAt
+          labels(first: 10) { nodes { name color } }
+          closedByPullRequestsReferences(first: 5, includeClosedPrs: true) { nodes { number } }
         }
       }
       pullRequests(first: 50, states: OPEN, orderBy: { field: UPDATED_AT, direction: DESC }) {

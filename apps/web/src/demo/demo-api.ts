@@ -76,7 +76,7 @@ export const createDemoApi = (): DashboardApi => {
     listRepositories: async () => sampleRepositories,
     readBoard: async (repository) => ({
       repository,
-      columns: applyDemoPullRequestOutcomes(sampleBoardColumns, demoMemory.pullRequestOutcomes),
+      columns: applyDemoPullRequestOutcomes(sampleBoardColumns, demoMemory.pullRequestOutcomes, new Date().toISOString()),
       fetchedAt: new Date().toISOString(),
     }),
     mergePullRequest: async (_repository, pullRequest) => {

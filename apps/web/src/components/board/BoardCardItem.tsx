@@ -1,6 +1,7 @@
 import { FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, IconButton, Link, Separator, Text, Tooltip } from '@radix-ui/themes'
 import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import { gitHubPullRequestUrl } from '@/lib/presentation'
 import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'
 import { PullRequestFilesDrawer } from './PullRequestFilesDrawer'
@@ -31,6 +32,23 @@ const IssueHeading = ({ issue }: { issue: IssueSummary }) => (
   </Flex>
 )
 
+const closedDateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+
+// A closed issue says when it closed and which pull request did it, the only links left to follow.
+const ClosedNote = ({ issue, repository }: { issue: IssueSummary; repository: RepositoryReference }) => (
+  <Text size="1" color="gray">
+    Closed {issue.closedAt ? closedDateFormat.format(new Date(issue.closedAt)) : ''}
+    {issue.linkedPullRequestNumbers.map((pullRequestNumber, index) => (
+      <span key={pullRequestNumber}>
+        {index === 0 ? ' by ' : ', '}
+        <Link href={gitHubPullRequestUrl(repository, pullRequestNumber)} target="_blank" rel="noopener noreferrer" color="gray">
+          #{pullRequestNumber}
+        </Link>
+      </span>
+    ))}
+  </Text>
+)
+
 const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
   previewUrl === null ? (
     <Tooltip content="No deploy preview yet">
@@ -53,7 +71,8 @@ const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
 /**
  * One board card: its repository when the board shows several, every issue its pull request works on, then the pull request, and one row of
  * icons: Start, then the pull request's checks, merge conflict, deploy preview, screenshot,
- * video, changed files, merge and close.
+ * video, changed files, merge and close. A closed issue has no icons, only when it closed and by
+ * which pull request.
  */
 export const BoardCardItem = ({ card, repository, showRepository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
@@ -71,6 +90,7 @@ export const BoardCardItem = ({ card, repository, showRepository, onPullRequestC
         ) : (
           card.issues.map((issue) => <IssueHeading key={issue.number} issue={issue} />)
         )}
+        {card.status === 'closed' && card.issues[0] && <ClosedNote issue={card.issues[0]} repository={repository} />}
       </Flex>
       {card.pullRequest && (
         <>
@@ -83,22 +103,26 @@ export const BoardCardItem = ({ card, repository, showRepository, onPullRequestC
           </Flex>
         </>
       )}
-      <Separator size="4" />
-      <Flex className="card-icon-row" gap="2" align="center">
-        <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} />
-        {card.pullRequest && (
-          <>
-            <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
-            {card.pullRequest.mergeable === 'CONFLICTING' && (
-              <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} conflictingPullRequest={card.pullRequest} />
+      {card.status !== 'closed' && (
+        <>
+          <Separator size="4" />
+          <Flex className="card-icon-row" gap="2" align="center">
+            <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} />
+            {card.pullRequest && (
+              <>
+                <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
+                {card.pullRequest.mergeable === 'CONFLICTING' && (
+                  <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} conflictingPullRequest={card.pullRequest} />
+                )}
+                <PreviewButton previewUrl={card.pullRequest.previewUrl} />
+                <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
+                <PullRequestFilesDrawer repository={repository} pullRequest={card.pullRequest} />
+                <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
+              </>
             )}
-            <PreviewButton previewUrl={card.pullRequest.previewUrl} />
-            <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
-            <PullRequestFilesDrawer repository={repository} pullRequest={card.pullRequest} />
-            <PullRequestActions repository={repository} pullRequest={card.pullRequest} onChanged={onPullRequestChanged} />
-          </>
-        )}
-      </Flex>
+          </Flex>
+        </>
+      )}
     </Flex>
   </Card>
 )
