@@ -69,28 +69,32 @@ const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
   )
 
 /**
- * One board card: its repository when the board shows several, every issue its pull request works on, then the pull request, and one row of
- * icons: Start, then the pull request's checks, merge conflict, deploy preview, screenshot,
- * video, changed files, merge and close. A closed issue has no icons, only when it closed and by
- * which pull request.
+ * One board card: its repository when the board shows several, every issue its pull request works
+ * on with the pull request's checks at the top right, then the pull request, and one row of icons.
+ * An issue without a pull request has only Start; a pull request has its merge conflict, deploy
+ * preview, screenshot, video, changed files, merge and close. A closed issue has no icons, only
+ * when it closed and by which pull request.
  */
 export const BoardCardItem = ({ card, repository, showRepository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
     <Flex direction="column" gap="3">
-      <Flex direction="column" gap="2">
-        {showRepository && (
-          <Text size="1" color="gray">
-            {repository.owner}/{repository.name}
-          </Text>
-        )}
-        {card.issues.length === 0 ? (
-          <Text size="2" color="gray">
-            No linked issue
-          </Text>
-        ) : (
-          card.issues.map((issue) => <IssueHeading key={issue.number} issue={issue} />)
-        )}
-        {card.status === 'closed' && card.issues[0] && <ClosedNote issue={card.issues[0]} repository={repository} />}
+      <Flex gap="3" align="start" justify="between">
+        <Flex direction="column" gap="2" minWidth="0">
+          {showRepository && (
+            <Text size="1" color="gray">
+              {repository.owner}/{repository.name}
+            </Text>
+          )}
+          {card.issues.length === 0 ? (
+            <Text size="2" color="gray">
+              No linked issue
+            </Text>
+          ) : (
+            card.issues.map((issue) => <IssueHeading key={issue.number} issue={issue} />)
+          )}
+          {card.status === 'closed' && card.issues[0] && <ClosedNote issue={card.issues[0]} repository={repository} />}
+        </Flex>
+        {card.pullRequest && <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />}
       </Flex>
       {card.pullRequest && (
         <>
@@ -107,10 +111,10 @@ export const BoardCardItem = ({ card, repository, showRepository, onPullRequestC
         <>
           <Separator size="4" />
           <Flex className="card-icon-row" gap="2" align="center">
-            <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} />
-            {card.pullRequest && (
+            {card.pullRequest === null ? (
+              <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} />
+            ) : (
               <>
-                <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />
                 {card.pullRequest.mergeable === 'CONFLICTING' && (
                   <StartSessionDialog repository={repository} issue={card.issues[0] ?? null} conflictingPullRequest={card.pullRequest} />
                 )}

@@ -197,9 +197,9 @@ browser remembers what you fold.
 Each open pull request gets one card, listing every issue it closes (by a `Closes #n` line or
 by its `<type>/<n>-description` branch). An issue without a pull request has a card of its own.
 
-The card ends in one row of icons, each named in its tooltip: the checks, a red warning when
-the branch has a merge conflict, the deploy preview, the screenshot and video, then Merge and
-Close. Checks show as a ring with one coloured arc per state (red failed, amber running, green
+A pull request's checks sit at the card's top right. The card ends in one row of icons, each
+named in its tooltip: a red warning when the branch has a merge conflict, the deploy preview,
+the screenshot and video, the changed files, then Merge and Close. Checks show as a ring with one coloured arc per state (red failed, amber running, green
 passed, grey skipped or neutral) and the passed count; hovering it lists every check with its
 state and a link to its run. The globe opens the Netlify deploy preview once Netlify reports
 one, on the page named by a `Preview route: /path` line in the pull request body, or on its
@@ -221,7 +221,8 @@ once in Netlify itself; the button works for the rest.
 
 ## Start a session from the board
 
-Every card has a **Start** button (the play icon), so work can be started from the phone. Pick a
+Every card without a pull request has a **Start** button (the play icon), so work can be started
+from the phone; once a pull request exists, the session that opened it carries on with it. Pick a
 workflow from agent-base's `start` router (suggested from the issue's labels), add a note if the
 issue leaves something out, and pick where it runs:
 
