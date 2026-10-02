@@ -38,6 +38,8 @@ interface SampleSession {
   sessionId: string
   repositoryIndex: number | null
   branch: string | null
+  title: string | null
+  folder: string | null
   issueNumber: number | null
   changes: [number, AgentSessionState][]
   tokens: TokenTotals
@@ -48,6 +50,8 @@ const sampleSessions: SampleSession[] = [
     sessionId: 'c1a7e3d2-demo-working',
     repositoryIndex: 0,
     branch: 'feat/12-sessions-and-usage',
+    title: 'Add the Sessions page with token usage',
+    folder: 'example',
     issueNumber: 12,
     changes: [[310, 'idle'], [305, 'working'], [240, 'waiting'], [228, 'working'], [150, 'idle'], [95, 'working']],
     tokens: tokensOf(48_200, 131_900, 3_904_000, 212_400),
@@ -56,6 +60,8 @@ const sampleSessions: SampleSession[] = [
     sessionId: 'b9f04c11-demo-waiting',
     repositoryIndex: 1,
     branch: 'fix/31-retry-webhooks',
+    title: 'Retry webhooks that time out',
+    folder: 'example-api',
     issueNumber: 31,
     changes: [[180, 'idle'], [176, 'working'], [120, 'idle'], [70, 'working'], [12, 'waiting']],
     tokens: tokensOf(21_800, 64_300, 1_720_500, 98_100),
@@ -64,6 +70,8 @@ const sampleSessions: SampleSession[] = [
     sessionId: '5e2d8a90-demo-idle',
     repositoryIndex: 0,
     branch: 'docs/9-deploy-guide',
+    title: 'Write the deploy guide',
+    folder: 'example',
     issueNumber: 9,
     changes: [[620, 'idle'], [612, 'working'], [540, 'idle'], [300, 'working'], [262, 'idle']],
     tokens: tokensOf(9_400, 27_600, 684_000, 41_900),
@@ -72,6 +80,8 @@ const sampleSessions: SampleSession[] = [
     sessionId: '7ac3f5b8-demo-codex',
     repositoryIndex: 1,
     branch: 'main',
+    title: null,
+    folder: 'example-api',
     issueNumber: null,
     changes: [[80, 'idle'], [44, 'idle']],
     tokens: tokensOf(0, 0, 0, 0),
@@ -80,9 +90,21 @@ const sampleSessions: SampleSession[] = [
     sessionId: 'e4410c6f-demo-ended',
     repositoryIndex: 0,
     branch: 'chore/7-bump-dependencies',
+    title: 'Bump the dependencies',
+    folder: 'example',
     issueNumber: 7,
     changes: [[1_100, 'idle'], [1_095, 'working'], [1_010, 'idle'], [1_000, 'ended']],
     tokens: tokensOf(6_100, 18_900, 402_300, 30_200),
+  },
+  {
+    sessionId: '0d93b7aa-demo-notes',
+    repositoryIndex: null,
+    branch: null,
+    title: 'Draft the release notes for 2.0',
+    folder: 'notes',
+    issueNumber: null,
+    changes: [[40, 'working'], [25, 'idle']],
+    tokens: tokensOf(2_300, 8_100, 96_000, 6_200),
   },
 ]
 
@@ -113,6 +135,8 @@ const summaryOf = (sample: SampleSession, now: number): AgentSessionSummary => {
     provider: sample.sessionId.includes('codex') ? 'codex' : 'claude',
     repository: repositoryAt(sample.repositoryIndex),
     branch: sample.branch,
+    title: sample.title,
+    folder: sample.folder,
     issueNumber: sample.issueNumber,
     state: lastChange?.[1] ?? 'idle',
     startedAt: isoMinutesAgo(now, firstChange?.[0] ?? 0),

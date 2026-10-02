@@ -100,6 +100,8 @@ export const buildSessionsOverview = (
         provider: session.provider,
         repository: session.repository,
         branch: session.branch,
+        title: session.title,
+        folder: session.folder,
         issueNumber: session.branch === null ? null : issueNumberFromBranch(session.branch),
         state: effectiveState(session, now),
         startedAt: session.startedAt,

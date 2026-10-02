@@ -9,6 +9,8 @@ const sessionWith = (overrides: Partial<AgentSessionSummary>): AgentSessionSumma
   provider: 'claude',
   repository: { owner: 'cnotv', name: 'example' },
   branch: 'feat/4-thing',
+  title: null,
+  folder: null,
   issueNumber: 4,
   state: 'working',
   startedAt: '2026-09-29T00:00:00.000Z',

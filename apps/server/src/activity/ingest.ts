@@ -42,6 +42,25 @@ const stateFor = (provider: AgentProvider, payload: HookPayload): AgentSessionSt
   return payload.hook_event_name === undefined ? null : (stateByClaudeHookEvent[payload.hook_event_name] ?? null)
 }
 
+// A title is a glance at what the session was asked, so only the first line of the first prompt
+// is kept, never the rest of it.
+const titleCharacters = 80
+
+const titleFrom = (provider: AgentProvider, payload: HookPayload): string | null => {
+  const prompt = provider === 'codex' ? payload['input-messages']?.[0] : payload.prompt
+  const firstLine = prompt
+    ?.split('\n')
+    .map((line) => line.trim())
+    .find((line) => line !== '')
+  if (firstLine === undefined) return null
+  return firstLine.length <= titleCharacters ? firstLine : `${firstLine.slice(0, titleCharacters - 1).trimEnd()}…`
+}
+
+const folderFrom = (cwd: string | undefined): string | null => {
+  const folder = cwd?.trim().replace(/[\\/]+$/, '').split(/[\\/]/).at(-1) ?? ''
+  return folder === '' ? null : folder
+}
+
 const emptyToNull = (value: string | undefined): string | null => {
   const trimmed = value?.trim() ?? ''
   return trimmed === '' || trimmed === 'HEAD' ? null : trimmed
@@ -65,6 +84,8 @@ export const agentEventFrom = (payload: HookPayload, headers: HookHeaders, occur
     state,
     repository: repositoryFromRemote(headers.remote),
     branch: emptyToNull(headers.branch),
+    title: titleFrom(provider, payload),
+    folder: folderFrom(payload.cwd ?? headers.cwd),
     occurredAt,
   }
 }

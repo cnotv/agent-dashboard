@@ -33,6 +33,12 @@ const createSchema = (database: DatabaseSync): void => {
     );
     CREATE INDEX IF NOT EXISTS token_usage_samples_by_time ON token_usage_samples (recorded_at);
   `)
+  // Added after the first release; a database from before gets the columns on start.
+  const sessionColumns = database.prepare('PRAGMA table_info(agent_sessions)').all().map((column) => String(column.name))
+  const addedColumns = ['title', 'folder']
+  addedColumns
+    .filter((column) => !sessionColumns.includes(column))
+    .forEach((column) => database.exec(`ALTER TABLE agent_sessions ADD COLUMN ${column} TEXT`))
 }
 
 const agentSessionStates: AgentSessionState[] = ['working', 'waiting', 'idle', 'ended', 'inactive']
@@ -54,6 +60,8 @@ const toStoredSession = (row: Record<string, unknown>): StoredSession => {
     provider: toProvider(readText(row, 'provider')),
     repository: owner !== null && name !== null ? { owner, name } : null,
     branch: readOptionalText(row, 'branch'),
+    title: readOptionalText(row, 'title'),
+    folder: readOptionalText(row, 'folder'),
     state: toState(readText(row, 'state')),
     startedAt: readText(row, 'started_at'),
     lastEventAt: readText(row, 'last_event_at'),
@@ -74,14 +82,16 @@ const seriesKeyOf = (point: TokenUsagePoint): string =>
 export const createActivityStore = (database: DatabaseSync): ActivityStore => {
   createSchema(database)
   const upsertSession = database.prepare(`
-    INSERT INTO agent_sessions (session_id, provider, repository_owner, repository_name, branch, state, started_at, last_event_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO agent_sessions (session_id, provider, repository_owner, repository_name, branch, title, folder, state, started_at, last_event_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(session_id) DO UPDATE SET
       state = excluded.state,
       last_event_at = excluded.last_event_at,
       repository_owner = COALESCE(excluded.repository_owner, agent_sessions.repository_owner),
       repository_name = COALESCE(excluded.repository_name, agent_sessions.repository_name),
-      branch = COALESCE(excluded.branch, agent_sessions.branch)
+      branch = COALESCE(excluded.branch, agent_sessions.branch),
+      title = COALESCE(agent_sessions.title, excluded.title),
+      folder = COALESCE(excluded.folder, agent_sessions.folder)
   `)
   const insertEvent = database.prepare('INSERT INTO agent_session_events (session_id, state, occurred_at) VALUES (?, ?, ?)')
   const readSeries = database.prepare('SELECT tokens FROM token_usage_series WHERE series_key = ?')
@@ -109,6 +119,8 @@ export const createActivityStore = (database: DatabaseSync): ActivityStore => {
         event.repository?.owner ?? null,
         event.repository?.name ?? null,
         event.branch,
+        event.title,
+        event.folder,
         event.state,
         event.occurredAt,
         event.occurredAt,

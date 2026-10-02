@@ -7,6 +7,9 @@ export const hookPayloadSchema = z.object({
   hook_event_name: z.string().max(100).optional(),
   type: z.string().max(100).optional(),
   'thread-id': z.string().min(1).max(200).optional(),
+  prompt: z.string().optional(),
+  'input-messages': z.array(z.string()).optional(),
+  cwd: z.string().max(4096).optional(),
 })
 
 const anyValueSchema = z.object({
