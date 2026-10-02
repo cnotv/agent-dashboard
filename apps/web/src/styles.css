@@ -752,3 +752,15 @@ body {
 .chat-composer-input {
   flex: 1;
 }
+
+.new-issue-composer {
+  padding: var(--space-3);
+  border: 1px dashed transparent;
+  border-radius: var(--radius-3);
+  background: var(--gray-a2);
+}
+
+.new-issue-composer-dropping {
+  border-color: var(--accent-8);
+  background: var(--accent-a3);
+}

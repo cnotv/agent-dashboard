@@ -1,12 +1,13 @@
-import { Cross2Icon, FileIcon, PlusIcon } from '@radix-ui/react-icons'
-import { Badge, Button, Callout, Dialog, Flex, IconButton, Link, Select, Text, TextArea, TextField } from '@radix-ui/themes'
-import { useMemo, useRef, useState, type ClipboardEvent, type FormEvent } from 'react'
+import { Cross2Icon, FileIcon, FilePlusIcon, PaperPlaneIcon, PlusIcon } from '@radix-ui/react-icons'
+import { Badge, Button, Callout, Dialog, Flex, IconButton, Link, Select, Text, TextArea, Tooltip } from '@radix-ui/themes'
+import { useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent } from 'react'
 import type { CreatedIssue, RepositoryReference, SessionStart } from '@dashi/contracts'
 import { useRepositories } from '@/hooks/useBoard'
 import { useStartChoices } from '@/hooks/useSessionStarts'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'
-import { issueBodyFor, readAttachment } from '@/lib/attachments'
+import { readAttachment } from '@/lib/attachments'
+import { issueBodyFor, issueTitleFrom } from '@/lib/new-issue'
 import { errorMessageOf, parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 import type { PickedAttachment } from '@/lib/types'
 import { StartChoicesFields } from './StartChoicesFields'
@@ -33,9 +34,10 @@ const AttachmentList = ({ pickedAttachments, onRemove }: { pickedAttachments: Pi
 )
 
 /**
- * The New issue button and its dialog: a repository, a title, a text and attachments, and where
- * to develop it. It opens the issue on GitHub and starts a session on it with the text and the
- * attachments, which go to the session only and are never stored.
+ * The New issue button and its dialog: a chat to write what the work is about, with files
+ * attached by picking, pasting or dropping them, and where to develop it. Sending opens the issue
+ * on GitHub, titled by the message's first line, and starts a session on it with the message and
+ * the attachments, which go to the session only and are never stored.
  */
 export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
   const toast = useToast()
@@ -44,8 +46,8 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [chosenRepositoryKey, setChosenRepositoryKey] = useState<string | null>(null)
-  const [title, setTitle] = useState('')
   const [text, setText] = useState('')
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false)
   const [pickedAttachments, setPickedAttachments] = useState<PickedAttachment[]>([])
   const [createdIssue, setCreatedIssue] = useState<CreatedIssue | null>(null)
   const [started, setStarted] = useState<SessionStart | null>(null)
@@ -61,10 +63,10 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
     attachmentBytes,
   )
   const attachmentCountLimit = options?.attachmentLimits.fileCount ?? 0
-  const canSubmit = repository !== null && title.trim() !== '' && chosenTarget !== null && chosenAvailability?.isAvailable === true
+  const title = issueTitleFrom(text)
+  const canSubmit = repository !== null && title !== '' && chosenTarget !== null && chosenAvailability?.isAvailable === true && !isSubmitting
 
   const resetForm = (): void => {
-    setTitle('')
     setText('')
     setPickedAttachments([])
     setCreatedIssue(null)
@@ -99,6 +101,18 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
     void addFiles(pastedFiles)
   }
 
+  const attachDroppedFiles = (dropEvent: DragEvent<HTMLFormElement>): void => {
+    dropEvent.preventDefault()
+    setIsDraggingFiles(false)
+    if (createdIssue === null) void addFiles(Array.from(dropEvent.dataTransfer.files))
+  }
+
+  const showDropTarget = (dragEvent: DragEvent<HTMLFormElement>): void => {
+    if (!dragEvent.dataTransfer.types.includes('Files')) return
+    dragEvent.preventDefault()
+    setIsDraggingFiles(true)
+  }
+
   const startOn = async (issue: CreatedIssue, chosenRepository: RepositoryReference): Promise<void> => {
     if (chosenTarget === null) return
     try {
@@ -119,15 +133,14 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
     }
   }
 
-  const submit = async (submitEvent: FormEvent): Promise<void> => {
-    submitEvent.preventDefault()
+  const send = async (): Promise<void> => {
     if (!canSubmit) return
     setIsSubmitting(true)
     try {
       const issue =
         createdIssue ??
         (await dashboardApi.createIssue(repository, {
-          title: title.trim(),
+          title,
           body: issueBodyFor(text.trim(), pickedAttachments.map((picked) => picked.attachment.name)),
         }))
       setCreatedIssue(issue)
@@ -137,6 +150,18 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const submit = (submitEvent: FormEvent): void => {
+    submitEvent.preventDefault()
+    void send()
+  }
+
+  // Enter sends and Shift+Enter starts a new line, as in the session chat.
+  const sendOnEnter = (keyEvent: KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (keyEvent.key !== 'Enter' || keyEvent.shiftKey || keyEvent.nativeEvent.isComposing) return
+    keyEvent.preventDefault()
+    void send()
   }
 
   return (
@@ -149,7 +174,7 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
       <Dialog.Content maxWidth="600px">
         <Dialog.Title>New issue</Dialog.Title>
         <Dialog.Description size="2" color="gray" mb="4">
-          Opens the issue on GitHub and starts a session on it. Attachments go to the session only.
+          Say what the work is about. Sending opens the issue on GitHub and starts a session on it.
         </Dialog.Description>
         {started && createdIssue ? (
           <Flex direction="column" gap="4">
@@ -164,7 +189,7 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
             </Flex>
           </Flex>
         ) : (
-          <form onSubmit={(submitEvent) => void submit(submitEvent)}>
+          <form onSubmit={submit} onDragOver={showDropTarget} onDragLeave={() => setIsDraggingFiles(false)} onDrop={attachDroppedFiles}>
             <Flex direction="column" gap="4">
               {createdIssue && (
                 <Callout.Root color="amber" size="1">
@@ -173,7 +198,7 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
                     <Link href={createdIssue.url} target="_blank" rel="noopener noreferrer">
                       #{createdIssue.number}
                     </Link>{' '}
-                    is open; pick where to run it and start again, or start it later from its card.
+                    is open; pick where to run it and send again, or start it later from its card.
                   </Callout.Text>
                 </Callout.Root>
               )}
@@ -192,46 +217,58 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
                   </Select.Content>
                 </Select.Root>
               </label>
-              <label>
-                <Text as="div" size="2" mb="1" weight="medium">
-                  Title
-                </Text>
-                <TextField.Root
-                  maxLength={256}
-                  value={title}
-                  disabled={createdIssue !== null}
-                  onChange={(changeEvent) => setTitle(changeEvent.target.value)}
-                />
-              </label>
-              <label>
-                <Text as="div" size="2" mb="1" weight="medium">
-                  What it is about
-                </Text>
-                <TextArea
-                  rows={5}
-                  maxLength={20000}
-                  placeholder="Goes into the issue and the session's first message. Paste a screenshot to attach it."
-                  value={text}
-                  disabled={createdIssue !== null}
-                  onChange={(changeEvent) => setText(changeEvent.target.value)}
-                  onPaste={attachPastedFiles}
-                />
-              </label>
-              <Flex direction="column" gap="2">
-                <Flex gap="2" align="center">
-                  <Button
-                    type="button"
-                    variant="soft"
-                    color="gray"
-                    disabled={createdIssue !== null || pickedAttachments.length >= attachmentCountLimit}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <FileIcon /> Attach files
-                  </Button>
-                  <Text size="1" color="gray">
-                    Sent to the session, never stored
-                  </Text>
+              <StartChoicesFields
+                choices={choices}
+                onChange={setChoices}
+                options={options}
+                optionsError={errorMessage}
+                chosenTarget={chosenTarget}
+                chosenAvailability={chosenAvailability}
+                attachmentBytes={attachmentBytes}
+                showsWorkflow
+              />
+              <Flex direction="column" gap="2" className={isDraggingFiles ? 'new-issue-composer new-issue-composer-dropping' : 'new-issue-composer'}>
+                {pickedAttachments.length > 0 && (
+                  <AttachmentList
+                    pickedAttachments={pickedAttachments}
+                    onRemove={(name) => setPickedAttachments((current) => current.filter((picked) => picked.attachment.name !== name))}
+                  />
+                )}
+                <Flex gap="2" align="end">
+                  <Tooltip content="Attach files">
+                    <IconButton
+                      type="button"
+                      size="3"
+                      variant="soft"
+                      color="gray"
+                      aria-label="Attach files"
+                      disabled={createdIssue !== null || pickedAttachments.length >= attachmentCountLimit}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <FilePlusIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <TextArea
+                    className="chat-composer-input"
+                    rows={3}
+                    maxLength={20000}
+                    placeholder="What should it do? The first line becomes the issue title. Drop or paste files to attach them."
+                    aria-label="Message"
+                    value={text}
+                    disabled={createdIssue !== null}
+                    onChange={(changeEvent) => setText(changeEvent.target.value)}
+                    onKeyDown={sendOnEnter}
+                    onPaste={attachPastedFiles}
+                  />
+                  <Tooltip content={createdIssue ? 'Start the session' : 'Open the issue and start'}>
+                    <IconButton type="submit" size="3" aria-label="Send" loading={isSubmitting} disabled={!canSubmit}>
+                      <PaperPlaneIcon />
+                    </IconButton>
+                  </Tooltip>
                 </Flex>
+                <Text size="1" color="gray">
+                  {title === '' ? 'Attachments go to the session only and are never stored.' : `Issue title: ${title}`}
+                </Text>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -243,32 +280,6 @@ export const NewIssueDialog = ({ defaultRepository }: NewIssueDialogProps) => {
                     changeEvent.target.value = ''
                   }}
                 />
-                {pickedAttachments.length > 0 && (
-                  <AttachmentList
-                    pickedAttachments={pickedAttachments}
-                    onRemove={(name) => setPickedAttachments((current) => current.filter((picked) => picked.attachment.name !== name))}
-                  />
-                )}
-              </Flex>
-              <StartChoicesFields
-                choices={choices}
-                onChange={setChoices}
-                options={options}
-                optionsError={errorMessage}
-                chosenTarget={chosenTarget}
-                chosenAvailability={chosenAvailability}
-                attachmentBytes={attachmentBytes}
-                showsWorkflow
-              />
-              <Flex gap="3" justify="end">
-                <Dialog.Close>
-                  <Button type="button" variant="soft" color="gray">
-                    Cancel
-                  </Button>
-                </Dialog.Close>
-                <Button type="submit" loading={isSubmitting} disabled={!canSubmit}>
-                  {createdIssue ? 'Start the session' : 'Open and start'}
-                </Button>
               </Flex>
             </Flex>
           </form>

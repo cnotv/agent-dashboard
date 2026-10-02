@@ -256,10 +256,11 @@ lists the starts, with the session's link or what the runner said.
 
 ### New issue
 
-**New issue**, on Sessions and on the board, starts work that has no issue yet: pick the
-repository, write a title and what it is about, attach files (or paste a screenshot into the
-text), then the same workflow and place to run as **Start**. It opens the issue on GitHub as you,
-then starts the session on it with the text as its note.
+**New issue**, on Sessions and on the board, starts work that has no issue yet, as a chat: pick
+the repository and the same workflow and place to run as **Start**, then write what the work is
+about, attaching files by picking, pasting or dropping them. Sending (Enter) opens the issue on
+GitHub as you, titled by the message's first line, then starts the session on it with the message
+as its note.
 
 Attachments are never stored. They travel with the start and are dropped once handed over: a
 laptop session steered from the phone or unattended gets them as files under

@@ -42,15 +42,6 @@ export const attachmentNameFor = (fileName: string, takenNames: string[]): strin
  */
 export const mediaTypeFor = (fileType: string): string => (/^[a-z]+\/[A-Za-z0-9.+-]{1,100}$/.test(fileType) ? fileType : fallbackMediaType)
 
-/**
- * Writes the issue body: the text, and the names of the files that went to the session only.
- * @param text The text typed in the dialog.
- * @param attachmentNames The attachments' names.
- * @returns The body.
- */
-export const issueBodyFor = (text: string, attachmentNames: string[]): string =>
-  attachmentNames.length === 0 ? text : [text, `Attachments sent to the session: ${attachmentNames.join(', ')}`].filter((part) => part !== '').join('\n\n')
-
 const base64Of = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader()
