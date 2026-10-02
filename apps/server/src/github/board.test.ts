@@ -35,6 +35,16 @@ describe('fetchRepositoryBoard', () => {
     expect(receivedVariables).toEqual([{ owner: 'cnotv', name: 'generative-art' }])
   })
 
+  it("passes on GitHub's reason when it cannot see the repository", async () => {
+    const notFoundResponse = {
+      data: { repository: null },
+      errors: [{ type: 'NOT_FOUND', message: "Could not resolve to a Repository with the name 'cnotv/generative-art'." }],
+    }
+    await expect(fetchRepositoryBoard(async () => notFoundResponse, repository)).rejects.toThrow(
+      "Could not resolve to a Repository with the name 'cnotv/generative-art'. Check that cnotv/generative-art in config/repos.json",
+    )
+  })
+
   it('rejects a response of the wrong shape', async () => {
     await expect(fetchRepositoryBoard(async () => ({ data: { repository: null } }), repository)).rejects.toThrow(
       'Unexpected GitHub response',

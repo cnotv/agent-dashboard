@@ -67,6 +67,8 @@ export const pullRequestBodyHtmlResponseSchema = z.object({
   }),
 })
 
+export const graphqlErrorsSchema = z.object({ errors: z.array(z.object({ message: z.string() })).min(1) })
+
 export const boardResponseSchema = z.object({
   data: z.object({
     repository: z.object({
