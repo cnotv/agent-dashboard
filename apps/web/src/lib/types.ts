@@ -15,6 +15,9 @@ import type {
   SessionChat,
   RepositoryReference,
   RoutineSettings,
+  RoutineTestResult,
+  RunnerScriptInfo,
+  SessionStartDetails,
   SecretSummary,
   SessionState,
   SecretTestResult,
@@ -59,9 +62,13 @@ export interface StartTargetAvailability {
   hint: string | null
 }
 
+export type RunnerPlatform = 'macos' | 'linux'
+
 export interface RunnerSetupInput {
   dashboardUrl: string
   runnerToken: string
+  scriptSha256: string
+  platform: RunnerPlatform
 }
 
 export interface LogoParticle {
@@ -125,6 +132,10 @@ export interface DashboardApi {
   listSessionStarts: () => Promise<SessionStart[]>
   startSession: (submission: SessionStartSubmission) => Promise<SessionStart>
   createIssue: (repository: RepositoryReference, newIssue: NewIssueRequest) => Promise<CreatedIssue>
+  readSessionStart: (startId: string) => Promise<SessionStartDetails>
+  retrySessionStart: (startId: string) => Promise<SessionStart>
+  testRoutine: (repository: RepositoryReference) => Promise<RoutineTestResult>
+  readRunnerScriptInfo: () => Promise<RunnerScriptInfo>
   readRoutineSettings: (repository: RepositoryReference) => Promise<RoutineSettings>
   saveRoutineSettings: (repository: RepositoryReference, routineId: string, token: string) => Promise<void>
   deleteRoutineSettings: (repository: RepositoryReference) => Promise<void>

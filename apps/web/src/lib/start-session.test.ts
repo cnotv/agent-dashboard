@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { StartOptions } from '@dashi/contracts'
-import { runnerLaunchAgentCommands, runnerTryCommands } from './runner-setup'
+import { runnerLaunchAgentCommands, runnerReviewCommands, runnerSystemdCommands, runnerTryCommands } from './runner-setup'
 import { defaultTargetFor, suggestedWorkflowFor, targetAvailabilityFor } from './start-session'
 
 const onlineRunner = { label: 'Mac mini', lastSeenAt: '2026-09-30T10:00:00Z', isOnline: true }
@@ -56,27 +56,44 @@ describe('defaultTargetFor', () => {
 })
 
 describe('runner setup commands', () => {
-  const input = { dashboardUrl: 'https://dashi.example', runnerToken: 'adr_secret' }
+  const sha256 = 'a'.repeat(64)
+  const input = { dashboardUrl: 'https://dashi.example', runnerToken: 'adr_secret', scriptSha256: sha256, platform: 'macos' as const }
 
-  it('downloads the runner from the dashboard and runs it with its token', () => {
-    expect(runnerTryCommands(input)).toEqual([
-      'mkdir -p ~/dashi',
-      'curl -fsSL https://dashi.example/api/runner/script -o ~/dashi/runner.ts',
-      'DASHI_URL=https://dashi.example DASHI_RUNNER_TOKEN=adr_secret node ~/dashi/runner.ts',
-    ])
+  it('checks the downloaded script against the hash before running it', () => {
+    const commands = runnerTryCommands(input)
+    expect(commands).toContain(`echo "${sha256}  $HOME/dashi/runner.ts" | shasum -a 256 -c -`)
+    expect(commands.indexOf('shasum')).toBeLessThan(commands.indexOf('node ~/dashi/runner.ts'))
+    expect(commands.split('\n').slice(0, 2)).toEqual(['(', 'set -e'])
+  })
+
+  it('checks with sha256sum on Linux, and opens the script to read before anything runs', () => {
+    const commands = runnerReviewCommands({ ...input, platform: 'linux' })
+    expect(commands).toContain('| sha256sum -c -')
+    expect(commands).toContain('less ~/dashi/runner.ts')
+    expect(commands).not.toContain('adr_secret')
   })
 
   it('installs a login agent readable by this user only', () => {
     const commands = runnerLaunchAgentCommands(input)
     expect(commands).toContain('<key>DASHI_RUNNER_TOKEN</key><string>adr_secret</string>')
     expect(commands).toContain('chmod 600 ~/Library/LaunchAgents/dev.dashi.runner.plist')
-    expect(commands).toContain('launchctl bootstrap gui/$(id -u)')
+    expect(commands.indexOf('shasum')).toBeLessThan(commands.indexOf('launchctl bootstrap gui/$(id -u)'))
   })
 
   it('removes the runner installed under the name from before Dashi, so only one polls', () => {
     const commands = runnerLaunchAgentCommands(input)
-    expect(commands).toContain('launchctl bootout gui/$(id -u)/dev.agent-dashboard.runner 2>/dev/null')
+    expect(commands).toContain('launchctl bootout gui/$(id -u)/dev.agent-dashboard.runner 2>/dev/null || true')
     expect(commands).toContain('rm -f ~/Library/LaunchAgents/dev.agent-dashboard.runner.plist')
     expect(commands.indexOf('dev.agent-dashboard.runner')).toBeLessThan(commands.indexOf('launchctl bootstrap'))
+  })
+
+  it('installs a systemd user service with the token only in a file of its own', () => {
+    const commands = runnerSystemdCommands({ ...input, platform: 'linux' })
+    const unit = commands.slice(commands.indexOf('[Unit]'), commands.indexOf('WantedBy=default.target'))
+    expect(unit).toContain('EnvironmentFile=%h/dashi/runner.env')
+    expect(unit).not.toContain('adr_secret')
+    expect(commands).toContain('DASHI_RUNNER_TOKEN=adr_secret')
+    expect(commands).toContain('chmod 600 ~/dashi/runner.env')
+    expect(commands.indexOf('sha256sum')).toBeLessThan(commands.indexOf('systemctl --user enable --now dashi-runner'))
   })
 })

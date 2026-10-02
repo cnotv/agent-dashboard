@@ -764,3 +764,18 @@ body {
   border-color: var(--accent-8);
   background: var(--accent-a3);
 }
+
+.runner-hash {
+  overflow-wrap: anywhere;
+}
+
+.runner-does-list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.start-first-message {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

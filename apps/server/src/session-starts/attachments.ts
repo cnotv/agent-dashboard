@@ -8,7 +8,8 @@ const unclaimedMilliseconds = 15 * 60_000
 export const attachmentLimits: AttachmentLimits = {
   fileCount: 5,
   fileTargetBytes: 8 * 1024 * 1024,
-  inlineTargetBytes: 48 * 1024,
+  // Its base64 has to fit, with the prompt around it, in the routine API's 65,536 characters.
+  inlineTargetBytes: 40 * 1024,
 }
 
 /**

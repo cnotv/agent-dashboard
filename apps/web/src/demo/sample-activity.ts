@@ -227,7 +227,31 @@ export const sampleRunnerTokens: MachineTokenSummary[] = [
   { tokenId: 'demo-runner', label: 'Mac mini', createdAt: '2026-09-30T09:00:00Z', lastUsedAt: '2026-09-30T13:00:00Z' },
 ]
 
-export const sampleSessionStarts: SessionStart[] = [
+const minutesBefore = (now: number, minutes: number): string => new Date(now - minutes * 60_000).toISOString()
+
+/**
+ * The sample starts, timed back from now so the Sessions page's time window always has some: a
+ * routine start whose token stopped matching, one that started, and one on the laptop.
+ * @param now The current time in milliseconds.
+ * @returns The starts, newest first.
+ */
+export const sampleSessionStarts = (now: number): SessionStart[] => [
+  {
+    startId: 'demo-start-failed',
+    repository: { owner: 'cnotv', name: 'example' },
+    issueNumber: 5,
+    pullRequestNumber: null,
+    workflow: 'feature',
+    target: 'cloud-routine',
+    permissionMode: 'auto',
+    note: '',
+    state: 'failed',
+    runnerLabel: null,
+    sessionUrl: null,
+    message: 'Authentication failed',
+    createdAt: minutesBefore(now, 20),
+    updatedAt: minutesBefore(now, 20),
+  },
   {
     startId: 'demo-start-cloud',
     repository: { owner: 'cnotv', name: 'example' },
@@ -241,8 +265,8 @@ export const sampleSessionStarts: SessionStart[] = [
     runnerLabel: null,
     sessionUrl: 'https://claude.ai/code',
     message: null,
-    createdAt: '2026-09-30T12:10:00Z',
-    updatedAt: '2026-09-30T12:10:02Z',
+    createdAt: minutesBefore(now, 90),
+    updatedAt: minutesBefore(now, 90),
   },
   {
     startId: 'demo-start-laptop',
@@ -257,8 +281,8 @@ export const sampleSessionStarts: SessionStart[] = [
     runnerLabel: 'Mac mini',
     sessionUrl: null,
     message: 'Open "example #7 fix" in the Claude app; on the laptop, tmux attach -t agent-example-demo',
-    createdAt: '2026-09-30T11:40:00Z',
-    updatedAt: '2026-09-30T11:40:05Z',
+    createdAt: minutesBefore(now, 60 * 30),
+    updatedAt: minutesBefore(now, 60 * 30),
   },
 ]
 

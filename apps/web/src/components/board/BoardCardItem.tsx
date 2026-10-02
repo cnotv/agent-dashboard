@@ -71,9 +71,15 @@ export const BoardCardItem = ({ card, repository, showRepository, onPullRequestC
       <Flex gap="3" align="start" justify="between">
         <Flex direction="column" gap="2" minWidth="0">
           {showRepository && (
-            <Text size="1" color="gray">
+            <Link
+              size="1"
+              color="gray"
+              href={`https://github.com/${repository.owner}/${repository.name}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {repository.owner}/{repository.name}
-            </Text>
+            </Link>
           )}
           {card.issues.length === 0 ? (
             <Text size="2" color="gray">

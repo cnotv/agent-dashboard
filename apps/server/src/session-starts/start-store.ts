@@ -77,6 +77,7 @@ export const createSessionStartStore = (database: DatabaseSync, now: () => numbe
           const start = toSessionStart(row)
           return start === null ? [] : [start]
         }),
+    readStart,
     // The oldest queued laptop start goes to whichever runner asks first; the state check in
     // the UPDATE keeps two runners asking at once from both getting it.
     claimNextLaptopStart: (runnerLabel) => {
