@@ -6,7 +6,7 @@ describe('deployPreviewUrlFromGates', () => {
     const previewUrl = 'https://deploy-preview-20--cnotv-agent-dashboard.netlify.app'
     expect(
       deployPreviewUrlFromGates([
-        { name: 'lint', state: 'success', url: 'https://github.com/cnotv/agent-dashboard/runs/1' },
+        { name: 'lint', state: 'success', url: 'https://github.com/cnotv/dashi/runs/1' },
         { name: 'deploy/netlify', state: 'success', url: previewUrl },
       ]),
     ).toBe(previewUrl)
