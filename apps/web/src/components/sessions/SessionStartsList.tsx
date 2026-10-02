@@ -1,6 +1,6 @@
 import { ChatBubbleIcon, ExternalLinkIcon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, Heading, IconButton, Link, Table, Text, Tooltip } from '@radix-ui/themes'
-import type { SessionStart } from '@agent-dashboard/contracts'
+import type { SessionStart } from '@dashi/contracts'
 import { sessionStartStateColors, sessionStartStateLabels, startTargetLabels } from '@/lib/presentation'
 import { canChatWithStart } from '@/lib/session-chat'
 

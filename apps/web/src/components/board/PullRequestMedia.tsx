@@ -1,7 +1,7 @@
 import { ExternalLinkIcon, ImageIcon, VideoIcon } from '@radix-ui/react-icons'
 import { Callout, Flex, IconButton, Link, Popover, Text, Tooltip } from '@radix-ui/themes'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
-import type { MediaKind, PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import type { MediaKind, PullRequestSummary, RepositoryReference } from '@dashi/contracts'
 import { useHoverOpen } from '@/hooks/useHoverOpen'
 import { dashboardApi } from '@/lib/api'
 import { showMediaFullscreen } from '@/lib/fullscreen'

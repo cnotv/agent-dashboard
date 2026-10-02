@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import type { SignedInUser } from '@agent-dashboard/contracts'
+import type { SignedInUser } from '@dashi/contracts'
 import { createRandomToken } from './pkce.ts'
 import type { DashboardSession, PendingSignIn, SessionStore } from './types.ts'
 

@@ -172,7 +172,7 @@ export const parseClaim = (claimBody: unknown): ClaimedStart | null => {
 
 /**
  * Works out where a start's clone, worktree and log live under the runner's home.
- * @param runnerHome The runner's folder, ~/agent-dashboard unless set.
+ * @param runnerHome The runner's folder, ~/dashi unless set.
  * @param claimed The claimed start.
  * @returns The three paths.
  */
@@ -463,24 +463,29 @@ export const resumeArgumentsFor = (sessionId: string, text: string): string[] =>
   'json',
 ]
 
+// A runner installed before the rename to Dashi has its settings under AGENT_DASHBOARD_* names,
+// which still count while the DASHI_* name is unset.
+const readSetting = (environment: NodeJS.ProcessEnv, name: string): string | undefined =>
+  environment[`DASHI_${name}`] || environment[`AGENT_DASHBOARD_${name}`] || undefined
+
 /**
  * Reads the runner's settings from its environment.
  * @param environment The process environment.
  * @returns The settings, or the reason they are incomplete.
  */
 export const readRunnerSettings = (environment: NodeJS.ProcessEnv): RunnerSettings | string => {
-  const dashboardUrl = (environment.AGENT_DASHBOARD_URL ?? '').replace(/\/+$/, '')
-  const runnerToken = environment.AGENT_DASHBOARD_RUNNER_TOKEN ?? ''
+  const dashboardUrl = (readSetting(environment, 'URL') ?? '').replace(/\/+$/, '')
+  const runnerToken = readSetting(environment, 'RUNNER_TOKEN') ?? ''
   if (!/^https:\/\/|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(dashboardUrl)) {
-    return 'Set AGENT_DASHBOARD_URL to the dashboard address, https:// unless it runs on this machine'
+    return 'Set DASHI_URL to the dashboard address, https:// unless it runs on this machine'
   }
-  if (!runnerToken.startsWith('adr_')) return 'Set AGENT_DASHBOARD_RUNNER_TOKEN to a runner token from the dashboard'
+  if (!runnerToken.startsWith('adr_')) return 'Set DASHI_RUNNER_TOKEN to a runner token from the dashboard'
   return {
     dashboardUrl,
     runnerToken,
-    runnerHome: environment.AGENT_DASHBOARD_RUNNER_HOME ?? join(homedir(), 'agent-dashboard'),
+    runnerHome: readSetting(environment, 'RUNNER_HOME') ?? join(homedir(), 'dashi'),
     claudeHome: environment.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'),
-    pollMilliseconds: Number(environment.AGENT_DASHBOARD_RUNNER_POLL_MS ?? defaultPollMilliseconds),
+    pollMilliseconds: Number(readSetting(environment, 'RUNNER_POLL_MS') ?? defaultPollMilliseconds),
   }
 }
 

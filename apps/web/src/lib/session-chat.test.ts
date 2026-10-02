@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ChatDelivery, SessionChat } from '@agent-dashboard/contracts'
+import type { ChatDelivery, SessionChat } from '@dashi/contracts'
 import { chatTimelineOf } from './session-chat'
 
 const delivery = (overrides: Partial<ChatDelivery>): ChatDelivery => ({

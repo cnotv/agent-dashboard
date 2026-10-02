@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import type { ChatDelivery, SessionChat } from '@agent-dashboard/contracts'
+import type { ChatDelivery, SessionChat } from '@dashi/contracts'
 import type { ChatRelay, ChatRelayState, RunnerChatReport, TrackedDelivery } from './types.ts'
 
 // The drawer asks every few seconds, so a session nobody has asked about for this long has had

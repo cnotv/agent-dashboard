@@ -1,7 +1,7 @@
 import { ExternalLinkIcon } from '@radix-ui/react-icons'
 import { Badge, Button, Card, Flex, Heading, Link, Select, Text, TextField } from '@radix-ui/themes'
 import { useEffect, useState, type FormEvent } from 'react'
-import type { RepositoryReference, RoutineSettings } from '@agent-dashboard/contracts'
+import type { RepositoryReference, RoutineSettings } from '@dashi/contracts'
 import { useRepositories } from '@/hooks/useBoard'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'

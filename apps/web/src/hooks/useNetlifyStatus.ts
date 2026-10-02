@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { NetlifyStatus, RepositoryReference } from '@agent-dashboard/contracts'
+import type { NetlifyStatus, RepositoryReference } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 import { errorMessageOf, repositoryKey } from '@/lib/presentation'
 

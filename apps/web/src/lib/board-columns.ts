@@ -1,4 +1,4 @@
-import type { IssueStatus } from '@agent-dashboard/contracts'
+import type { IssueStatus } from '@dashi/contracts'
 import { issueStatusLabels } from './presentation'
 
 // The columns most boards fill with work nobody is on yet, or work already done, start folded.

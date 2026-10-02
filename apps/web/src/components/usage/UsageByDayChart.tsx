@@ -1,5 +1,5 @@
 import { Card, Flex, Text, Tooltip } from '@radix-ui/themes'
-import type { UsageByDay } from '@agent-dashboard/contracts'
+import type { UsageByDay } from '@dashi/contracts'
 import { formatCompactCount, formatFullCount } from '@/lib/presentation'
 import { niceAxisTicks } from '@/lib/usage-chart'
 

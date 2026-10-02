@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { RepositoryReference, StartOptions } from '@agent-dashboard/contracts'
+import type { RepositoryReference, StartOptions } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 import { errorMessageOf } from '@/lib/presentation'
 import { usePolledResource } from './usePolledResource'

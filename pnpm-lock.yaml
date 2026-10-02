@@ -57,7 +57,7 @@ importers:
         specifier: ^4.1.0
         version: 4.6.5
     devDependencies:
-      '@agent-dashboard/contracts':
+      '@dashi/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@types/node':
@@ -91,7 +91,7 @@ importers:
         specifier: ^7.18.4
         version: 7.18.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
-      '@agent-dashboard/contracts':
+      '@dashi/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@types/node':

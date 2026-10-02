@@ -1,6 +1,9 @@
 import type { RunnerSetupInput } from './types'
 
-const launchAgentLabel = 'dev.agent-dashboard.runner'
+const launchAgentLabel = 'dev.dashi.runner'
+// The label the runner had before the app was renamed to Dashi; its agent is removed on install so
+// two runners never poll with the same token.
+const previousLaunchAgentLabel = 'dev.agent-dashboard.runner'
 
 /**
  * The commands that download the runner and run it once in a terminal, to try it.
@@ -8,9 +11,9 @@ const launchAgentLabel = 'dev.agent-dashboard.runner'
  * @returns One command per line.
  */
 export const runnerTryCommands = ({ dashboardUrl, runnerToken }: RunnerSetupInput): string[] => [
-  'mkdir -p ~/agent-dashboard',
-  `curl -fsSL ${dashboardUrl}/api/runner/script -o ~/agent-dashboard/runner.ts`,
-  `AGENT_DASHBOARD_URL=${dashboardUrl} AGENT_DASHBOARD_RUNNER_TOKEN=${runnerToken} node ~/agent-dashboard/runner.ts`,
+  'mkdir -p ~/dashi',
+  `curl -fsSL ${dashboardUrl}/api/runner/script -o ~/dashi/runner.ts`,
+  `DASHI_URL=${dashboardUrl} DASHI_RUNNER_TOKEN=${runnerToken} node ~/dashi/runner.ts`,
 ]
 
 /**
@@ -22,26 +25,27 @@ export const runnerTryCommands = ({ dashboardUrl, runnerToken }: RunnerSetupInpu
 export const runnerLaunchAgentCommands = ({ dashboardUrl, runnerToken }: RunnerSetupInput): string => {
   const plistPath = `~/Library/LaunchAgents/${launchAgentLabel}.plist`
   return [
-    'mkdir -p ~/agent-dashboard ~/Library/LaunchAgents',
-    `curl -fsSL ${dashboardUrl}/api/runner/script -o ~/agent-dashboard/runner.ts`,
+    'mkdir -p ~/dashi ~/Library/LaunchAgents',
+    `curl -fsSL ${dashboardUrl}/api/runner/script -o ~/dashi/runner.ts`,
     `cat > ${plistPath} <<EOF`,
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
     '<plist version="1.0"><dict>',
     `  <key>Label</key><string>${launchAgentLabel}</string>`,
-    '  <key>ProgramArguments</key><array><string>/usr/bin/env</string><string>node</string><string>$HOME/agent-dashboard/runner.ts</string></array>',
+    '  <key>ProgramArguments</key><array><string>/usr/bin/env</string><string>node</string><string>$HOME/dashi/runner.ts</string></array>',
     '  <key>EnvironmentVariables</key><dict>',
-    `    <key>AGENT_DASHBOARD_URL</key><string>${dashboardUrl}</string>`,
-    `    <key>AGENT_DASHBOARD_RUNNER_TOKEN</key><string>${runnerToken}</string>`,
+    `    <key>DASHI_URL</key><string>${dashboardUrl}</string>`,
+    `    <key>DASHI_RUNNER_TOKEN</key><string>${runnerToken}</string>`,
     '    <key>PATH</key><string>$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>',
     '  </dict>',
     '  <key>RunAtLoad</key><true/>',
     '  <key>KeepAlive</key><true/>',
-    '  <key>StandardOutPath</key><string>$HOME/agent-dashboard/runner.log</string>',
-    '  <key>StandardErrorPath</key><string>$HOME/agent-dashboard/runner.log</string>',
+    '  <key>StandardOutPath</key><string>$HOME/dashi/runner.log</string>',
+    '  <key>StandardErrorPath</key><string>$HOME/dashi/runner.log</string>',
     '</dict></plist>',
     'EOF',
     `chmod 600 ${plistPath}`,
+    `launchctl bootout gui/$(id -u)/${previousLaunchAgentLabel} 2>/dev/null; rm -f ~/Library/LaunchAgents/${previousLaunchAgentLabel}.plist`,
     `launchctl bootout gui/$(id -u)/${launchAgentLabel} 2>/dev/null; launchctl bootstrap gui/$(id -u) ${plistPath}`,
   ].join('\n')
 }

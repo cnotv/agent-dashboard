@@ -1,4 +1,4 @@
-import type { AgentSessionSummary, ChatDelivery, ChatMessage, SessionChat, SessionStart } from '@agent-dashboard/contracts'
+import type { AgentSessionSummary, ChatDelivery, ChatMessage, SessionChat, SessionStart } from '@dashi/contracts'
 import { sessionStartStateColors, sessionStartStateLabels, sessionStateColors, sessionStateLabels, startTargetLabels } from './presentation'
 import { sessionDetail, sessionLabel } from './session-timeline'
 import type { ChatSubject, ChatTarget, ChatTimelineItem } from './types'

@@ -1,7 +1,7 @@
 import { Cross2Icon, ExternalLinkIcon, GearIcon, PaperPlaneIcon } from '@radix-ui/react-icons'
 import { Badge, Callout, Dialog, Flex, IconButton, Link, Skeleton, Text, TextArea, Tooltip } from '@radix-ui/themes'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
-import type { ChatDelivery, ChatMessage, SessionChat } from '@agent-dashboard/contracts'
+import type { ChatDelivery, ChatMessage, SessionChat } from '@dashi/contracts'
 import { usePolledResource } from '@/hooks/usePolledResource'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'

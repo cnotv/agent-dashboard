@@ -1,4 +1,4 @@
-import type { BoardCard, BoardColumn, CheckGate, IssueLabel, IssueSummary, MediaKind, PullRequestFiles } from '@agent-dashboard/contracts'
+import type { BoardCard, BoardColumn, CheckGate, IssueLabel, IssueSummary, MediaKind, PullRequestFiles } from '@dashi/contracts'
 import type { DemoPullRequestOutcome } from '@/lib/types'
 
 // Served from apps/web/public so demo mode has a recording to open without any server.

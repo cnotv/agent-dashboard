@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { z } from 'zod'
-import type { RepositoryReference } from '@agent-dashboard/contracts'
+import type { RepositoryReference } from '@dashi/contracts'
 
 const repositoryListSchema = z.array(
   z.object({

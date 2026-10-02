@@ -83,7 +83,7 @@ describe('GitHub sign-in flow', () => {
     expect(authorizeUrl.searchParams.get('client_id')).toBe(settings.clientId)
     expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(settings.callbackUrl)
     expect(authorizeUrl.searchParams.get('code_challenge_method')).toBe('S256')
-    expect(cookies.get('agent_dashboard_sign_in')).toBe(authorizeUrl.searchParams.get('state'))
+    expect(cookies.get('dashi_sign_in')).toBe(authorizeUrl.searchParams.get('state'))
   })
 
   it('signs an allowed user in and uses their token for the board', async () => {
@@ -115,7 +115,7 @@ describe('GitHub sign-in flow', () => {
     const state = authorizeUrl.searchParams.get('state') ?? ''
     const callbackResponse = await app.request(getRequest(`/api/auth/github/callback?code=good-code&state=${state}`))
     expect(callbackResponse.headers.get('location')).toBe('/?sign-in-error=expired')
-    expect(readSetCookies(callbackResponse).get('agent_dashboard_session')).toBeFalsy()
+    expect(readSetCookies(callbackResponse).get('dashi_session')).toBeFalsy()
   })
 
   it('does not reuse a state twice', async () => {
@@ -141,7 +141,7 @@ describe('GitHub sign-in flow', () => {
     const { app } = createSignInApp('someone-else')
     const { callbackResponse, sessionCookies } = await signIn(app)
     expect(callbackResponse.headers.get('location')).toBe('/?sign-in-error=not-allowed')
-    expect(sessionCookies.get('agent_dashboard_session')).toBeFalsy()
+    expect(sessionCookies.get('dashi_session')).toBeFalsy()
   })
 
   it('signs out', async () => {
@@ -169,7 +169,7 @@ describe('secure cookies', () => {
     const { app } = createTestApp({}, { githubSignIn, signInRequired: true, secureCookies: true })
     const startResponse = await app.request(getRequest('/api/auth/github/start'))
     const stateCookie = startResponse.headers.getSetCookie()[0] ?? ''
-    expect(stateCookie).toMatch(/^__Host-agent_dashboard_sign_in=/)
+    expect(stateCookie).toMatch(/^__Host-dashi_sign_in=/)
     expect(stateCookie).toContain('Secure')
     expect(stateCookie).toContain('HttpOnly')
     expect(stateCookie).toContain('SameSite=Lax')

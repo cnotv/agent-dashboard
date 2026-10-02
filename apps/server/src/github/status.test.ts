@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CheckGate, IssueSummary, PullRequestSummary } from '@agent-dashboard/contracts'
+import type { CheckGate, IssueSummary, PullRequestSummary } from '@dashi/contracts'
 import {
   buildBoard,
   buildBoardCards,
@@ -45,7 +45,7 @@ const makePullRequest = (overrides: Partial<PullRequestSummary>): PullRequestSum
 
 describe('issueNumberFromBranch', () => {
   it('reads the number from the branch convention', () => {
-    expect(issueNumberFromBranch('feat/42-agent-dashboard')).toBe(42)
+    expect(issueNumberFromBranch('feat/42-dashi')).toBe(42)
     expect(issueNumberFromBranch('chore/7-adopt-agent-base')).toBe(7)
   })
 

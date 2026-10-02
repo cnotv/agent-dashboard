@@ -9,7 +9,7 @@ import type {
   SessionStartState,
   StartTarget,
   StartWorkflow,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 import type { GateRingGroup, RadixColor } from './types'
 
 export const issueStatusLabels: Record<IssueStatus, string> = {

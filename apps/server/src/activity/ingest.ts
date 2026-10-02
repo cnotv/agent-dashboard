@@ -1,4 +1,4 @@
-import type { AgentProvider, AgentSessionState, RepositoryReference } from '@agent-dashboard/contracts'
+import type { AgentProvider, AgentSessionState, RepositoryReference } from '@dashi/contracts'
 import type {
   AgentEvent,
   HookHeaders,

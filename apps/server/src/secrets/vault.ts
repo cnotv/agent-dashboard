@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { SecretDefinition, SecretSummary, VaultState } from '@agent-dashboard/contracts'
+import type { SecretDefinition, SecretSummary, VaultState } from '@dashi/contracts'
 import {
   decryptValue,
   deriveKeyFromPassphrase,
@@ -10,6 +10,7 @@ import {
 } from './crypto.ts'
 import type { EncryptedValue, StoredSecretRow, Vault, VaultOptions } from './types.ts'
 
+// Every existing vault was sealed with this text, so it keeps the app's name from before Dashi.
 const verifierPlaintext = 'agent-dashboard-vault-verifier'
 const verifierAssociatedData = 'vault-verifier'
 const minimumPassphraseLength = 12

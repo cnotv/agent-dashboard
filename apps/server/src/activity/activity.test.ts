@@ -56,7 +56,7 @@ describe('repositoryFromRemote', () => {
 })
 
 describe('agentEventFrom', () => {
-  const headers = { provider: 'claude', branch: 'feat/12-sessions', remote: 'git@github.com:cnotv/agent-dashboard.git' }
+  const headers = { provider: 'claude', branch: 'feat/12-sessions', remote: 'git@github.com:cnotv/dashi.git' }
 
   it('maps Claude hook events to session states', () => {
     const states = ['SessionStart', 'UserPromptSubmit', 'Notification', 'Stop', 'SessionEnd'].map(
@@ -70,7 +70,7 @@ describe('agentEventFrom', () => {
       sessionId: 's1',
       provider: 'claude',
       state: 'working',
-      repository: { owner: 'cnotv', name: 'agent-dashboard' },
+      repository: { owner: 'cnotv', name: 'dashi' },
       branch: 'feat/12-sessions',
       occurredAt: at(0),
     })

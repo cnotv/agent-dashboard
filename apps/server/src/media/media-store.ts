@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { MediaKind } from '@agent-dashboard/contracts'
+import type { MediaKind } from '@dashi/contracts'
 import { previewContentTypes, previewFileNames } from './preview-artifacts.ts'
 import type { PreviewFiles, StoredMedia } from './types.ts'
 

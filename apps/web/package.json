@@ -1,5 +1,5 @@
 {
-  "name": "@agent-dashboard/web",
+  "name": "@dashi/web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@agent-dashboard/contracts": "workspace:*",
+    "@dashi/contracts": "workspace:*",
     "@types/node": "^22.18.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

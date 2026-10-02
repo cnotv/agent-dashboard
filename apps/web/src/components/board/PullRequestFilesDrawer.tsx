@@ -1,7 +1,7 @@
 import { CodeIcon, Cross2Icon, ExternalLinkIcon } from '@radix-ui/react-icons'
 import { Badge, Callout, Dialog, Flex, IconButton, Link, Skeleton, Text, Tooltip } from '@radix-ui/themes'
 import { useState } from 'react'
-import type { ChangedFile, ChangedFileStatus, PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import type { ChangedFile, ChangedFileStatus, PullRequestSummary, RepositoryReference } from '@dashi/contracts'
 import { usePolledResource } from '@/hooks/usePolledResource'
 import { dashboardApi } from '@/lib/api'
 import { diffLinesOf } from '@/lib/diff-lines'

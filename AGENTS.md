@@ -1,4 +1,4 @@
-# agent-dashboard
+# Dashi
 
 One dashboard, run locally or from a single Docker image, for every Claude Code and Codex
 session, the issues and pull requests they work on, each pull request's screenshot, video and

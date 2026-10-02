@@ -1,4 +1,4 @@
-import type { SignedInUser } from '@agent-dashboard/contracts'
+import type { SignedInUser } from '@dashi/contracts'
 
 export interface GitHubSignInSettings {
   clientId: string

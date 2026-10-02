@@ -10,7 +10,7 @@ import type {
   UsageByRepository,
   UsageByWork,
   UsageReport,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 import { issueNumberFromBranch } from '../github/status.ts'
 import type { StoredEvent, StoredSession, StoredTokenSample } from './types.ts'
 

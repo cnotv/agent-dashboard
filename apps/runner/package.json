@@ -1,5 +1,5 @@
 {
-  "name": "@agent-dashboard/runner",
+  "name": "@dashi/runner",
   "private": true,
   "type": "module",
   "scripts": {

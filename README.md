@@ -1,6 +1,6 @@
 # Dashi
 
-Dashi, from this `agent-dashboard` repository, is a dashboard for coding-agent work across
+Dashi is a dashboard for coding-agent work across
 repositories: the Claude Code and Codex sessions running now and the tokens they spend, the
 issues and their pull requests with check gates, screenshots and videos, and buttons to merge,
 close, and start a session from the phone, on your laptop or in Claude's cloud. Credentials are
@@ -55,9 +55,9 @@ Create the App once at <https://github.com/settings/apps/new>:
 6. **Install App** on your account, for the repositories in `config/repos.json`. The board can
    only read repositories the App is installed on.
 
-Then set `AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID`, `AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET`
-(or `_FILE`) and `AGENT_DASHBOARD_ALLOWED_USERS`, the comma-separated GitHub logins that may
-sign in. The names carry the `AGENT_DASHBOARD_` prefix because GitHub refuses repository
+Then set `DASHI_GITHUB_APP_CLIENT_ID`, `DASHI_GITHUB_APP_CLIENT_SECRET`
+(or `_FILE`) and `DASHI_ALLOWED_USERS`, the comma-separated GitHub logins that may
+sign in. The names carry the `DASHI_` prefix because GitHub refuses repository
 variables and secrets that start with `GITHUB_`. Locally, sign-in is optional and a **Sign in
 with GitHub** button appears in the sidebar.
 
@@ -76,7 +76,7 @@ own security headers (HSTS, `nosniff`, `X-Frame-Options: DENY`) whatever proxy i
 
 The `Deploy` workflow copies the sources to a server over SSH and builds the image there, as
 generative-art's deploy does, on every push to `main` once the checks pass. It stays idle
-until `AGENT_DASHBOARD_DOMAIN` is set. What it needs:
+until `DASHI_DOMAIN` is set. What it needs:
 
 - **The server**: Docker with the compose plugin, a DNS `A` record for the domain pointing at
   it, and a reverse proxy with a certificate for the domain, forwarding to the published port
@@ -84,32 +84,38 @@ until `AGENT_DASHBOARD_DOMAIN` is set. What it needs:
   and Traefik).
 - **Where the proxy reaches the dashboard**: a proxy running on the host itself uses
   `http://127.0.0.1:4317`, the default. A proxy running in Docker (Nginx Proxy Manager, for
-  one) cannot see the host's `127.0.0.1`; set `AGENT_DASHBOARD_PUBLISH_ADDRESS` to the Docker
+  one) cannot see the host's `127.0.0.1`; set `DASHI_PUBLISH_ADDRESS` to the Docker
   bridge address, usually `172.17.0.1` (`ip -4 addr show docker0`), and forward to
   `http://172.17.0.1:4317`. Either way the port is not reachable from the internet.
-- **A port that is free**: `4317` unless `AGENT_DASHBOARD_PUBLISH_PORT` says otherwise; check
+- **A port that is free**: `4317` unless `DASHI_PUBLISH_PORT` says otherwise; check
   with `ss -tlnp` on the server before the first deploy.
 - **Repository variables** (Settings, Secrets and variables, Actions, Variables):
 
-  | Variable                               | Value                                                                 |
-  | -------------------------------------- | --------------------------------------------------------------------- |
-  | `AGENT_DASHBOARD_DOMAIN`               | the host name only, for example `dash.example.com`                    |
-  | `AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID` | from the GitHub App                                                   |
-  | `AGENT_DASHBOARD_ALLOWED_USERS`        | for example `cnotv`                                                   |
-  | `AGENT_DASHBOARD_PUBLISH_ADDRESS`      | optional, defaults to `127.0.0.1`; `172.17.0.1` for a proxy in Docker |
-  | `AGENT_DASHBOARD_PUBLISH_PORT`         | optional, defaults to `4317`                                          |
-  | `DEPLOY_DIRECTORY`                     | optional, defaults to `agent-dashboard` in the SSH user's home        |
+  | Variable                     | Value                                                                      |
+  | ---------------------------- | -------------------------------------------------------------------------- |
+  | `DASHI_DOMAIN`               | the host name only, for example `dash.example.com`                         |
+  | `DASHI_GITHUB_APP_CLIENT_ID` | from the GitHub App                                                        |
+  | `DASHI_ALLOWED_USERS`        | for example `cnotv`                                                        |
+  | `DASHI_PUBLISH_ADDRESS`      | optional, defaults to `127.0.0.1`; `172.17.0.1` for a proxy in Docker      |
+  | `DASHI_PUBLISH_PORT`         | optional, defaults to `4317`                                               |
+  | `DEPLOY_DIRECTORY`           | optional, defaults to `agent-dashboard` in the SSH user's home (see below) |
 
 - **Repository secrets**:
 
-  | Secret                                     | Value                                                        |
-  | ------------------------------------------ | ------------------------------------------------------------ |
-  | `HETZNER_HOST`                             | the server's address                                         |
-  | `HETZNER_USERNAME`                         | the SSH user, who can run `docker`                           |
-  | `HETZNER_SSH_KEY`                          | a private key that user accepts                              |
-  | `HETZNER_PORT`                             | optional, defaults to 22                                     |
-  | `AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET` | from the GitHub App                                          |
-  | `AGENT_DASHBOARD_MASTER_KEY`               | optional; leave it out to unlock the vault with a passphrase |
+  | Secret                           | Value                                                        |
+  | -------------------------------- | ------------------------------------------------------------ |
+  | `HETZNER_HOST`                   | the server's address                                         |
+  | `HETZNER_USERNAME`               | the SSH user, who can run `docker`                           |
+  | `HETZNER_SSH_KEY`                | a private key that user accepts                              |
+  | `HETZNER_PORT`                   | optional, defaults to 22                                     |
+  | `DASHI_GITHUB_APP_CLIENT_SECRET` | from the GitHub App                                          |
+  | `DASHI_MASTER_KEY`               | optional; leave it out to unlock the vault with a passphrase |
+
+Every `DASHI_*` variable and secret is also read under its `AGENT_DASHBOARD_*` name from before
+the rename to Dashi, the new name winning, so a repository set up earlier keeps deploying; the
+same holds for the server's own settings below and the laptop runner's. Both compose files pin
+the project name to `agent-dashboard`, the data volume's name from before the rename, so the
+volume stays the same whatever the folder is called.
 
 The workflow writes these into `.env` in the deploy directory, readable by the SSH user only.
 Without a master key the vault asks for its passphrase after every deploy; that only holds up
@@ -130,10 +136,10 @@ Values are encrypted with AES-256-GCM before they reach the SQLite database, eac
 own name. The browser can add, replace, test and remove a value, but never reads one back; it
 sees the last four characters only. The key comes from one of two places:
 
-| Mode        | How                                                                                                   | When to use                                                            |
-| ----------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Passphrase  | Leave `AGENT_DASHBOARD_MASTER_KEY` unset; set a passphrase in the UI and enter it after every restart | Anything reachable from another machine: a stolen disk reveals nothing |
-| Environment | `AGENT_DASHBOARD_MASTER_KEY=$(openssl rand -base64 32)`, or `AGENT_DASHBOARD_MASTER_KEY_FILE`         | A machine you already trust, or a server you redeploy often            |
+| Mode        | How                                                                                         | When to use                                                            |
+| ----------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Passphrase  | Leave `DASHI_MASTER_KEY` unset; set a passphrase in the UI and enter it after every restart | Anything reachable from another machine: a stolen disk reveals nothing |
+| Environment | `DASHI_MASTER_KEY=$(openssl rand -base64 32)`, or `DASHI_MASTER_KEY_FILE`                   | A machine you already trust, or a server you redeploy often            |
 
 ## Sessions and usage
 
@@ -147,7 +153,7 @@ Both are fed by the machines running Claude Code, not read from them:
 1. In **Credentials, Connect Claude Code**, create a token for the machine and merge the
    snippet it shows into that machine's `~/.claude/settings.json`. It enables the `workflow`
    plugin from agent-base, whose hook posts each session event to `/api/events`, sets the
-   hook's `AGENT_DASHBOARD_URL` and `AGENT_DASHBOARD_TOKEN`, and turns on Claude Code's
+   hook's `DASHI_URL` and `DASHI_TOKEN`, and turns on Claude Code's
    OpenTelemetry metrics, exported to `/api/telemetry/v1/metrics`. It has to be the user
    settings file: Claude Code ignores telemetry settings in a repository's
    `.claude/settings.json`.
@@ -177,7 +183,7 @@ here. It needs the laptop runner below, because the conversation lives on the la
 - A message goes into a session running in tmux (every steerable start from Dashi does), pasted
   into its pane and sent. An unattended start takes one once its transcript has been quiet for a
   minute, by being resumed. An ended session is resumed unattended with
-  `claude --resume <id> -p <message>`, its output going to `~/agent-dashboard/logs`. A session
+  `claude --resume <id> -p <message>`, its output going to `~/dashi/logs`. A session
   waiting on a permission, or running in a plain terminal, can't take one, and the drawer says
   why.
 - Claude cloud sessions have no public API to read or write them, so their drawer points to the
@@ -226,12 +232,12 @@ from the phone; once a pull request exists, the session that opened it carries o
 workflow from agent-base's `start` router (suggested from the issue's labels), add a note if the
 issue leaves something out, and pick where it runs:
 
-| Where                              | What happens                                                                                                             | Needs                                   |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| Laptop, steered from the phone     | The runner starts `claude --remote-control` in tmux, in a fresh worktree of the repository; open it in the Claude app    | The laptop runner, and tmux 3.2 or later |
-| Laptop, unattended                 | The runner starts `claude -p` in a fresh worktree with the permission mode you pick; its hooks report it here             | The laptop runner                       |
-| Claude cloud, sent from the laptop | The runner runs `claude --cloud` in its clone and reports the claude.ai link back                                        | The laptop runner, logged in to claude.ai |
-| Claude cloud routine               | The dashboard fires the repository's routine through the routines API; works with the laptop off                          | A routine for the repository            |
+| Where                              | What happens                                                                                                          | Needs                                     |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Laptop, steered from the phone     | The runner starts `claude --remote-control` in tmux, in a fresh worktree of the repository; open it in the Claude app | The laptop runner, and tmux 3.2 or later  |
+| Laptop, unattended                 | The runner starts `claude -p` in a fresh worktree with the permission mode you pick; its hooks report it here         | The laptop runner                         |
+| Claude cloud, sent from the laptop | The runner runs `claude --cloud` in its clone and reports the claude.ai link back                                     | The laptop runner, logged in to claude.ai |
+| Claude cloud routine               | The dashboard fires the repository's routine through the routines API; works with the laptop off                      | A routine for the repository              |
 
 Each start's session opens with `/workflow:start <workflow> <issue link>`, then the note.
 
@@ -246,13 +252,13 @@ lists the starts, with the session's link or what the runner said.
 The server cannot reach into the laptop, so the laptop asks. Under **Credentials, Laptop runner**,
 create a runner for the machine and paste the commands it shows into Terminal: they download the
 runner from `/api/runner/script` and install it as a login agent, so it starts with the Mac and
-restarts if it stops (its log is `~/agent-dashboard/runner.log`). It needs Node 22.18 or later,
+restarts if it stops (its log is `~/dashi/runner.log`). It needs Node 22.18 or later,
 git and Claude Code, logged in; `brew install tmux` for sessions steered from the phone.
 
 It asks for work every five seconds, every second and a half while a chat drawer is open, with
 its own runner token, which can only take and report starts, send the transcript of a session
 whose drawer is open, and report on the messages it delivers, never read anything else. It accepts only a known workflow, target and permission mode
-and a repository in `owner/name` form; it clones under `~/agent-dashboard/repos` with your own git
+and a repository in `owner/name` form; it clones under `~/dashi/repos` with your own git
 credentials, and every command is an argument list, never a shell string. **Revoke** cuts it off.
 
 Without the dashboard, `claude remote-control --spawn worktree` on the laptop is Claude Code's
@@ -297,26 +303,26 @@ A button is greyed out when neither has one.
 Locally, the server only listens on loopback and rejects requests whose `Host` header is not
 a loopback name, and mutations from another origin, so a web page elsewhere cannot reach it
 through DNS rebinding. The two ingest routes, `/api/events` and `/api/telemetry/v1/metrics`,
-take an ingest token instead of a sign-in, in both modes. Cloud mode (`AGENT_DASHBOARD_MODE=cloud`) answers only its own domain,
+take an ingest token instead of a sign-in, in both modes. Cloud mode (`DASHI_MODE=cloud`) answers only its own domain,
 only over https, and only to a signed-in allowlisted GitHub account; it refuses to start
 without all three configured.
 
 ## Settings
 
-| Variable                                             | Default                                                   |
-| ---------------------------------------------------- | --------------------------------------------------------- |
-| `AGENT_DASHBOARD_MODE`                               | `local` (or `cloud`)                                      |
-| `PORT`                                               | `4317`                                                    |
-| `AGENT_DASHBOARD_HOST`                               | `127.0.0.1`, `0.0.0.0` in cloud mode                      |
-| `AGENT_DASHBOARD_PUBLIC_URL`                         | `http://localhost:<PORT>`; required, https, in cloud mode |
-| `AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID`               | unset (no sign-in)                                        |
-| `AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET` / `_FILE` | unset                                                     |
-| `AGENT_DASHBOARD_ALLOWED_USERS`                      | unset; required with sign-in                              |
-| `AGENT_DASHBOARD_DATA_DIR`                           | `data`                                                    |
-| `AGENT_DASHBOARD_REPOS_FILE`                         | `config/repos.json`                                       |
-| `AGENT_DASHBOARD_MASTER_KEY` / `_FILE`               | unset (passphrase mode)                                   |
-| `VITE_DEMO_MODE` (UI build)                          | unset                                                     |
-| `VITE_API_BASE_URL` (UI build)                       | unset (same origin)                                       |
+| Variable                                   | Default                                                   |
+| ------------------------------------------ | --------------------------------------------------------- |
+| `DASHI_MODE`                               | `local` (or `cloud`)                                      |
+| `PORT`                                     | `4317`                                                    |
+| `DASHI_HOST`                               | `127.0.0.1`, `0.0.0.0` in cloud mode                      |
+| `DASHI_PUBLIC_URL`                         | `http://localhost:<PORT>`; required, https, in cloud mode |
+| `DASHI_GITHUB_APP_CLIENT_ID`               | unset (no sign-in)                                        |
+| `DASHI_GITHUB_APP_CLIENT_SECRET` / `_FILE` | unset                                                     |
+| `DASHI_ALLOWED_USERS`                      | unset; required with sign-in                              |
+| `DASHI_DATA_DIR`                           | `data`                                                    |
+| `DASHI_REPOS_FILE`                         | `config/repos.json`                                       |
+| `DASHI_MASTER_KEY` / `_FILE`               | unset (passphrase mode)                                   |
+| `VITE_DEMO_MODE` (UI build)                | unset                                                     |
+| `VITE_API_BASE_URL` (UI build)             | unset (same origin)                                       |
 
 ## UI
 
@@ -328,7 +334,7 @@ and Usage. No Tailwind.
 
 ```sh
 pnpm dev                          # API on 4317, UI on 5318
-# To sign in through the dev UI, run the API with AGENT_DASHBOARD_PUBLIC_URL=http://localhost:5318
+# To sign in through the dev UI, run the API with DASHI_PUBLIC_URL=http://localhost:5318
 # and register that callback URL on the GitHub App as well.
 pnpm lint --max-warnings 0
 pnpm typecheck

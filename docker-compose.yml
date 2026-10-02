@@ -1,7 +1,10 @@
+# The project name keeps the app's name from before the rename to Dashi: Docker Compose names
+# the data volume after it, so a new name would start an empty dashboard.
+name: agent-dashboard
 services:
   dashboard:
     build: .
-    image: agent-dashboard:local
+    image: dashi:local
     # Published on loopback only: local mode has no required sign-in, so nothing outside this
     # machine may reach it.
     ports:
@@ -12,7 +15,8 @@ services:
     environment:
       # Leave unset to use a passphrase you enter after each start, or set it to a
       # base64-encoded 32-byte key: openssl rand -base64 32
-      AGENT_DASHBOARD_MASTER_KEY: ${AGENT_DASHBOARD_MASTER_KEY:-}
+      # AGENT_DASHBOARD_MASTER_KEY, its name from before the rename to Dashi, still works.
+      DASHI_MASTER_KEY: ${DASHI_MASTER_KEY:-${AGENT_DASHBOARD_MASTER_KEY:-}}
     restart: unless-stopped
 
 volumes:

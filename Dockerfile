@@ -10,20 +10,20 @@ COPY packages/contracts/package.json packages/contracts/
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm --filter @agent-dashboard/web build
+RUN pnpm --filter @dashi/web build
 
 # Reinstall with production dependencies of the server only, so the runtime image carries
 # no build tooling.
 RUN rm -rf node_modules apps/*/node_modules packages/*/node_modules \
-  && pnpm install --prod --frozen-lockfile --filter @agent-dashboard/server...
+  && pnpm install --prod --frozen-lockfile --filter @dashi/server...
 
 FROM node:22-slim
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=4317 \
-    AGENT_DASHBOARD_HOST=0.0.0.0 \
-    AGENT_DASHBOARD_PUBLISHED_ON_LOOPBACK=1 \
-    AGENT_DASHBOARD_DATA_DIR=/data
+    DASHI_HOST=0.0.0.0 \
+    DASHI_PUBLISHED_ON_LOOPBACK=1 \
+    DASHI_DATA_DIR=/data
 
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules

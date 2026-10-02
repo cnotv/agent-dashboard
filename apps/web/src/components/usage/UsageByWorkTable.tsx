@@ -1,6 +1,6 @@
 import { Card, Flex, Link, Text } from '@radix-ui/themes'
 import { createColumnHelper } from '@tanstack/react-table'
-import type { UsageByWork } from '@agent-dashboard/contracts'
+import type { UsageByWork } from '@dashi/contracts'
 import { SortableTable } from '@/components/tables/SortableTable'
 import type { sortableTableFeatures } from '@/components/tables/sortable-table-features'
 import {

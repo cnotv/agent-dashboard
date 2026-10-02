@@ -1,4 +1,4 @@
-import type { CheckGate, GateState } from '@agent-dashboard/contracts'
+import type { CheckGate, GateState } from '@dashi/contracts'
 import type { GateRingGroup, GateRingSegment } from './types'
 
 // Failures come first, so they start at twelve o'clock where the eye lands.

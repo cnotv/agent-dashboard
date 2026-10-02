@@ -1,7 +1,7 @@
 import { ExternalLinkIcon } from '@radix-ui/react-icons'
 import { Button, Dialog, Flex, Link, Text, TextField } from '@radix-ui/themes'
 import { useState, type FormEvent } from 'react'
-import type { SecretSummary } from '@agent-dashboard/contracts'
+import type { SecretSummary } from '@dashi/contracts'
 import { useToast } from '@/hooks/useToast'
 
 interface SecretDialogProps {

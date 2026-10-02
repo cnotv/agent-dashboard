@@ -1,4 +1,4 @@
-import type { Board, CheckGate, IssueSummary, PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import type { Board, CheckGate, IssueSummary, PullRequestSummary, RepositoryReference } from '@dashi/contracts'
 import { deployPreviewUrlFromGates, previewPageUrl } from '../netlify/deploy-preview.ts'
 import { mediaPresenceFromMarkdown } from './media.ts'
 import { boardQuery, boardResponseSchema, pullRequestBodyHtmlQuery, pullRequestBodyHtmlResponseSchema } from './schema.ts'
@@ -69,7 +69,7 @@ export const createGithubGraphqlFetcher =
   async (query, variables) => {
     const githubResponse = await fetch(githubGraphqlUrl, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'agent-dashboard' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'dashi' },
       body: JSON.stringify({ query, variables }),
       signal: AbortSignal.timeout(15000),
     })

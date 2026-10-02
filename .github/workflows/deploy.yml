@@ -19,7 +19,7 @@ jobs:
   deploy:
     needs: checks
     # Nothing to deploy to until the domain is set; see "Deploy to the cloud" in the README.
-    if: vars.AGENT_DASHBOARD_DOMAIN != ''
+    if: vars.DASHI_DOMAIN != '' || vars.AGENT_DASHBOARD_DOMAIN != ''
     runs-on: ubuntu-latest
     env:
       DEPLOY_DIRECTORY: ${{ vars.DEPLOY_DIRECTORY || 'agent-dashboard' }}
@@ -31,24 +31,26 @@ jobs:
       # Written on the runner and copied with the sources, readable by the SSH user only. Every
       # value comes from the repository settings.
       - name: Write the server settings
+        # Each value may sit under its DASHI_* name or its AGENT_DASHBOARD_* name from before the
+        # rename; the new name wins, and the .env written for the server uses the new names.
         env:
-          AGENT_DASHBOARD_DOMAIN: ${{ vars.AGENT_DASHBOARD_DOMAIN }}
-          AGENT_DASHBOARD_PUBLISH_ADDRESS: ${{ vars.AGENT_DASHBOARD_PUBLISH_ADDRESS || '127.0.0.1' }}
-          AGENT_DASHBOARD_PUBLISH_PORT: ${{ vars.AGENT_DASHBOARD_PUBLISH_PORT || '4317' }}
-          AGENT_DASHBOARD_ALLOWED_USERS: ${{ vars.AGENT_DASHBOARD_ALLOWED_USERS }}
-          AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID: ${{ vars.AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID }}
-          AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET: ${{ secrets.AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET }}
-          AGENT_DASHBOARD_MASTER_KEY: ${{ secrets.AGENT_DASHBOARD_MASTER_KEY }}
+          DASHI_DOMAIN: ${{ vars.DASHI_DOMAIN || vars.AGENT_DASHBOARD_DOMAIN }}
+          DASHI_PUBLISH_ADDRESS: ${{ vars.DASHI_PUBLISH_ADDRESS || vars.AGENT_DASHBOARD_PUBLISH_ADDRESS || '127.0.0.1' }}
+          DASHI_PUBLISH_PORT: ${{ vars.DASHI_PUBLISH_PORT || vars.AGENT_DASHBOARD_PUBLISH_PORT || '4317' }}
+          DASHI_ALLOWED_USERS: ${{ vars.DASHI_ALLOWED_USERS || vars.AGENT_DASHBOARD_ALLOWED_USERS }}
+          DASHI_GITHUB_APP_CLIENT_ID: ${{ vars.DASHI_GITHUB_APP_CLIENT_ID || vars.AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID }}
+          DASHI_GITHUB_APP_CLIENT_SECRET: ${{ secrets.DASHI_GITHUB_APP_CLIENT_SECRET || secrets.AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET }}
+          DASHI_MASTER_KEY: ${{ secrets.DASHI_MASTER_KEY || secrets.AGENT_DASHBOARD_MASTER_KEY }}
         run: |
           umask 077
           cat > .env <<EOF
-          AGENT_DASHBOARD_DOMAIN=$AGENT_DASHBOARD_DOMAIN
-          AGENT_DASHBOARD_PUBLISH_ADDRESS=$AGENT_DASHBOARD_PUBLISH_ADDRESS
-          AGENT_DASHBOARD_PUBLISH_PORT=$AGENT_DASHBOARD_PUBLISH_PORT
-          AGENT_DASHBOARD_ALLOWED_USERS=$AGENT_DASHBOARD_ALLOWED_USERS
-          AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID=$AGENT_DASHBOARD_GITHUB_APP_CLIENT_ID
-          AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET=$AGENT_DASHBOARD_GITHUB_APP_CLIENT_SECRET
-          AGENT_DASHBOARD_MASTER_KEY=$AGENT_DASHBOARD_MASTER_KEY
+          DASHI_DOMAIN=$DASHI_DOMAIN
+          DASHI_PUBLISH_ADDRESS=$DASHI_PUBLISH_ADDRESS
+          DASHI_PUBLISH_PORT=$DASHI_PUBLISH_PORT
+          DASHI_ALLOWED_USERS=$DASHI_ALLOWED_USERS
+          DASHI_GITHUB_APP_CLIENT_ID=$DASHI_GITHUB_APP_CLIENT_ID
+          DASHI_GITHUB_APP_CLIENT_SECRET=$DASHI_GITHUB_APP_CLIENT_SECRET
+          DASHI_MASTER_KEY=$DASHI_MASTER_KEY
           EOF
 
       # The two SSH steps hold the server key and the app secret, so they are pinned to the
@@ -87,5 +89,5 @@ jobs:
 
       - name: Check the dashboard answers at its domain, through the proxy
         env:
-          AGENT_DASHBOARD_DOMAIN: ${{ vars.AGENT_DASHBOARD_DOMAIN }}
-        run: curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors "https://$AGENT_DASHBOARD_DOMAIN/api/health"
+          DASHI_DOMAIN: ${{ vars.DASHI_DOMAIN || vars.AGENT_DASHBOARD_DOMAIN }}
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 3 --retry-all-errors "https://$DASHI_DOMAIN/api/health"

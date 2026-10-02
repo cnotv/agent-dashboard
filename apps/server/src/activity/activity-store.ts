@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { AgentProvider, AgentSessionState } from '@agent-dashboard/contracts'
+import type { AgentProvider, AgentSessionState } from '@dashi/contracts'
 import type { ActivityStore, AgentEvent, StoredEvent, StoredSession, StoredTokenSample, TokenType, TokenUsagePoint } from './types.ts'
 
 const createSchema = (database: DatabaseSync): void => {

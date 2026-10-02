@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentSessionSummary, SessionsOverview } from '@agent-dashboard/contracts'
+import type { AgentSessionSummary, SessionsOverview } from '@dashi/contracts'
 import { buildTimeTicks, layoutSessionTimeline, sessionLabel } from './session-timeline'
 
 const zeroTokens = { input: 0, output: 0, cacheRead: 0, cacheCreation: 0, total: 0 }

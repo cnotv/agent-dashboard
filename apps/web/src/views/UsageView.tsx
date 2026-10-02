@@ -1,6 +1,6 @@
 import { Callout, Flex, Grid, SegmentedControl, Text } from '@radix-ui/themes'
 import { useSearchParams } from 'react-router'
-import type { UsageReport } from '@agent-dashboard/contracts'
+import type { UsageReport } from '@dashi/contracts'
 import { StatTile } from '@/components/charts/StatTile'
 import { UsageBarList, type UsageBarRow } from '@/components/usage/UsageBarList'
 import { UsageByDayChart } from '@/components/usage/UsageByDayChart'

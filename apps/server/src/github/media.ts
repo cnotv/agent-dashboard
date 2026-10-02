@@ -1,4 +1,4 @@
-import type { MediaKind, PullRequestMedia } from '@agent-dashboard/contracts'
+import type { MediaKind, PullRequestMedia } from '@dashi/contracts'
 
 const videoExtensionPattern = /\.(mp4|webm|mov)(\?|#|$)/i
 const markdownImagePattern = /!\[[^\]]*\]\(\s*<?(https?:\/\/[^\s)>]+)/g

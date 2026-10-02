@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { RepositoryReference, SessionStart, SessionStartRequest } from '@agent-dashboard/contracts'
+import type { RepositoryReference, SessionStart, SessionStartRequest } from '@dashi/contracts'
 import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import type { Vault } from '../secrets/types.ts'
 import type { runnerReportSchema } from './schema.ts'

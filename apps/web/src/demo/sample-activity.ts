@@ -8,7 +8,7 @@ import type {
   SessionsOverview,
   TokenTotals,
   UsageReport,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 import { sampleRepositories } from './sample-data'
 
 const minuteMilliseconds = 60_000

@@ -51,7 +51,7 @@ describe('parseClaim', () => {
 })
 
 describe('launchPlanFor', () => {
-  const paths = runnerPathsFor('/Users/me/agent-dashboard', claimOf())
+  const paths = runnerPathsFor('/Users/me/dashi', claimOf())
 
   it('starts a steerable session in tmux, passing the prompt as one argument', () => {
     const plan = launchPlanFor(claimOf(), paths)
@@ -62,7 +62,7 @@ describe('launchPlanFor', () => {
       '-s',
       'agent-generative-art-0123abcd',
       '-c',
-      '/Users/me/agent-dashboard/worktrees/generative-art-0123abcd',
+      '/Users/me/dashi/worktrees/generative-art-0123abcd',
       'claude',
       '--remote-control',
       '--name',
@@ -82,7 +82,7 @@ describe('launchPlanFor', () => {
       mode: 'capture',
       command: 'claude',
       args: ['--cloud', claimOf().prompt],
-      cwd: '/Users/me/agent-dashboard/repos/cnotv/generative-art',
+      cwd: '/Users/me/dashi/repos/cnotv/generative-art',
     })
   })
 })
@@ -104,20 +104,29 @@ describe('cloudSessionUrlFrom', () => {
 
 describe('readRunnerSettings', () => {
   it('needs an https dashboard, or one on this machine, and a runner token', () => {
-    expect(readRunnerSettings({ AGENT_DASHBOARD_URL: 'http://dashi.example', AGENT_DASHBOARD_RUNNER_TOKEN: 'adr_x' })).toEqual(
-      expect.stringContaining('https://'),
-    )
-    expect(readRunnerSettings({ AGENT_DASHBOARD_URL: 'https://dashi.example/', AGENT_DASHBOARD_RUNNER_TOKEN: 'adt_x' })).toEqual(
+    expect(readRunnerSettings({ DASHI_URL: 'http://dashi.example', DASHI_RUNNER_TOKEN: 'adr_x' })).toEqual(expect.stringContaining('https://'))
+    expect(readRunnerSettings({ DASHI_URL: 'https://dashi.example/', DASHI_RUNNER_TOKEN: 'adt_x' })).toEqual(
       expect.stringContaining('runner token'),
     )
     expect(
       readRunnerSettings({
-        AGENT_DASHBOARD_URL: 'https://dashi.example/',
-        AGENT_DASHBOARD_RUNNER_TOKEN: 'adr_x',
-        AGENT_DASHBOARD_RUNNER_HOME: '/tmp/r',
+        DASHI_URL: 'https://dashi.example/',
+        DASHI_RUNNER_TOKEN: 'adr_x',
+        DASHI_RUNNER_HOME: '/tmp/r',
         CLAUDE_CONFIG_DIR: '/tmp/claude',
       }),
     ).toEqual({ dashboardUrl: 'https://dashi.example', runnerToken: 'adr_x', runnerHome: '/tmp/r', claudeHome: '/tmp/claude', pollMilliseconds: 5000 })
+  })
+
+  it('still reads a runner installed under the names from before Dashi, the new names winning', () => {
+    const settings = readRunnerSettings({
+      AGENT_DASHBOARD_URL: 'https://old.example',
+      AGENT_DASHBOARD_RUNNER_TOKEN: 'adr_old',
+      AGENT_DASHBOARD_RUNNER_HOME: '/tmp/old',
+      DASHI_URL: 'https://dashi.example',
+      DASHI_RUNNER_HOME: '',
+    })
+    expect(settings).toMatchObject({ dashboardUrl: 'https://dashi.example', runnerToken: 'adr_old', runnerHome: '/tmp/old' })
   })
 })
 
@@ -160,8 +169,8 @@ describe('finding a board start\'s transcript', () => {
   const start = { repositoryName: 'generative.art', startId, target: 'laptop-remote-control' as const }
 
   it("matches the project folder Claude Code names after the start's worktree", () => {
-    expect(isStartProjectFolder('-Users-me-agent-dashboard-worktrees-generative-art-0123abcd', start)).toBe(true)
-    expect(isStartProjectFolder('-Users-me-agent-dashboard-worktrees-generative-art-99999999', start)).toBe(false)
+    expect(isStartProjectFolder('-Users-me-dashi-worktrees-generative-art-0123abcd', start)).toBe(true)
+    expect(isStartProjectFolder('-Users-me-dashi-worktrees-generative-art-99999999', start)).toBe(false)
     expect(isStartProjectFolder('-Users-me-code-generative-art', start)).toBe(false)
   })
 
@@ -178,7 +187,7 @@ describe('finding a board start\'s transcript', () => {
 })
 
 describe('chatDeliveryPlanFor', () => {
-  const directory = '/Users/me/agent-dashboard/worktrees/generative-art-0123abcd'
+  const directory = '/Users/me/dashi/worktrees/generative-art-0123abcd'
   const headlessStart = { sessionId: `start-${startId}`, sessionState: null, start: { repositoryName: 'generative-art', startId, target: 'laptop-headless' as const } }
 
   it('waits for an unattended start to go quiet, then resumes it', () => {
@@ -199,7 +208,7 @@ describe('summariseTranscript', () => {
     line({
       type: 'user',
       uuid: 'u1',
-      cwd: '/Users/me/agent-dashboard/worktrees/x',
+      cwd: '/Users/me/dashi/worktrees/x',
       timestamp: '2026-09-30T10:00:00Z',
       message: { role: 'user', content: '<command-message>workflow:start</command-message>\n<command-name>/workflow:start</command-name>\n<command-args>fix https://github.com/x/y/issues/1</command-args>' },
     }),
@@ -224,7 +233,7 @@ describe('summariseTranscript', () => {
 
   it('keeps typed messages, answers and tool uses, and leaves out results, thinking and side conversations', () => {
     const summary = summariseTranscript(transcript)
-    expect(summary.directory).toBe('/Users/me/agent-dashboard/worktrees/x')
+    expect(summary.directory).toBe('/Users/me/dashi/worktrees/x')
     expect(summary.messages.map(({ role, kind, text, toolName }) => ({ role, kind, text, toolName }))).toEqual([
       { role: 'user', kind: 'text', text: '/workflow:start fix https://github.com/x/y/issues/1', toolName: null },
       { role: 'assistant', kind: 'text', text: 'Reading the issue.', toolName: null },
@@ -245,7 +254,7 @@ describe('summariseTranscript', () => {
 })
 
 describe('deliveryPlanFor', () => {
-  const directory = '/Users/me/agent-dashboard/worktrees/x'
+  const directory = '/Users/me/dashi/worktrees/x'
   const panes = parseTmuxPanes(`%1 zsh ${directory}\n%2 claude ${directory}\n%3 claude /elsewhere\nbroken line`)
 
   it('reads a folder with spaces from the end of the line', () => {

@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { MediaKind } from '@agent-dashboard/contracts'
+import type { MediaKind } from '@dashi/contracts'
 import type { previewArtifactListSchema } from './schema.ts'
 
 export type PreviewArtifactList = z.infer<typeof previewArtifactListSchema>

@@ -3,7 +3,7 @@ import type {
   AgentProvider,
   AgentSessionState,
   RepositoryReference,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import type { hookPayloadSchema, keyValueSchema, otlpMetricsSchema } from './schema.ts'
 

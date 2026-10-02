@@ -26,8 +26,8 @@ export const connectSnippet = ({ dashboardUrl, ingestToken }: ConnectSnippetInpu
       },
       enabledPlugins: { [`workflow@${agentBaseMarketplace}`]: true },
       env: {
-        AGENT_DASHBOARD_URL: baseUrl,
-        AGENT_DASHBOARD_TOKEN: ingestToken,
+        DASHI_URL: baseUrl,
+        DASHI_TOKEN: ingestToken,
         CLAUDE_CODE_ENABLE_TELEMETRY: '1',
         OTEL_METRICS_EXPORTER: 'otlp',
         OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',

@@ -1,4 +1,4 @@
-import type { AgentSessionState, AgentSessionSummary, SessionsOverview } from '@agent-dashboard/contracts'
+import type { AgentSessionState, AgentSessionSummary, SessionsOverview } from '@dashi/contracts'
 import type { ChartedSessionState, SessionTimelineLayout, TimeTick, TimelineLane } from './types'
 
 const hourMilliseconds = 60 * 60_000

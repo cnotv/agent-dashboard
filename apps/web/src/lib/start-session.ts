@@ -1,4 +1,4 @@
-import type { IssueLabel, StartOptions, StartTarget, StartWorkflow } from '@agent-dashboard/contracts'
+import type { IssueLabel, StartOptions, StartTarget, StartWorkflow } from '@dashi/contracts'
 import type { StartTargetAvailability } from './types'
 
 const workflowByLabel: Record<string, StartWorkflow> = {

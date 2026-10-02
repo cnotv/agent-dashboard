@@ -13,6 +13,6 @@ export const createNetlifyFetcher =
     fetch(`${netlifyApiUrl}${path}`, {
       method: request.method,
       body: request.body === undefined ? undefined : JSON.stringify(request.body),
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'agent-dashboard' },
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'dashi' },
       signal: AbortSignal.timeout(30000),
     })
