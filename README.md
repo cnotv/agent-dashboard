@@ -390,6 +390,12 @@ player and the screenshot opens in a new tab. Each comes from the first of:
 
 A button is greyed out when neither has one.
 
+The shared workflow also captures the same route on the base branch as `before.png`. The screenshot
+popover then shows it next to the pull request's, labelled **Before** and **After** (stacked on a
+phone), so the change is what you see first. A recording without one (an older recording, or a base
+branch that didn't build) shows the pull request's screenshot alone. A pull request body never
+supplies a before picture.
+
 ## Access
 
 Locally, the server only listens on loopback and rejects requests whose `Host` header is not

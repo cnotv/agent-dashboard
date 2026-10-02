@@ -1,14 +1,15 @@
 import { ExternalLinkIcon, ImageIcon, VideoIcon } from '@radix-ui/react-icons'
 import { Callout, Flex, IconButton, Link, Popover, Text, Tooltip } from '@radix-ui/themes'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type RefObject } from 'react'
-import type { MediaKind, PullRequestSummary, RepositoryReference } from '@dashi/contracts'
+import type { MediaKind, PreviewMediaKind, PullRequestSummary, RepositoryReference } from '@dashi/contracts'
 import { useHoverOpen } from '@/hooks/useHoverOpen'
 import { dashboardApi } from '@/lib/api'
 import { showMediaFullscreen } from '@/lib/fullscreen'
 
-const mediaLabels: Record<MediaKind, { name: string; missing: string }> = {
+const mediaLabels: Record<PreviewMediaKind, { name: string; missing: string }> = {
   image: { name: 'Screenshot', missing: 'No screenshot for this pull request' },
   video: { name: 'Video', missing: 'No video for this pull request' },
+  before: { name: 'Screenshot of the base branch', missing: 'No screenshot of the base branch' },
 }
 
 const mediaIcons: Record<MediaKind, ReactNode> = { image: <ImageIcon />, video: <VideoIcon /> }
@@ -16,14 +17,17 @@ const mediaIcons: Record<MediaKind, ReactNode> = { image: <ImageIcon />, video: 
 type MediaElement = HTMLImageElement & HTMLVideoElement
 
 interface MediaViewerProps {
-  kind: MediaKind
+  kind: PreviewMediaKind
   mediaUrl: string
   mediaRef: RefObject<MediaElement | null>
+  // Told when the media cannot be loaded, so an optional one, the before picture, can step aside
+  // instead of showing an error.
+  onMissing?: () => void
 }
 
 // The media itself is the full-screen button. The video plays without controls in the popover,
 // since a click on native controls would also pause it, and gets them back in full screen.
-const MediaViewer = ({ kind, mediaUrl, mediaRef }: MediaViewerProps) => {
+const MediaViewer = ({ kind, mediaUrl, mediaRef, onMissing }: MediaViewerProps) => {
   const [hasFailed, setHasFailed] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
 
@@ -34,6 +38,7 @@ const MediaViewer = ({ kind, mediaUrl, mediaRef }: MediaViewerProps) => {
     return () => document.removeEventListener('fullscreenchange', syncFullscreen)
   }, [mediaRef])
 
+  if (hasFailed && onMissing !== undefined) return null
   if (hasFailed) {
     return (
       <Callout.Root color="gray" variant="surface">
@@ -68,7 +73,16 @@ const MediaViewer = ({ kind, mediaUrl, mediaRef }: MediaViewerProps) => {
             onError={() => setHasFailed(true)}
           />
         ) : (
-          <img ref={mediaRef} className="media-viewer" src={mediaUrl} alt="Screenshot of the pull request" onError={() => setHasFailed(true)} />
+          <img
+            ref={mediaRef}
+            className="media-viewer"
+            src={mediaUrl}
+            alt={kind === 'before' ? 'Screenshot of the base branch' : 'Screenshot of the pull request'}
+            onError={() => {
+              setHasFailed(true)
+              onMissing?.()
+            }}
+          />
         )}
       </button>
       <Flex justify="end" gap="3" align="center">
@@ -91,9 +105,37 @@ interface MediaButtonProps {
   kind: MediaKind
   isAvailable: boolean
   mediaUrl: string
+  beforeUrl: string | null
 }
 
-const MediaButton = ({ kind, isAvailable, mediaUrl }: MediaButtonProps) => {
+// The pull request's screenshot sits next to the base branch's, Before then After, so the change
+// is what the eye lands on; a recording without a before picture shows After alone.
+const ScreenshotComparison = ({ beforeUrl, mediaUrl, mediaRef }: { beforeUrl: string; mediaUrl: string; mediaRef: RefObject<MediaElement | null> }) => {
+  const beforeRef = useRef<MediaElement>(null)
+  const [hasBefore, setHasBefore] = useState(true)
+  return (
+    <div className="media-compare">
+      {hasBefore && (
+        <Flex direction="column" gap="2">
+          <Text size="1" weight="medium" color="gray">
+            Before
+          </Text>
+          <MediaViewer kind="before" mediaUrl={beforeUrl} mediaRef={beforeRef} onMissing={() => setHasBefore(false)} />
+        </Flex>
+      )}
+      <Flex direction="column" gap="2">
+        {hasBefore && (
+          <Text size="1" weight="medium" color="gray">
+            After
+          </Text>
+        )}
+        <MediaViewer kind="image" mediaUrl={mediaUrl} mediaRef={mediaRef} />
+      </Flex>
+    </div>
+  )
+}
+
+const MediaButton = ({ kind, isAvailable, mediaUrl, beforeUrl }: MediaButtonProps) => {
   const { isOpen, setIsOpen, triggerHoverHandlers, contentHoverHandlers } = useHoverOpen()
   const mediaRef = useRef<MediaElement>(null)
 
@@ -131,7 +173,7 @@ const MediaButton = ({ kind, isAvailable, mediaUrl }: MediaButtonProps) => {
         </IconButton>
       </Popover.Trigger>
       <Popover.Content
-        width="640px"
+        width={beforeUrl === null ? '640px' : '960px'}
         maxWidth="calc(100vw - 32px)"
         size="2"
         onOpenAutoFocus={(focusEvent) => focusEvent.preventDefault()}
@@ -140,7 +182,11 @@ const MediaButton = ({ kind, isAvailable, mediaUrl }: MediaButtonProps) => {
         <Text as="div" size="2" weight="medium" mb="3">
           {mediaLabels[kind].name}
         </Text>
-        <MediaViewer kind={kind} mediaUrl={mediaUrl} mediaRef={mediaRef} />
+        {beforeUrl === null ? (
+          <MediaViewer kind={kind} mediaUrl={mediaUrl} mediaRef={mediaRef} />
+        ) : (
+          <ScreenshotComparison beforeUrl={beforeUrl} mediaUrl={mediaUrl} mediaRef={mediaRef} />
+        )}
       </Popover.Content>
     </Popover.Root>
   )
@@ -158,11 +204,13 @@ export const PullRequestMedia = ({ repository, pullRequest }: PullRequestMediaPr
       kind="image"
       isAvailable={pullRequest.media.hasImage}
       mediaUrl={dashboardApi.pullRequestMediaUrl(repository, pullRequest, 'image')}
+      beforeUrl={dashboardApi.pullRequestMediaUrl(repository, pullRequest, 'before')}
     />
     <MediaButton
       kind="video"
       isAvailable={pullRequest.media.hasVideo}
       mediaUrl={dashboardApi.pullRequestMediaUrl(repository, pullRequest, 'video')}
+      beforeUrl={null}
     />
   </>
 )

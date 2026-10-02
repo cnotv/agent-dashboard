@@ -4,16 +4,17 @@ import type {
   CheckGate,
   IssueLabel,
   IssueSummary,
-  MediaKind,
+  PreviewMediaKind,
   PullRequestFiles,
   PullRequestSummary,
 } from '@dashi/contracts'
 import type { DemoPullRequestOutcome } from '@/lib/types'
 
 // Served from apps/web/public so demo mode has a recording to open without any server.
-export const demoMediaUrls: Record<MediaKind, string> = {
+export const demoMediaUrls: Record<PreviewMediaKind, string> = {
   image: '/demo-media/screenshot.png',
   video: '/demo-media/video.webm',
+  before: '/demo-media/before.png',
 }
 
 const issueOf = (issueNumber: number, title: string, linkedPullRequestNumbers: number[], labels: IssueLabel[] = []): IssueSummary => ({

@@ -27,6 +27,10 @@ export type Mergeable = 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
 
 export type MediaKind = 'image' | 'video'
 
+// What a pull request's preview recording can hold: its screenshot and video, and the base
+// branch's screenshot of the same route, to compare it with.
+export type PreviewMediaKind = MediaKind | 'before'
+
 export interface PullRequestMedia {
   hasImage: boolean
   hasVideo: boolean

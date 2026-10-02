@@ -540,6 +540,22 @@ body {
   background: var(--gray-a3);
 }
 
+.media-compare {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.media-compare > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .media-compare {
+    flex-direction: column;
+  }
+}
+
 .media-viewer-button {
   display: block;
   width: 100%;

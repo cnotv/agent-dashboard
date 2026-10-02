@@ -181,6 +181,36 @@ describe('pull request recordings', () => {
     ])
   })
 
+  it('serves the base branch screenshot of a recording that has one', async () => {
+    const recordedBefore = new Uint8Array([137, 80, 78, 71, 9, 9])
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, {
+      ...recordingResponses(),
+      '/repos/cnotv/generative-art/actions/artifacts/12/zip': new Response(
+        zipSync({ 'screenshot.png': recordedScreenshot, 'video.webm': recordedVideo, 'before.png': recordedBefore }),
+      ),
+    })
+    vault.saveSecret('github-token', sampleToken)
+    const beforeResponse = await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/before?sha=fedc9876'))
+    expect(beforeResponse.status).toBe(200)
+    expect(beforeResponse.headers.get('content-type')).toBe('image/png')
+    expect(new Uint8Array(await beforeResponse.arrayBuffer())).toEqual(recordedBefore)
+  })
+
+  it('answers 404 for the before picture of an older recording without downloading it again', async () => {
+    const { app, vault, receivedRestRequests } = createTestApp({}, {}, { now: 0 }, recordingResponses())
+    vault.saveSecret('github-token', sampleToken)
+    expect((await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/before?sha=fedc9876'))).status).toBe(404)
+    expect((await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/before?sha=fedc9876'))).status).toBe(404)
+    expect((await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/31/media/image?sha=fedc9876'))).status).toBe(200)
+    expect(receivedRestRequests.filter((request) => request.path.endsWith('/zip'))).toHaveLength(1)
+  })
+
+  it('never looks for a before picture in the body', async () => {
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, recordingResponses())
+    vault.saveSecret('github-token', sampleToken)
+    expect((await app.request(getRequest('/api/repositories/cnotv/generative-art/pulls/7/media/before?sha=0123abcd'))).status).toBe(404)
+  })
+
   it('falls back to the body when the commit has no recording', async () => {
     const { app, vault } = createTestApp({}, {}, { now: 0 }, recordingResponses())
     vault.saveSecret('github-token', sampleToken)
