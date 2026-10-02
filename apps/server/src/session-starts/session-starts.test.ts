@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { createTestApp, getRequest, jsonRequest } from '../app/test-app.ts'
@@ -86,13 +87,80 @@ describe('attachments', () => {
 
   it('refuses attachments too large for the session, unsafe names and repeated names', async () => {
     const { app } = createTestApp()
-    const largeFile = { name: 'large.bin', mediaType: 'application/octet-stream', base64: Buffer.alloc(49 * 1024).toString('base64') }
+    const largeFile = { name: 'large.bin', mediaType: 'application/octet-stream', base64: Buffer.alloc(41 * 1024).toString('base64') }
     const tooLarge = await app.request(jsonRequest('POST', '/api/session-starts', startBody({ target: 'laptop-cloud', attachments: [largeFile] })))
     expect(tooLarge.status).toBe(413)
     expect((await app.request(jsonRequest('POST', '/api/session-starts', startBody({ attachments: [largeFile] })))).status).toBe(201)
     const unsafeName = { ...screenshot, name: '../.ssh/authorized_keys' }
     expect((await app.request(jsonRequest('POST', '/api/session-starts', startBody({ attachments: [unsafeName] })))).status).toBe(400)
     expect((await app.request(jsonRequest('POST', '/api/session-starts', startBody({ attachments: [screenshot, screenshot] })))).status).toBe(400)
+  })
+})
+
+describe('details, retry and routine tests', () => {
+  const saveRoutine = (app: ReturnType<typeof createTestApp>['app']) =>
+    app.request(jsonRequest('PUT', '/api/repositories/cnotv/generative-art/routine', { routineId: 'trig_01ABCDEFGHJK', token: routineToken }))
+
+  it('shows a start with the first message it sent', async () => {
+    const { app } = createTestApp()
+    const startId = await startIdOf(await app.request(jsonRequest('POST', '/api/session-starts', startBody({ note: 'Keep it small' }))))
+    expect(await (await app.request(getRequest(`/api/session-starts/${startId}`))).json()).toMatchObject({
+      start: { startId, state: 'queued' },
+      firstMessage: '/workflow:start fix https://github.com/cnotv/generative-art/issues/42\n\nKeep it small',
+    })
+    expect((await app.request(getRequest('/api/session-starts/unknown'))).status).toBe(404)
+  })
+
+  it('retries a failed start as a new one and keeps the failed one', async () => {
+    const { app, startStore, firedRoutines } = createTestApp()
+    await saveRoutine(app)
+    const failedId = await startIdOf(await app.request(jsonRequest('POST', '/api/session-starts', startBody({ target: 'cloud-routine' }))))
+    startStore.recordOutcome(failedId, { state: 'failed', sessionUrl: null, message: 'Authentication failed' })
+    const retried = z.object({ startId: z.string(), state: z.string() }).parse(
+      await (await app.request(jsonRequest('POST', `/api/session-starts/${failedId}/retry`, {}))).json(),
+    )
+    expect(retried.startId).not.toBe(failedId)
+    expect(retried.state).toBe('started')
+    expect(firedRoutines).toHaveLength(2)
+    expect(startStore.readStart(failedId)?.state).toBe('failed')
+  })
+
+  it('retries only failed starts', async () => {
+    const { app } = createTestApp()
+    const startId = await startIdOf(await app.request(jsonRequest('POST', '/api/session-starts', startBody())))
+    expect((await app.request(jsonRequest('POST', `/api/session-starts/${startId}/retry`, {}))).status).toBe(409)
+  })
+
+  it('tests a routine with a run told to change nothing', async () => {
+    const { app, firedRoutines } = createTestApp()
+    expect((await app.request(jsonRequest('POST', '/api/repositories/cnotv/generative-art/routine/test', {}))).status).toBe(412)
+    await saveRoutine(app)
+    const testResponse = await app.request(jsonRequest('POST', '/api/repositories/cnotv/generative-art/routine/test', {}))
+    expect(await testResponse.json()).toEqual({ ok: true, sessionUrl: 'https://claude.ai/code/session_01Fired' })
+    expect(firedRoutines[0]?.text).toContain('Do not change any file')
+  })
+
+  it('refuses a routine first message longer than the routines API takes', async () => {
+    const { app, firedRoutines } = createTestApp()
+    await saveRoutine(app)
+    const response = await app.request(jsonRequest('POST', '/api/session-starts', startBody({ target: 'cloud-routine', note: 'x'.repeat(20000) })))
+    expect(response.status).toBe(201)
+    const fortyKilobytes = { name: 'shot.png', mediaType: 'image/png', base64: Buffer.alloc(40 * 1024).toString('base64') }
+    const withAttachment = await app.request(jsonRequest('POST', '/api/session-starts', startBody({ target: 'cloud-routine', attachments: [fortyKilobytes] })))
+    expect(withAttachment.status).toBe(201)
+    const tooLong = await app.request(
+      jsonRequest('POST', '/api/session-starts', startBody({ target: 'cloud-routine', note: 'x'.repeat(20000), attachments: [fortyKilobytes] })),
+    )
+    expect(tooLong.status).toBe(413)
+    expect(firedRoutines).toHaveLength(2)
+  })
+
+  it('describes the runner script it serves with its hash', async () => {
+    const { app } = createTestApp()
+    const script = await (await app.request(getRequest('/api/runner/script'))).text()
+    const info = z.object({ sha256: z.string(), byteLength: z.number() }).parse(await (await app.request(getRequest('/api/runner/script-info'))).json())
+    expect(info.byteLength).toBe(Buffer.byteLength(script))
+    expect(info.sha256).toBe(createHash('sha256').update(script).digest('hex'))
   })
 })
 
@@ -128,7 +196,7 @@ describe('laptop starts', () => {
     expect(await (await app.request(getRequest(optionsPath))).json()).toEqual({
       runners: [{ label: 'Mac mini', lastSeenAt: '2026-09-30T10:00:00.000Z', isOnline: true }],
       routineConfigured: false,
-      attachmentLimits: { fileCount: 5, fileTargetBytes: 8 * 1024 * 1024, inlineTargetBytes: 48 * 1024 },
+      attachmentLimits: { fileCount: 5, fileTargetBytes: 8 * 1024 * 1024, inlineTargetBytes: 40 * 1024 },
     })
     clock.now += 60_000
     expect(await (await app.request(getRequest(optionsPath))).json()).toMatchObject({ runners: [{ isOnline: false }] })

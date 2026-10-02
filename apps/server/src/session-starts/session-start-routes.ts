@@ -1,8 +1,20 @@
+import { createHash } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { createMiddleware } from 'hono/factory'
 import { z } from 'zod'
-import type { RepositoryReference, RoutineSettings, RunnerPresence, SessionStart, StartOptions } from '@dashi/contracts'
+import type {
+  RepositoryReference,
+  RoutineSettings,
+  RoutineTestResult,
+  RunnerPresence,
+  RunnerScriptInfo,
+  SessionStart,
+  SessionStartDetails,
+  SessionStartRequest,
+  StartAttachment,
+  StartOptions,
+} from '@dashi/contracts'
 import { bearerTokenOf, limitTo, readJsonBody } from '../app/http.ts'
 import type { AppEnvironment } from '../app/types.ts'
 import { findRepository } from '../repos/load-repositories.ts'
@@ -17,6 +29,13 @@ const runnerOnlineMilliseconds = 30_000
 const createTokenBodySchema = z.object({ label: z.string().trim().min(1).max(80) })
 // Room for the largest attachments a laptop session takes, once base64 and JSON have grown them.
 const sessionStartBodyBytes = 12 * 1024 * 1024
+// The routines API refuses a longer text with a bare 400.
+const routineTextCharacters = 65_536
+const runnerSourcePath = 'apps/runner/src/runner.ts'
+const routineTestText =
+  "Dashi test run: reply 'Dashi can start this routine' and end the session. Do not change any file, branch, issue or pull request."
+
+type LaunchResult = { ok: true; start: SessionStart } | { ok: false; status: 404 | 412 | 413; error: string }
 
 // Reached by the laptop runner rather than a browser, so it carries a runner token instead of a
 // sign-in; the session guard lets this prefix through, and the script itself holds no secret.
@@ -78,29 +97,68 @@ export const createSessionStartRoutes = (dependencies: SessionStartDependencies)
     return context.json(options)
   })
 
-  routes.get('/session-starts', (context) => context.json(startStore.listRecentStarts()))
-
-  // The attachments are split off before the start is stored, so they never reach the database:
-  // a laptop start's wait in memory for its runner, a routine's go out with the prompt.
-  routes.post('/session-starts', limitTo(sessionStartBodyBytes), async (context) => {
-    const { attachments, ...request } = sessionStartSubmissionSchema.parse(await readJsonBody(context.req.raw))
+  // The attachments are never stored: a laptop start's wait in memory for its runner, and a
+  // routine's go out with the prompt.
+  const launchStart = async (request: SessionStartRequest, attachments: StartAttachment[]): Promise<LaunchResult> => {
     const repository = repositoryOf(request.repository.owner, request.repository.name)
-    if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
+    if (repository === undefined) return { ok: false, status: 404, error: 'Unknown repository' }
     const limitProblem = attachmentLimitProblem(attachments, request.target)
-    if (limitProblem !== null) return context.json({ error: limitProblem }, 413)
+    if (limitProblem !== null) return { ok: false, status: 413, error: limitProblem }
     if (request.target !== 'cloud-routine') {
       const queuedStart = startStore.createStart({ ...request, repository })
       attachmentRelay.hold(queuedStart.startId, attachments)
-      return context.json(queuedStart, 201)
+      return { ok: true, start: queuedStart }
     }
     const routine = routineOf(repository)
-    if (routine === null) return context.json({ error: 'Set up a Claude Code routine for this repository first' }, 412)
+    if (routine === null) return { ok: false, status: 412, error: 'Set up a Claude Code routine for this repository first' }
+    const routineText = sessionPromptFor({ ...request, repository }, attachments)
+    if (routineText.length > routineTextCharacters) {
+      return { ok: false, status: 413, error: `The first message comes to ${routineText.length} characters; a routine takes at most ${routineTextCharacters}` }
+    }
     const start = startStore.createStart({ ...request, repository })
-    const fireResult = await fireRoutine(routine.routineId, routine.routineToken, sessionPromptFor(start, attachments))
+    const fireResult = await fireRoutine(routine.routineId, routine.routineToken, routineText)
     const outcome = fireResult.ok
       ? { state: 'started' as const, sessionUrl: fireResult.sessionUrl, message: null }
       : { state: 'failed' as const, sessionUrl: null, message: fireResult.message }
-    return context.json<SessionStart>(startStore.recordOutcome(start.startId, outcome), 201)
+    return { ok: true, start: startStore.recordOutcome(start.startId, outcome) }
+  }
+
+  const answerLaunch = (context: Context<AppEnvironment>, launchResult: LaunchResult): Response =>
+    launchResult.ok ? context.json<SessionStart>(launchResult.start, 201) : context.json({ error: launchResult.error }, launchResult.status)
+
+  routes.get('/session-starts', (context) => context.json(startStore.listRecentStarts()))
+
+  routes.post('/session-starts', limitTo(sessionStartBodyBytes), async (context) => {
+    const { attachments, ...request } = sessionStartSubmissionSchema.parse(await readJsonBody(context.req.raw))
+    return answerLaunch(context, await launchStart(request, attachments))
+  })
+
+  // What the session was told, so a start that went wrong can be read in full from the dashboard.
+  routes.get('/session-starts/:startId', (context) => {
+    const start = startStore.readStart(context.req.param('startId'))
+    if (start === null) return context.json({ error: 'Unknown start' }, 404)
+    return context.json<SessionStartDetails>({ start, firstMessage: sessionPromptFor(start, []) })
+  })
+
+  // A retry is a new start from the same request, so the failed one stays as the record of what
+  // happened; its attachments were never kept, so it goes without them.
+  routes.post('/session-starts/:startId/retry', async (context) => {
+    const failedStart = startStore.readStart(context.req.param('startId'))
+    if (failedStart === null) return context.json({ error: 'Unknown start' }, 404)
+    if (failedStart.state !== 'failed') return context.json({ error: 'Only a failed start can be retried' }, 409)
+    const { repository, issueNumber, pullRequestNumber, workflow, target, permissionMode, note } = failedStart
+    return answerLaunch(context, await launchStart({ repository, issueNumber, pullRequestNumber, workflow, target, permissionMode, note }, []))
+  })
+
+  // Anthropic offers no way to check a routine's token short of running it, so the test is a
+  // real, tiny run told to change nothing.
+  routes.post('/repositories/:owner/:name/routine/test', async (context) => {
+    const repository = repositoryOf(context.req.param('owner'), context.req.param('name'))
+    if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
+    const routine = routineOf(repository)
+    if (routine === null) return context.json({ error: 'Save a routine id and token first' }, 412)
+    const fireResult = await fireRoutine(routine.routineId, routine.routineToken, routineTestText)
+    return context.json<RoutineTestResult>(fireResult.ok ? { ok: true, sessionUrl: fireResult.sessionUrl } : { ok: false, message: fireResult.message })
   })
 
   routes.get('/repositories/:owner/:name/routine', (context) => {
@@ -160,6 +218,15 @@ export const createRunnerRoutes = ({ startStore, runnerTokens, runnerScriptPath,
     context.header('content-type', 'text/plain; charset=utf-8')
     context.header('content-disposition', 'attachment; filename="runner.ts"')
     return context.body(await readFile(runnerScriptPath, 'utf8'))
+  })
+
+  routes.get('/script-info', async (context) => {
+    const script = await readFile(runnerScriptPath)
+    return context.json<RunnerScriptInfo>({
+      sha256: createHash('sha256').update(script).digest('hex'),
+      byteLength: script.byteLength,
+      sourcePath: runnerSourcePath,
+    })
   })
 
   routes.post('/claim', requireRunnerToken, (context) => {

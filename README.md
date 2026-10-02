@@ -252,7 +252,10 @@ A pull request with merge conflicts shows a red warning icon on its card. Tappin
 same dialog for the `conflicts` workflow: the session checks out that pull request's branch,
 brings in the default branch, resolves the conflicts, runs the checks and pushes, and asks you
 when both sides changed the same logic. It opens with `/workflow:start conflicts <pull request link>`. **Sessions**
-lists the starts, with the session's link or what the runner said.
+lists the starts inside its time window, with the session's link or what the runner said. Each
+row's details icon opens the start in full: where it ran, its links, the first message the session
+was sent, and for a failed one what the error means and a **Retry**, which starts it again as a new
+start with the same request (without attachments, which are never kept).
 
 ### New issue
 
@@ -266,7 +269,7 @@ Attachments are never stored. They travel with the start and are dropped once ha
 laptop session steered from the phone or unattended gets them as files under
 `~/dashi/attachments/<repository>-<start>`, beside the worktree so nothing of them is committed,
 and its first message names their paths; a session that only takes text (Claude cloud from the
-laptop, or a routine) gets them as base64 inside its first message, so those take at most 48 KB
+laptop, or a routine) gets them as base64 inside its first message, so those take at most 40 KB
 of attachments, against 8 MB and five files for the laptop. The issue lists only their names. A
 laptop start waits in memory for its runner for up to fifteen minutes; a restart of the
 dashboard before then drops its attachments.
@@ -276,10 +279,21 @@ about 12 MB, `client_max_body_size 12m`, or larger attachments are refused befor
 ### The laptop runner
 
 The server cannot reach into the laptop, so the laptop asks. Under **Credentials, Laptop runner**,
-create a runner for the machine and paste the commands it shows into Terminal: they download the
-runner from `/api/runner/script` and install it as a login agent, so it starts with the Mac and
-restarts if it stops (its log is `~/dashi/runner.log`). It needs Node 22.18 or later,
-git and Claude Code, logged in; `brew install tmux` for sessions steered from the phone.
+create a runner for the machine, pick macOS or Linux, and paste the commands it shows into a
+terminal. The runner is one file, `apps/runner/src/runner.ts`, served by the dashboard from
+`/api/runner/script`; the dialog shows its SHA-256 (from `/api/runner/script-info`), and every
+command checks the download against it before anything runs, stopping on a mismatch. A
+**read it first** snippet downloads and checks it and opens it in `less`, installing nothing.
+
+- **macOS**: a login agent that starts with the Mac and restarts if it stops; its log is
+  `~/dashi/runner.log`.
+- **Linux**: a systemd user service, `~/.config/systemd/user/dashi-runner.service`, with the token
+  in `~/dashi/runner.env` (mode 600) rather than in the unit; its log is
+  `journalctl --user -u dashi-runner`, and `loginctl enable-linger $USER` keeps it running after
+  you log out.
+
+It needs Node 22.18 or later, git and Claude Code, logged in; tmux 3.2 or later for sessions
+steered from the phone (`brew install tmux` or `sudo apt install tmux`).
 
 It asks for work every five seconds, every second and a half while a chat drawer is open, with
 its own runner token, which can only take and report starts, send the transcript of a session
@@ -292,12 +306,19 @@ own way to start sessions from the Claude app; the runner adds the board's issue
 
 ### Claude cloud routines
 
-For starts with the laptop off, create one routine per repository at
-[claude.ai/code/routines](https://claude.ai/code/routines) with that repository selected, give it
-the prompt shown under **Credentials, Claude cloud routines** (the routine only sees the fired text
-as untrusted until its own prompt says to follow it), add an **API** trigger, and save the
-routine's id and token there. The token can fire that routine and nothing else, and is stored in the
-vault. Routines allow 30 runs an hour each.
+For starts with the laptop off, each repository needs a routine. Anthropic has no API to create
+one, so **Credentials, Claude cloud routines** walks through it in numbered steps: create the
+routine at [claude.ai/code/routines](https://claude.ai/code/routines) with the repository selected,
+give it the prompt shown (the routine only sees the fired text as untrusted until its own prompt
+says to follow it), add an **API** trigger and generate its token, and save the id and token there.
+The token can fire that routine and nothing else, and is stored in the vault. Routines allow 30
+runs an hour each, and take at most 65,536 characters of text per run.
+
+**Test the routine** fires a real, tiny run told only to reply and change nothing, since there is
+no way to check a token without running the routine, and shows the session's link or the API's
+reason. The panel also shows how the repository's last routine start went. "Authentication
+failed" means the token no longer matches the routine: it was regenerated or revoked, or saved for
+another routine; generate a new one, save it, and test.
 
 ## Merge and close
 

@@ -333,6 +333,19 @@ export interface RoutineSettings {
   routineId: string | null
 }
 
+export type RoutineTestResult = { ok: true; sessionUrl: string } | { ok: false; message: string }
+
+export interface SessionStartDetails {
+  start: SessionStart
+  firstMessage: string
+}
+
+export interface RunnerScriptInfo {
+  sha256: string
+  byteLength: number
+  sourcePath: string
+}
+
 export type ChatMessageRole = 'user' | 'assistant'
 
 export type ChatMessageKind = 'text' | 'tool'

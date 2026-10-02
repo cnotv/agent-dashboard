@@ -26,7 +26,7 @@ import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns, sample
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
 // The same limits the server answers with, so the dialog behaves as it would against one.
-const demoAttachmentLimits = { fileCount: 5, fileTargetBytes: 8 * 1024 * 1024, inlineTargetBytes: 48 * 1024 }
+const demoAttachmentLimits = { fileCount: 5, fileTargetBytes: 8 * 1024 * 1024, inlineTargetBytes: 40 * 1024 }
 // Above every sample issue's number, so an issue opened in demo mode never takes one of theirs.
 const firstDemoIssueNumber = 100
 
@@ -63,7 +63,7 @@ export const createDemoApi = (): DashboardApi => {
   } = {
     secrets: sampleSecrets.map((secret) => ({ ...secret })),
     machineTokens: { ingest: sampleIngestTokens.map((token) => ({ ...token })), runner: sampleRunnerTokens.map((token) => ({ ...token })) },
-    sessionStarts: sampleSessionStarts.map((start) => ({ ...start })),
+    sessionStarts: sampleSessionStarts(Date.now()),
     routineRepositoryKeys: new Set(['cnotv/example']),
     pullRequestOutcomes: new Map(),
     netlifyRepositoryKeys: new Set(['cnotv/example']),
@@ -183,6 +183,33 @@ export const createDemoApi = (): DashboardApi => {
       demoMemory.sessionStarts = [start, ...demoMemory.sessionStarts]
       return start
     },
+    readSessionStart: async (startId) => {
+      const start = demoMemory.sessionStarts.find((listedStart) => listedStart.startId === startId)
+      if (start === undefined) throw new Error('Unknown start')
+      const subject = start.issueNumber === null ? '' : ` https://github.com/${start.repository.owner}/${start.repository.name}/issues/${start.issueNumber}`
+      return { start, firstMessage: [`/workflow:start ${start.workflow}${subject}`, start.note].filter((part) => part !== '').join('\n\n') }
+    },
+    retrySessionStart: async (startId) => {
+      const failedStart = demoMemory.sessionStarts.find((listedStart) => listedStart.startId === startId)
+      if (failedStart === undefined) throw new Error('Unknown start')
+      const now = new Date().toISOString()
+      const retried: SessionStart = {
+        ...failedStart,
+        startId: `demo-start-${demoMemory.sessionStarts.length + 1}`,
+        state: 'started',
+        sessionUrl: null,
+        message: 'Demo mode: nothing was started',
+        createdAt: now,
+        updatedAt: now,
+      }
+      demoMemory.sessionStarts = [retried, ...demoMemory.sessionStarts]
+      return retried
+    },
+    testRoutine: async (repository) =>
+      demoMemory.routineRepositoryKeys.has(repositoryKey(repository))
+        ? { ok: true, sessionUrl: 'https://claude.ai/code' }
+        : { ok: false, message: 'Save a routine id and token first' },
+    readRunnerScriptInfo: async () => ({ sha256: '0'.repeat(64), byteLength: 0, sourcePath: 'apps/runner/src/runner.ts' }),
     readRoutineSettings: async (repository) => {
       const configured = demoMemory.routineRepositoryKeys.has(repositoryKey(repository))
       return { configured, routineId: configured ? 'trig_01DemoRoutine' : null }

@@ -11,9 +11,11 @@ const startsPollMilliseconds = 10_000
 /**
  * Loads the sessions started from the board and refreshes them every ten seconds, so a start
  * waiting for the runner turns into a started one without a reload.
+ * @param revision Bumped to read the starts again at once, as after a retry.
  * @returns The starts, newest first, and any error.
  */
-export const useSessionStarts = () => usePolledResource('session-starts', () => dashboardApi.listSessionStarts(), startsPollMilliseconds)
+export const useSessionStarts = (revision: number) =>
+  usePolledResource(`session-starts-${revision}`, () => dashboardApi.listSessionStarts(), startsPollMilliseconds)
 
 /**
  * Loads where a session for this repository can run, while the Start dialog is open.

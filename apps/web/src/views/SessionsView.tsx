@@ -1,11 +1,12 @@
 import { Callout, Flex, Grid, SegmentedControl } from '@radix-ui/themes'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import type { AgentSessionState } from '@dashi/contracts'
+import type { AgentSessionState, SessionStart } from '@dashi/contracts'
 import { NewIssueDialog } from '@/components/board/NewIssueDialog'
 import { StatTile } from '@/components/charts/StatTile'
 import { SessionChatDrawer } from '@/components/sessions/SessionChatDrawer'
 import { SessionStartsList } from '@/components/sessions/SessionStartsList'
+import { StartDetailsDrawer } from '@/components/sessions/StartDetailsDrawer'
 import { SessionTimeline } from '@/components/sessions/SessionTimeline'
 import { SessionsTable } from '@/components/sessions/SessionsTable'
 import { useSessionsOverview } from '@/hooks/useActivity'
@@ -27,8 +28,10 @@ export const SessionsView = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const windowHours = windowHoursFrom(searchParams.get('hours'))
   const { resource: overview, errorMessage, isStale } = useSessionsOverview(windowHours)
-  const { resource: sessionStarts } = useSessionStarts()
+  const [startsRevision, setStartsRevision] = useState(0)
+  const { resource: sessionStarts } = useSessionStarts(startsRevision)
   const [chatSubject, setChatSubject] = useState<ChatSubject | null>(null)
+  const [detailedStart, setDetailedStart] = useState<SessionStart | null>(null)
 
   const countInState = (state: AgentSessionState): number => overview?.sessions.filter((session) => session.state === state).length ?? 0
   const windowTokens = overview?.sessions.reduce((sum, session) => sum + session.tokens.total, 0) ?? 0
@@ -58,9 +61,23 @@ export const SessionsView = () => {
         </Callout.Root>
       )}
 
-      {sessionStarts && sessionStarts.length > 0 && (
-        <SessionStartsList starts={sessionStarts} onOpenChat={(start) => setChatSubject(chatSubjectOfStart(start))} />
+      {sessionStarts && sessionStarts.length > 0 && overview && (
+        <SessionStartsList
+          starts={sessionStarts}
+          windowHours={windowHours}
+          windowStartedAt={overview.windowStartedAt}
+          onOpenChat={(start) => setChatSubject(chatSubjectOfStart(start))}
+          onOpenDetails={setDetailedStart}
+        />
       )}
+      <StartDetailsDrawer
+        start={detailedStart}
+        onClose={() => setDetailedStart(null)}
+        onRetried={() => {
+          setDetailedStart(null)
+          setStartsRevision((revision) => revision + 1)
+        }}
+      />
 
       {overview && (
         <>
