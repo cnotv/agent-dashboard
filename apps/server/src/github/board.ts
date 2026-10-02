@@ -1,7 +1,7 @@
 import type { Board, CheckGate, IssueSummary, PullRequestSummary, RepositoryReference } from '@dashi/contracts'
 import { deployPreviewUrlFromGates, previewPageUrl } from '../netlify/deploy-preview.ts'
 import { mediaPresenceFromMarkdown } from './media.ts'
-import { boardQuery, boardResponseSchema, pullRequestBodyHtmlQuery, pullRequestBodyHtmlResponseSchema } from './schema.ts'
+import { boardQuery, boardResponseSchema, graphqlErrorsSchema, pullRequestBodyHtmlQuery, pullRequestBodyHtmlResponseSchema } from './schema.ts'
 import { buildBoard, gateStateFromCheckRun, gateStateFromStatusContext, summariseGates } from './status.ts'
 import type { GraphqlFetcher, IssueNode, PullRequestNode, RollupContext } from './types.ts'
 
@@ -77,6 +77,16 @@ export const createGithubGraphqlFetcher =
     return githubResponse.json()
   }
 
+// GitHub answers a repository it cannot see with repository: null and a reason in errors; a
+// renamed repository or an App not installed on it look the same, so the message names both.
+const boardErrorMessageOf = (rawResponse: unknown, repository: RepositoryReference): string => {
+  const repositoryName = `${repository.owner}/${repository.name}`
+  const parsedErrors = graphqlErrorsSchema.safeParse(rawResponse)
+  if (!parsedErrors.success) return `Unexpected GitHub response for ${repositoryName}`
+  const githubReasons = parsedErrors.data.errors.map((graphqlError) => graphqlError.message).join(' ')
+  return `${githubReasons} Check that ${repositoryName} in config/repos.json is the repository's current name and that the GitHub App is installed on it.`
+}
+
 /**
  * Reads a repository's open issues and pull requests, and its most recently closed issues, in one
  * query and sorts them into board columns.
@@ -87,7 +97,7 @@ export const createGithubGraphqlFetcher =
 export const fetchRepositoryBoard = async (fetchGraphql: GraphqlFetcher, repository: RepositoryReference): Promise<Board> => {
   const rawResponse = await fetchGraphql(boardQuery, { owner: repository.owner, name: repository.name })
   const parsedResponse = boardResponseSchema.safeParse(rawResponse)
-  if (!parsedResponse.success) throw new Error(`Unexpected GitHub response for ${repository.owner}/${repository.name}`)
+  if (!parsedResponse.success) throw new Error(boardErrorMessageOf(rawResponse, repository))
   const { issues, closedIssues, pullRequests } = parsedResponse.data.data.repository
   return buildBoard(
     repository,
