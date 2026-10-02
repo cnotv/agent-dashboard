@@ -285,27 +285,26 @@ body {
   padding: var(--space-2) var(--space-3) 0;
 }
 
-.timeline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.timeline-lane {
-  display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: center;
-}
-
-.timeline-lane-label {
-  min-width: 0;
-}
-
 .timeline-track {
   position: relative;
   height: 28px;
-  border-bottom: 1px solid var(--chart-gridline);
+}
+
+/* A row with its timeline under it reads as one: the line between them goes, and the two
+   paddings shrink to keep the track close to the row it belongs to. */
+.table-row-with-detail > .rt-TableCell {
+  box-shadow: none;
+  padding-bottom: var(--space-1);
+}
+
+.table-detail-row > .rt-TableCell {
+  padding-top: 0;
+  padding-bottom: var(--space-2);
+}
+
+.rt-TableHeader .table-detail-row > .rt-TableCell {
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-1);
 }
 
 .timeline-gridline {
@@ -348,9 +347,8 @@ body {
   outline-offset: 2px;
 }
 
-.timeline-axis .timeline-track {
+.timeline-axis {
   height: 18px;
-  border-bottom: none;
 }
 
 .timeline-tick {
@@ -524,10 +522,13 @@ body {
   }
 }
 
+/* On a phone the table scrolls sideways, so a track as wide as the table would leave its newest
+   stretches, at Now, off screen. It stays one screen wide and in view while the row scrolls. */
 @media (max-width: 768px) {
-  .timeline-lane {
-    grid-template-columns: 96px minmax(0, 1fr);
-    gap: var(--space-2);
+  .table-detail-row .timeline-track {
+    position: sticky;
+    left: 0;
+    width: calc(100vw - 112px);
   }
 }
 

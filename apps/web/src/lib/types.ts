@@ -166,8 +166,6 @@ export interface TimelineBar {
 
 export interface TimelineLane {
   sessionId: string
-  label: string
-  detail: string
   state: AgentSessionState
   bars: TimelineBar[]
 }

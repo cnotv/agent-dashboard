@@ -1,7 +1,9 @@
 import { ChatBubbleIcon } from '@radix-ui/react-icons'
-import { Badge, Card, IconButton, Link, Text, Tooltip } from '@radix-ui/themes'
+import { Badge, Card, Flex, IconButton, Link, Text, Tooltip } from '@radix-ui/themes'
 import { createColumnHelper } from '@tanstack/react-table'
-import type { AgentSessionSummary } from '@dashi/contracts'
+import type { AgentSessionSummary, SessionsOverview } from '@dashi/contracts'
+import { Link as RouterLink } from 'react-router'
+import { ChartLegend } from '@/components/charts/ChartLegend'
 import { SortableTable } from '@/components/tables/SortableTable'
 import type { sortableTableFeatures } from '@/components/tables/sortable-table-features'
 import {
@@ -13,7 +15,8 @@ import {
   sessionStateColors,
   sessionStateLabels,
 } from '@/lib/presentation'
-import { sessionDetail, sessionLabel, sessionStateOrder } from '@/lib/session-timeline'
+import { layoutSessionTimeline, sessionDetail, sessionLabel, sessionStateOrder } from '@/lib/session-timeline'
+import { formatTickTime, SessionTimelineAxis, SessionTimelineTrack, timelineLegendEntries } from './SessionTimeline'
 
 const columnHelper = createColumnHelper<typeof sortableTableFeatures, AgentSessionSummary>()
 
@@ -88,19 +91,52 @@ const sessionColumns = (now: number, onOpenChat: (session: AgentSessionSummary) 
   ])
 
 interface SessionsTableProps {
-  sessions: AgentSessionSummary[]
-  now: number
+  overview: SessionsOverview
+  isStale: boolean
   onOpenChat: (session: AgentSessionSummary) => void
 }
 
-/** Every session in the window as a sortable table, each led by the button that opens its conversation, so it stays in view on a phone. */
-export const SessionsTable = ({ sessions, now, onOpenChat }: SessionsTableProps) => (
-  <Card size="1">
-    <SortableTable
-      columns={sessionColumns(now, onOpenChat)}
-      rows={sessions}
-      rowKeyOf={(session) => session.sessionId}
-      numericColumnIds={['tokens']}
-    />
-  </Card>
-)
+/**
+ * Every session in the window as one sortable table, each led by the button that opens its
+ * conversation, so it stays in view on a phone. A running session's timeline sits right under its
+ * row, read against the time axis under the headings.
+ */
+export const SessionsTable = ({ overview, isStale, onOpenChat }: SessionsTableProps) => {
+  const { lanes, ticks } = layoutSessionTimeline(overview, formatTickTime)
+  const laneBySessionId = new Map(lanes.map((lane) => [lane.sessionId, lane]))
+
+  return (
+    <Card size="1">
+      <Flex direction="column" gap="3" className={isStale ? 'chart-stale' : undefined}>
+        <Flex justify="between" align="center" gap="3" wrap="wrap" className="card-heading">
+          <Text size="2" weight="medium">
+            Sessions over time
+          </Text>
+          <ChartLegend entries={timelineLegendEntries} />
+        </Flex>
+        {lanes.length === 0 && (
+          <Text size="2" color="gray" className="card-heading">
+            No session is running right now. A session appears here once its machine reports to this dashboard:{' '}
+            <Link asChild>
+              <RouterLink to="/credentials">set up a machine with one command</RouterLink>
+            </Link>
+            .
+          </Text>
+        )}
+        {overview.sessions.length > 0 && (
+          <SortableTable
+            columns={sessionColumns(Date.parse(overview.generatedAt), onOpenChat)}
+            rows={overview.sessions}
+            rowKeyOf={(session) => session.sessionId}
+            numericColumnIds={['tokens']}
+            headerDetail={lanes.length === 0 ? undefined : <SessionTimelineAxis ticks={ticks} />}
+            rowDetailOf={(session) => {
+              const lane = laneBySessionId.get(session.sessionId)
+              return lane === undefined ? null : <SessionTimelineTrack lane={lane} ticks={ticks} />
+            }}
+          />
+        )}
+      </Flex>
+    </Card>
+  )
+}
