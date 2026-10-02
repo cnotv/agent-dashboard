@@ -17,6 +17,7 @@ export interface HookHeaders {
   provider: string | undefined
   branch: string | undefined
   remote: string | undefined
+  cwd: string | undefined
 }
 
 export interface AgentEvent {
@@ -25,6 +26,8 @@ export interface AgentEvent {
   state: AgentSessionState
   repository: RepositoryReference | null
   branch: string | null
+  title: string | null
+  folder: string | null
   occurredAt: string
 }
 
@@ -43,6 +46,8 @@ export interface StoredSession {
   provider: AgentProvider
   repository: RepositoryReference | null
   branch: string | null
+  title: string | null
+  folder: string | null
   state: AgentSessionState
   startedAt: string
   lastEventAt: string

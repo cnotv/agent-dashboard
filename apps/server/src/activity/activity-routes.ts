@@ -41,6 +41,7 @@ export const createIngestRoutes = ({ activityStore, ingestTokens, now }: Activit
         provider: context.req.header('x-agent-provider'),
         branch: context.req.header('x-agent-branch'),
         remote: context.req.header('x-agent-remote'),
+        cwd: context.req.header('x-agent-cwd'),
       },
       new Date(now()).toISOString(),
     )

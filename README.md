@@ -145,7 +145,11 @@ sees the last four characters only. The key comes from one of two places:
 ## Sessions and usage
 
 **Sessions** (the default page) charts every session whose hooks report here: when it was
-working, waiting for you or idle, and a table with its branch, issue and tokens. **Usage**
+working, waiting for you or idle, and a table with its branch, issue and tokens. A session is
+named by the first line of its first prompt (at most 80 characters; nothing more of the prompt is
+kept), then by its repository, then by the folder it runs in, then by its short id; under the name
+are its repository or folder and its branch. Idle means it finished its turn and waits for your
+next message; waiting for you means it stopped to ask, such as for a permission. **Usage**
 adds up tokens across all repositories, then by repository, pull request or branch, day and
 model. It counts tokens only; subscription sessions have no per-token price to show.
 

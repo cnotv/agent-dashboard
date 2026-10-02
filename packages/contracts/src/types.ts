@@ -177,6 +177,8 @@ export interface AgentSessionSummary {
   provider: AgentProvider
   repository: RepositoryReference | null
   branch: string | null
+  title: string | null
+  folder: string | null
   issueNumber: number | null
   state: AgentSessionState
   startedAt: string

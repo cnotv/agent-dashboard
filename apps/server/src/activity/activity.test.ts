@@ -56,7 +56,7 @@ describe('repositoryFromRemote', () => {
 })
 
 describe('agentEventFrom', () => {
-  const headers = { provider: 'claude', branch: 'feat/12-sessions', remote: 'git@github.com:cnotv/dashi.git' }
+  const headers = { provider: 'claude', branch: 'feat/12-sessions', remote: 'git@github.com:cnotv/dashi.git', cwd: undefined }
 
   it('maps Claude hook events to session states', () => {
     const states = ['SessionStart', 'UserPromptSubmit', 'Notification', 'Stop', 'SessionEnd'].map(
@@ -72,8 +72,25 @@ describe('agentEventFrom', () => {
       state: 'working',
       repository: { owner: 'cnotv', name: 'dashi' },
       branch: 'feat/12-sessions',
+      title: null,
+      folder: null,
       occurredAt: at(0),
     })
+  })
+
+  it("titles a session by its first prompt's first line, and names its folder", () => {
+    const longLine = `Show the frame time in the corner ${'and more '.repeat(10)}`
+    const event = agentEventFrom(
+      { session_id: 's1', hook_event_name: 'UserPromptSubmit', prompt: '\n  Fix the marbles\nThey stick to the ramp.', cwd: '/Users/me/code/marbles/' },
+      { ...headers, remote: '' },
+      at(0),
+    )
+    expect(event).toMatchObject({ title: 'Fix the marbles', folder: 'marbles', repository: null })
+    const longTitle = agentEventFrom({ session_id: 's1', hook_event_name: 'UserPromptSubmit', prompt: longLine }, headers, at(0))?.title ?? ''
+    expect(longTitle.length).toBeLessThanOrEqual(80)
+    expect(longTitle.endsWith('…')).toBe(true)
+    const codex = agentEventFrom({ type: 'agent-turn-complete', 'thread-id': 't1', 'input-messages': ['Rename the cookie'] }, { ...headers, provider: 'codex', cwd: '/home/me/dashi' }, at(0))
+    expect(codex).toMatchObject({ title: 'Rename the cookie', folder: 'dashi' })
   })
 
   it('reads a Codex turn and ignores events it does not know', () => {
@@ -130,11 +147,28 @@ describe('activity store', () => {
   it('keeps the last known repository when a later event has none', () => {
     const store = createActivityStore(new DatabaseSync(':memory:'))
     const base = { sessionId: 's1', provider: 'claude' as const, occurredAt: at(0) }
-    store.recordEvent({ ...base, state: 'working', repository: { owner: 'cnotv', name: 'x' }, branch: 'feat/1-a' })
-    store.recordEvent({ ...base, state: 'idle', repository: null, branch: null, occurredAt: at(3) })
+    store.recordEvent({ ...base, state: 'working', repository: { owner: 'cnotv', name: 'x' }, branch: 'feat/1-a', title: null, folder: 'x' })
+    store.recordEvent({ ...base, state: 'idle', repository: null, branch: null, title: null, folder: null, occurredAt: at(3) })
     expect(store.readSessions()).toEqual([
-      expect.objectContaining({ state: 'idle', repository: { owner: 'cnotv', name: 'x' }, branch: 'feat/1-a', startedAt: at(0) }),
+      expect.objectContaining({ state: 'idle', repository: { owner: 'cnotv', name: 'x' }, branch: 'feat/1-a', folder: 'x', startedAt: at(0) }),
     ])
+  })
+
+  it('keeps the first title a session gets', () => {
+    const store = createActivityStore(new DatabaseSync(':memory:'))
+    const base = { sessionId: 's1', provider: 'claude' as const, repository: null, branch: null, folder: null }
+    store.recordEvent({ ...base, state: 'working', title: 'Fix the marbles', occurredAt: at(0) })
+    store.recordEvent({ ...base, state: 'working', title: 'yes, go on', occurredAt: at(2) })
+    expect(store.readSessions()[0]?.title).toBe('Fix the marbles')
+  })
+
+  it('adds the title and folder columns to a database from before them', () => {
+    const database = new DatabaseSync(':memory:')
+    database.exec(`CREATE TABLE agent_sessions (session_id TEXT PRIMARY KEY, provider TEXT NOT NULL, repository_owner TEXT,
+      repository_name TEXT, branch TEXT, state TEXT NOT NULL, started_at TEXT NOT NULL, last_event_at TEXT NOT NULL)`)
+    const store = createActivityStore(database)
+    store.recordEvent({ sessionId: 's1', provider: 'claude', repository: null, branch: null, title: 'Old database', folder: 'dashi', state: 'idle', occurredAt: at(0) })
+    expect(store.readSessions()[0]).toMatchObject({ title: 'Old database', folder: 'dashi' })
   })
 })
 
@@ -159,6 +193,8 @@ describe('timeline and states', () => {
       provider: 'claude',
       repository: null,
       branch: null,
+      title: null,
+      folder: null,
       state: 'working',
       startedAt: at(0),
       lastEventAt: at(0),

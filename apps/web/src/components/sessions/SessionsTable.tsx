@@ -10,7 +10,6 @@ import {
   formatTimeAgo,
   gitHubIssueUrl,
   providerLabels,
-  repositoryKey,
   sessionStateColors,
   sessionStateLabels,
 } from '@/lib/presentation'
@@ -36,7 +35,7 @@ const sessionColumns = (now: number, onOpenChat: (session: AgentSessionSummary) 
         </Tooltip>
       ),
     }),
-    columnHelper.accessor((session) => (session.repository ? repositoryKey(session.repository) : sessionLabel(session)), {
+    columnHelper.accessor((session) => sessionLabel(session), {
       id: 'session',
       header: 'Session',
       sortFn: 'alphanumeric',

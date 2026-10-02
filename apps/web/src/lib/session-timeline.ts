@@ -26,19 +26,23 @@ export const isOngoing = (session: AgentSessionSummary): boolean => isChartedSta
 const shortSessionId = (sessionId: string): string => sessionId.slice(0, 8)
 
 /**
- * Names a session by its repository, or by its short id when it has none.
+ * Names a session by what it was asked first, then by its repository or folder, then by its short id.
  * @param session The session.
  * @returns The label.
  */
 export const sessionLabel = (session: AgentSessionSummary): string =>
-  session.repository === null ? `Session ${shortSessionId(session.sessionId)}` : session.repository.name
+  session.title ?? session.repository?.name ?? session.folder ?? `Session ${shortSessionId(session.sessionId)}`
 
 /**
- * The second line under a session's name: its branch, or its short id.
+ * The second line under a session's name: where it works and on which branch, or its short id.
  * @param session The session.
  * @returns The detail.
  */
-export const sessionDetail = (session: AgentSessionSummary): string => session.branch ?? shortSessionId(session.sessionId)
+export const sessionDetail = (session: AgentSessionSummary): string => {
+  const place = session.repository === null ? session.folder : `${session.repository.owner}/${session.repository.name}`
+  const parts = [place, session.branch].filter((part) => part !== null)
+  return parts.length === 0 ? shortSessionId(session.sessionId) : parts.join(' · ')
+}
 
 const percentOf = (milliseconds: number, windowStart: number, windowLength: number): number =>
   Math.min(100, Math.max(0, ((milliseconds - windowStart) / windowLength) * 100))

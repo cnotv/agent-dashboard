@@ -68,6 +68,8 @@ describe('session chat', () => {
       state: 'working',
       repository: null,
       branch: null,
+      title: null,
+      folder: null,
       occurredAt: new Date(clock.now).toISOString(),
     })
     await readChat()
