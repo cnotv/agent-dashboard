@@ -7,7 +7,6 @@ import { StatTile } from '@/components/charts/StatTile'
 import { SessionChatDrawer } from '@/components/sessions/SessionChatDrawer'
 import { SessionStartsList } from '@/components/sessions/SessionStartsList'
 import { StartDetailsDrawer } from '@/components/sessions/StartDetailsDrawer'
-import { SessionTimeline } from '@/components/sessions/SessionTimeline'
 import { SessionsTable } from '@/components/sessions/SessionsTable'
 import { useSessionsOverview } from '@/hooks/useActivity'
 import { useSessionStarts } from '@/hooks/useSessionStarts'
@@ -87,14 +86,11 @@ export const SessionsView = () => {
             <StatTile label="Idle" value={String(countInState('idle'))} />
             <StatTile label="Tokens in this window" value={formatCompactCount(windowTokens)} />
           </Grid>
-          <SessionTimeline overview={overview} isStale={isStale} />
-          {overview.sessions.length > 0 && (
-            <SessionsTable
-              sessions={overview.sessions}
-              now={Date.parse(overview.generatedAt)}
-              onOpenChat={(session) => setChatSubject(chatSubjectOfSession(session))}
-            />
-          )}
+          <SessionsTable
+            overview={overview}
+            isStale={isStale}
+            onOpenChat={(session) => setChatSubject(chatSubjectOfSession(session))}
+          />
         </>
       )}
       <SessionChatDrawer subject={chatSubject} onClose={() => setChatSubject(null)} />

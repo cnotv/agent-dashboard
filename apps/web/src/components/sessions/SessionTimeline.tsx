@@ -1,18 +1,19 @@
-import { Card, Flex, Link, Text, Tooltip } from '@radix-ui/themes'
-import type { SessionsOverview } from '@dashi/contracts'
-import { Link as RouterLink } from 'react-router'
-import { ChartLegend } from '@/components/charts/ChartLegend'
+import { Flex, Text, Tooltip } from '@radix-ui/themes'
 import { formatDuration, sessionStateLabels } from '@/lib/presentation'
-import { layoutSessionTimeline } from '@/lib/session-timeline'
-import type { TimelineBar } from '@/lib/types'
+import type { TimeTick, TimelineBar, TimelineLane } from '@/lib/types'
 
 const formatClockTime = (isoTime: string): string =>
   new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-// Ticks sit on whole hours, so the axis drops the minutes and stays narrow on a phone.
-const formatTickTime = (isoTime: string): string => new Date(isoTime).toLocaleTimeString([], { hour: 'numeric' })
+/**
+ * Writes an axis tick's time. Ticks sit on whole hours, so the axis drops the minutes and stays
+ * narrow on a phone.
+ * @param isoTime The tick's time.
+ * @returns The hour.
+ */
+export const formatTickTime = (isoTime: string): string => new Date(isoTime).toLocaleTimeString([], { hour: 'numeric' })
 
-const legendEntries = (['working', 'waiting', 'idle'] as const).map((state) => ({
+export const timelineLegendEntries = (['working', 'waiting', 'idle'] as const).map((state) => ({
   entryKey: state,
   label: sessionStateLabels[state],
   swatchClassName: `chart-state-${state}`,
@@ -27,9 +28,9 @@ const barDescription = (bar: TimelineBar): string =>
 const TimelineBarMark = ({ bar }: { bar: TimelineBar }) => (
   <Tooltip
     content={
-      <Flex direction="column" gap="1">
+      <Flex as="span" direction="column" gap="1">
         <Text weight="bold">{formatDuration(Date.parse(bar.endedAt) - Date.parse(bar.startedAt))}</Text>
-        <Flex gap="2" align="center">
+        <Flex as="span" gap="2" align="center">
           <span className={`chart-line-key chart-state-${bar.state}`} aria-hidden="true" />
           <span>
             {sessionStateLabels[bar.state]}, {formatClockTime(bar.startedAt)} to {formatClockTime(bar.endedAt)}
@@ -47,68 +48,30 @@ const TimelineBarMark = ({ bar }: { bar: TimelineBar }) => (
   </Tooltip>
 )
 
-/** The timeline of running sessions: one lane per session, coloured by state, with a tooltip on every stretch. */
-export const SessionTimeline = ({ overview, isStale }: { overview: SessionsOverview; isStale: boolean }) => {
-  const { lanes, ticks } = layoutSessionTimeline(overview, formatTickTime)
+/** One session's stretches over the window, coloured by state, with a tooltip on each. */
+export const SessionTimelineTrack = ({ lane, ticks }: { lane: TimelineLane; ticks: TimeTick[] }) => (
+  <div className="timeline-track">
+    {ticks.map((tick) => (
+      <span key={tick.tickKey} className="timeline-gridline" style={{ left: `${tick.leftPercent}%` }} />
+    ))}
+    {lane.bars.map((bar) => (
+      <TimelineBarMark key={bar.barKey} bar={bar} />
+    ))}
+  </div>
+)
 
-  return (
-    <Card size="2">
-      <Flex direction="column" gap="4" className={isStale ? 'chart-stale' : undefined}>
-        <Flex justify="between" align="center" gap="3" wrap="wrap">
-          <Text size="2" weight="medium">
-            Ongoing sessions over time
-          </Text>
-          <ChartLegend entries={legendEntries} />
-        </Flex>
-
-        {lanes.length === 0 ? (
-          <Text size="2" color="gray">
-            No session is running right now. A session appears here once its machine reports to this dashboard:{' '}
-            <Link asChild>
-              <RouterLink to="/credentials">set up a machine with one command</RouterLink>
-            </Link>
-            .
-          </Text>
-        ) : (
-          <div className="timeline">
-            {lanes.map((lane) => (
-              <div key={lane.sessionId} className="timeline-lane">
-                <div className="timeline-lane-label">
-                  <Text as="div" size="2" weight="medium" truncate>
-                    {lane.label}
-                  </Text>
-                  <Text as="div" size="1" color="gray" truncate>
-                    {lane.detail}
-                  </Text>
-                </div>
-                <div className="timeline-track">
-                  {ticks.map((tick) => (
-                    <span key={tick.tickKey} className="timeline-gridline" style={{ left: `${tick.leftPercent}%` }} />
-                  ))}
-                  {lane.bars.map((bar) => (
-                    <TimelineBarMark key={bar.barKey} bar={bar} />
-                  ))}
-                </div>
-              </div>
-            ))}
-            <div className="timeline-lane timeline-axis" aria-hidden="true">
-              <span />
-              <div className="timeline-track">
-                {ticks
-                  .filter((tick) => tick.leftPercent <= lastLabelledTickPercent)
-                  .map((tick) => (
-                  <Text key={tick.tickKey} size="1" color="gray" className="timeline-tick" style={{ left: `${tick.leftPercent}%` }}>
-                    {tick.label}
-                  </Text>
-                ))}
-                <Text size="1" color="gray" className="timeline-tick timeline-tick-now">
-                  Now
-                </Text>
-              </div>
-            </div>
-          </div>
-        )}
-      </Flex>
-    </Card>
-  )
-}
+/** The window's time axis, read against every track below it. */
+export const SessionTimelineAxis = ({ ticks }: { ticks: TimeTick[] }) => (
+  <div className="timeline-track timeline-axis" aria-hidden="true">
+    {ticks
+      .filter((tick) => tick.leftPercent <= lastLabelledTickPercent)
+      .map((tick) => (
+        <Text key={tick.tickKey} size="1" color="gray" weight="regular" className="timeline-tick" style={{ left: `${tick.leftPercent}%` }}>
+          {tick.label}
+        </Text>
+      ))}
+    <Text size="1" color="gray" weight="regular" className="timeline-tick timeline-tick-now">
+      Now
+    </Text>
+  </div>
+)

@@ -89,8 +89,6 @@ export const layoutSessionTimeline = (
   const lanes = overview.sessions.filter(isOngoing).map(
     (session): TimelineLane => ({
       sessionId: session.sessionId,
-      label: sessionLabel(session),
-      detail: sessionDetail(session),
       state: session.state,
       bars: overview.timeline
         .filter((segment) => segment.sessionId === session.sessionId)

@@ -1,4 +1,5 @@
 import { Flex, Table } from '@radix-ui/themes'
+import { Fragment, type ReactNode } from 'react'
 import { flexRender, useTable, type ColumnDef, type RowData } from '@tanstack/react-table'
 import { SortIndicator } from './SortIndicator'
 import { sortableTableFeatures } from './sortable-table-features'
@@ -8,10 +9,29 @@ interface SortableTableProps<Row extends RowData> {
   rows: Row[]
   rowKeyOf: (row: Row) => string
   numericColumnIds: string[]
+  // A full-width line under a row, such as a session's timeline, kept with its row when sorting.
+  // It spans every column but the first, which leads each row with its action.
+  rowDetailOf?: (row: Row) => ReactNode | null
+  // The same kind of line under the headings, such as the axis the row lines are read against.
+  headerDetail?: ReactNode
 }
 
+const DetailRow = ({ columnCount, children }: { columnCount: number; children: ReactNode }) => (
+  <Table.Row className="table-detail-row">
+    <Table.Cell />
+    <Table.Cell colSpan={columnCount - 1}>{children}</Table.Cell>
+  </Table.Row>
+)
+
 /** A TanStack table on Radix Table with sortable headings and right-aligned numeric columns. */
-export const SortableTable = <Row extends RowData>({ columns, rows, rowKeyOf, numericColumnIds }: SortableTableProps<Row>) => {
+export const SortableTable = <Row extends RowData>({
+  columns,
+  rows,
+  rowKeyOf,
+  numericColumnIds,
+  rowDetailOf,
+  headerDetail,
+}: SortableTableProps<Row>) => {
   const table = useTable({
     features: sortableTableFeatures,
     columns,
@@ -41,21 +61,28 @@ export const SortableTable = <Row extends RowData>({ columns, rows, rowKeyOf, nu
             ))}
           </Table.Row>
         ))}
+        {headerDetail !== undefined && <DetailRow columnCount={columns.length}>{headerDetail}</DetailRow>}
       </Table.Header>
       <Table.Body>
-        {table.getRowModel().rows.map((row) => (
-          <Table.Row key={row.id} align="center">
-            {row.getAllCells().map((cell) => (
-              <Table.Cell
-                key={cell.id}
-                justify={justifyOf(cell.column.id)}
-                className={numericColumnIds.includes(cell.column.id) ? 'numeric-cell' : undefined}
-              >
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </Table.Cell>
-            ))}
-          </Table.Row>
-        ))}
+        {table.getRowModel().rows.map((row) => {
+          const rowDetail = rowDetailOf?.(row.original) ?? null
+          return (
+            <Fragment key={row.id}>
+              <Table.Row align="center" className={rowDetail === null ? undefined : 'table-row-with-detail'}>
+                {row.getAllCells().map((cell) => (
+                  <Table.Cell
+                    key={cell.id}
+                    justify={justifyOf(cell.column.id)}
+                    className={numericColumnIds.includes(cell.column.id) ? 'numeric-cell' : undefined}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+              {rowDetail !== null && <DetailRow columnCount={columns.length}>{rowDetail}</DetailRow>}
+            </Fragment>
+          )
+        })}
       </Table.Body>
     </Table.Root>
   )

@@ -144,8 +144,9 @@ sees the last four characters only. The key comes from one of two places:
 
 ## Sessions and usage
 
-**Sessions** (the default page) charts every session whose hooks report here: when it was
-working, waiting for you or idle, and a table with its branch, issue and tokens. A session is
+**Sessions** (the default page) lists every session whose hooks report here in one table, with
+its branch, issue and tokens. Under each running session's row is its timeline: when it was
+working, waiting for you or idle, read against the time axis under the headings. A session is
 named by the first line of its first prompt (at most 80 characters; nothing more of the prompt is
 kept), then by its repository, then by the folder it runs in, then by its short id; under the name
 are its repository or folder and its branch. Idle means it finished its turn and waits for your
