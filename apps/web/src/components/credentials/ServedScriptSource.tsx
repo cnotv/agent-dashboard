@@ -33,6 +33,10 @@ export const ServedScriptSource = ({ scriptName, scriptInfo, sourcePath, doesLis
     <Code size="1" className="runner-hash">
       SHA-256 {scriptInfo?.sha256 ?? 'loading…'}
     </Code>
+    <Text size="1" color="gray">
+      This is the file&rsquo;s public fingerprint, not a secret: anyone can work it out from the file, and it grants no access.
+      It changes only when the file does.
+    </Text>
     <Text size="2" color="gray">
       What it does:
     </Text>

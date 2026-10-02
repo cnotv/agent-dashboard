@@ -5,6 +5,7 @@ import { usePolledResource } from '@/hooks/usePolledResource'
 import { dashboardApi } from '@/lib/api'
 import { cliConnectCommands, platformLabels, platformOfUserAgent } from '@/lib/machine-setup'
 import { dashboardAddress } from '@/lib/runtime-configuration'
+import { CollapsibleSteps } from './CollapsibleSteps'
 import { CopyableSnippet } from './CopyableSnippet'
 import { ServedScriptSource } from './ServedScriptSource'
 
@@ -19,12 +20,13 @@ const cliDoesList = [
 ]
 
 /**
- * The Set up a machine panel: one command that downloads the dashi CLI, checks its hash and
- * connects the machine through a code approved on the pair page.
+ * The Set up a machine panel: a button that unfolds the one command that downloads
+ * the dashi CLI, checks its hash and connects the machine through a code approved on the pair page.
  */
 export const MachineSetupPanel = () => {
+  const [isOpen, setIsOpen] = useState(false)
   const [platform, setPlatform] = useState<MachinePlatform>(() => platformOfUserAgent(navigator.userAgent))
-  const { resource: scriptInfo } = usePolledResource('cli-script-info', () => dashboardApi.readCliScriptInfo(), null)
+  const { resource: scriptInfo } = usePolledResource(`cli-script-info-${isOpen}`, () => dashboardApi.readCliScriptInfo(), null)
 
   return (
     <Card size="2" id="set-up-a-machine">
@@ -38,27 +40,29 @@ export const MachineSetupPanel = () => {
             sessions you start from the board. You approve it on this dashboard with a code. The panels below do the same by hand.
           </Text>
         </Flex>
-        <SegmentedControl.Root
-          value={platform}
-          onValueChange={(value) => setPlatform(value === 'linux' ? 'linux' : 'macos')}
-          aria-label="Operating system"
-          className="platform-choice"
-        >
-          {(['macos', 'linux'] as const).map((listedPlatform) => (
-            <SegmentedControl.Item key={listedPlatform} value={listedPlatform}>
-              {platformLabels[listedPlatform]}
-            </SegmentedControl.Item>
-          ))}
-        </SegmentedControl.Root>
-        {scriptInfo && (
-          <>
-            <Text size="2" color="gray">
-              Paste this into a terminal on the machine:
-            </Text>
-            <CopyableSnippet snippet={cliConnectCommands({ dashboardUrl: dashboardAddress(), scriptSha256: scriptInfo.sha256, platform })} />
-          </>
-        )}
-        <ServedScriptSource scriptName="dashi" scriptInfo={scriptInfo} sourcePath="apps/cli/src/dashi.ts" doesList={cliDoesList} reviewSnippet={null} />
+        <CollapsibleSteps label="Set up a machine" isOpen={isOpen} onOpenChange={setIsOpen}>
+          <SegmentedControl.Root
+            value={platform}
+            onValueChange={(value) => setPlatform(value === 'linux' ? 'linux' : 'macos')}
+            aria-label="Operating system"
+            className="platform-choice"
+          >
+            {(['macos', 'linux'] as const).map((listedPlatform) => (
+              <SegmentedControl.Item key={listedPlatform} value={listedPlatform}>
+                {platformLabels[listedPlatform]}
+              </SegmentedControl.Item>
+            ))}
+          </SegmentedControl.Root>
+          {scriptInfo && (
+            <>
+              <Text size="2" color="gray">
+                Paste this into a terminal on the machine:
+              </Text>
+              <CopyableSnippet snippet={cliConnectCommands({ dashboardUrl: dashboardAddress(), scriptSha256: scriptInfo.sha256, platform })} />
+            </>
+          )}
+          <ServedScriptSource scriptName="dashi" scriptInfo={scriptInfo} sourcePath="apps/cli/src/dashi.ts" doesList={cliDoesList} reviewSnippet={null} />
+        </CollapsibleSteps>
       </Flex>
     </Card>
   )

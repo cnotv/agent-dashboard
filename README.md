@@ -159,7 +159,7 @@ one is the `dashi` CLI, below; the steps after it do the same by hand.
 
 ### Set up a machine with the dashi CLI
 
-**Credentials, Set up a machine** shows one command for macOS or Linux. It downloads the CLI,
+**Credentials, Set up a machine** unfolds one command for macOS or Linux. It downloads the CLI,
 `apps/cli/src/dashi.ts`, which the dashboard serves from `/api/cli/script`. It checks the file
 against the SHA-256 the page shows (from `/api/cli/script-info`) and stops on a mismatch. Then
 it runs `node ~/dashi/dashi.ts connect <dashboard>`. It needs only Node 22.18 or later: no npm
@@ -353,7 +353,7 @@ own way to start sessions from the Claude app; the runner adds the board's issue
 ### Claude cloud routines
 
 For starts with the laptop off, each repository needs a routine. Anthropic has no API to create
-one, so **Credentials, Claude cloud routines** walks through it in numbered steps: create the
+one, so **Credentials, Claude cloud routines** unfolds numbered steps for it, under **Set up the routine**: create the
 routine at [claude.ai/code/routines](https://claude.ai/code/routines) with the repository selected,
 give it the prompt shown (the routine only sees the fired text as untrusted until its own prompt
 says to follow it), add an **API** trigger and generate its token, and save the id and token there.
