@@ -196,7 +196,8 @@ newest first in each column, each card naming its repository. The toggle above i
 one repository, picked from the list and kept in the address (`?repository=owner/name`).
 
 The last column, **Closed**, holds each repository's 20 most recently closed issues, with when
-each closed and the pull request that closed it. Every column's arrow folds it to a strip
+each closed and the merged pull request that closed it, whose checks, deploy preview, screenshot,
+video and changed files stay on the card. Every column's arrow folds it to a strip
 showing only its name and count; **No pull request** and **Closed** start folded, and this
 browser remembers what you fold.
 

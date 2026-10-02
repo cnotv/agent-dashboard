@@ -9,6 +9,7 @@ import type {
   PullRequestSummary,
   RepositoryReference,
 } from '@dashi/contracts'
+import type { ClosedIssue } from './types.ts'
 
 const branchIssuePattern = /^(?:feat|fix|docs|refactor|test|chore)\/(\d+)-/
 
@@ -94,8 +95,7 @@ export const deriveIssueStatus = (pullRequest: PullRequestSummary | null): Issue
 export const pullRequestClosesIssue = (pullRequest: PullRequestSummary, issue: IssueSummary): boolean =>
   issue.linkedPullRequestNumbers.includes(pullRequest.number) || issueNumberFromBranch(pullRequest.headRefName) === issue.number
 
-const newestFirst = (first: { updatedAt: string }, second: { updatedAt: string }): number =>
-  second.updatedAt.localeCompare(first.updatedAt)
+const newestFirst = (first: { updatedAt: string }, second: { updatedAt: string }): number => second.updatedAt.localeCompare(first.updatedAt)
 
 /**
  * Gives each pull request one card listing every issue it works on, gives each issue without a
@@ -124,20 +124,20 @@ export const buildBoardCards = (issues: IssueSummary[], pullRequests: PullReques
 
 /**
  * Builds a repository's board, with the cards sorted into columns in the board's order. Each closed
- * issue gets a card of its own in the last column, without its pull request, which is no longer open.
+ * issue gets a card of its own in the last column, with the merged pull request that closed it.
  * @param repository The repository.
- * @param issues The open issues, and the most recently closed ones.
+ * @param issues The open issues, and the most recently closed ones with their merged pull requests.
  * @param pullRequests The open pull requests.
  * @param fetchedAt When GitHub was read.
  * @returns The board.
  */
 export const buildBoard = (
   repository: RepositoryReference,
-  issues: { open: IssueSummary[]; closed: IssueSummary[] },
+  issues: { open: IssueSummary[]; closed: ClosedIssue[] },
   pullRequests: PullRequestSummary[],
   fetchedAt: string,
 ): Board => {
-  const closedCards: BoardCard[] = issues.closed.map((issue) => ({ issues: [issue], pullRequest: null, status: 'closed' }))
+  const closedCards: BoardCard[] = issues.closed.map(({ issue, pullRequest }) => ({ issues: [issue], pullRequest, status: 'closed' }))
   const boardCards = [...buildBoardCards(issues.open, pullRequests), ...closedCards]
   return {
     repository,

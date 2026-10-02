@@ -1,7 +1,6 @@
 import { FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, IconButton, Link, Separator, Text, Tooltip } from '@radix-ui/themes'
 import type { BoardCard, IssueSummary, RepositoryReference } from '@dashi/contracts'
-import { gitHubPullRequestUrl } from '@/lib/presentation'
 import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'
 import { PullRequestFilesDrawer } from './PullRequestFilesDrawer'
@@ -34,18 +33,9 @@ const IssueHeading = ({ issue }: { issue: IssueSummary }) => (
 
 const closedDateFormat = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 
-// A closed issue says when it closed and which pull request did it, the only links left to follow.
-const ClosedNote = ({ issue, repository }: { issue: IssueSummary; repository: RepositoryReference }) => (
+const ClosedNote = ({ issue }: { issue: IssueSummary }) => (
   <Text size="1" color="gray">
     Closed {issue.closedAt ? closedDateFormat.format(new Date(issue.closedAt)) : ''}
-    {issue.linkedPullRequestNumbers.map((pullRequestNumber, index) => (
-      <span key={pullRequestNumber}>
-        {index === 0 ? ' by ' : ', '}
-        <Link href={gitHubPullRequestUrl(repository, pullRequestNumber)} target="_blank" rel="noopener noreferrer" color="gray">
-          #{pullRequestNumber}
-        </Link>
-      </span>
-    ))}
   </Text>
 )
 
@@ -72,8 +62,8 @@ const PreviewButton = ({ previewUrl }: { previewUrl: string | null }) =>
  * One board card: its repository when the board shows several, every issue its pull request works
  * on with the pull request's checks at the top right, then the pull request, and one row of icons.
  * An issue without a pull request has only Start; a pull request has its merge conflict, deploy
- * preview, screenshot, video, changed files, merge and close. A closed issue has no icons, only
- * when it closed and by which pull request.
+ * preview, screenshot, video, changed files, merge and close. A closed issue says when it closed
+ * and keeps the preview, recording and files of the merged pull request that closed it.
  */
 export const BoardCardItem = ({ card, repository, showRepository, onPullRequestChanged }: BoardCardItemProps) => (
   <Card size="2">
@@ -92,7 +82,7 @@ export const BoardCardItem = ({ card, repository, showRepository, onPullRequestC
           ) : (
             card.issues.map((issue) => <IssueHeading key={issue.number} issue={issue} />)
           )}
-          {card.status === 'closed' && card.issues[0] && <ClosedNote issue={card.issues[0]} repository={repository} />}
+          {card.status === 'closed' && card.issues[0] && <ClosedNote issue={card.issues[0]} />}
         </Flex>
         {card.pullRequest && <GateIndicator gates={card.pullRequest.gates} summary={card.pullRequest.gateSummary} />}
       </Flex>
@@ -104,6 +94,16 @@ export const BoardCardItem = ({ card, repository, showRepository, onPullRequestC
             <Link href={card.pullRequest.url} target="_blank" rel="noopener noreferrer" size="1" color="gray" underline="hover">
               #{card.pullRequest.number} {card.pullRequest.title}
             </Link>
+          </Flex>
+        </>
+      )}
+      {card.status === 'closed' && card.pullRequest && (
+        <>
+          <Separator size="4" />
+          <Flex className="card-icon-row" gap="2" align="center">
+            <PreviewButton previewUrl={card.pullRequest.previewUrl} />
+            <PullRequestMedia repository={repository} pullRequest={card.pullRequest} />
+            <PullRequestFilesDrawer repository={repository} pullRequest={card.pullRequest} />
           </Flex>
         </>
       )}

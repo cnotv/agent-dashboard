@@ -88,6 +88,8 @@ describe('createDemoApi', () => {
     expect(closedCards.flatMap((card) => card.issues.map((issue) => issue.number))).toEqual(
       expect.arrayContaining(mergedCard!.issues.map((issue) => issue.number)),
     )
+    const closedWithMergedPullRequest = closedCards.filter((card) => card.pullRequest?.number === mergedCard!.pullRequest!.number)
+    expect(closedWithMergedPullRequest).toHaveLength(mergedCard!.issues.length)
   })
 
   it('enables Netlify for a repository in memory only', async () => {
