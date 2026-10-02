@@ -7,10 +7,10 @@ import type {
   CreatedMachineToken,
   IssueStatus,
   MachineTokenSummary,
-  MediaKind,
   MachineTokenKind,
   MachinePlatform,
   NetlifyStatus,
+  PreviewMediaKind,
   PairingApproval,
   PairingDescription,
   PullRequestFiles,
@@ -124,7 +124,7 @@ export interface DashboardApi {
   testSecret: (name: string) => Promise<SecretTestResult>
   listRepositories: () => Promise<RepositoryReference[]>
   readBoard: (repository: RepositoryReference, refresh: boolean) => Promise<Board>
-  pullRequestMediaUrl: (repository: RepositoryReference, pullRequest: PullRequestSummary, kind: MediaKind) => string
+  pullRequestMediaUrl: (repository: RepositoryReference, pullRequest: PullRequestSummary, kind: PreviewMediaKind) => string
   mergePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
   closePullRequest: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<void>
   readPullRequestFiles: (repository: RepositoryReference, pullRequest: PullRequestSummary) => Promise<PullRequestFiles>

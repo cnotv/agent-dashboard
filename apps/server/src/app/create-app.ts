@@ -12,7 +12,7 @@ import { createIssue } from '../github/issues.ts'
 import { closePullRequest, mergePullRequest } from '../github/pull-request-actions.ts'
 import { fetchPullRequestFiles } from '../github/pull-request-files.ts'
 import type { PullRequestActionResult } from '../github/types.ts'
-import { readStoredMedia, storePreviewFiles } from '../media/media-store.ts'
+import { hasStoredRecording, readStoredMedia, storePreviewFiles } from '../media/media-store.ts'
 import { downloadPreviewFiles, fetchPreviewArtifacts, withPreviewMedia } from '../media/preview-artifacts.ts'
 import type { PreviewArtifactsBySha } from '../media/types.ts'
 import { activeStatusOf, enableNetlifyForRepository, fetchNetlifySites, findSiteForRepository } from '../netlify/sites.ts'
@@ -32,7 +32,7 @@ import type { AppDependencies, AppEnvironment } from './types.ts'
 const passphraseBodySchema = z.object({ passphrase: z.string().min(1) })
 const secretBodySchema = z.object({ value: z.string().min(1).max(4096) })
 const rotateBodySchema = z.object({ nextKey: z.string().min(1) })
-const mediaParamsSchema = z.object({ number: z.coerce.number().int().positive(), kind: z.enum(['image', 'video']) })
+const mediaParamsSchema = z.object({ number: z.coerce.number().int().positive(), kind: z.enum(['image', 'video', 'before']) })
 const commitShaSchema = z.string().regex(/^[0-9a-f]{7,40}$/)
 const pullRequestNumberSchema = z.coerce.number().int().positive()
 const mergeBodySchema = z.object({ title: z.string().trim().min(1).max(256), headSha: z.string().regex(/^[0-9a-f]{40}$/) })
@@ -382,9 +382,11 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     if (artifactId !== undefined) {
       const storedMedia =
         (await readStoredMedia(dependencies.mediaCacheDirectory, artifactId, kind)) ??
-        (await downloadPreviewFiles(dependencies.createGithubRestFetcher(githubToken), repository, artifactId)
-          .then((files) => storePreviewFiles(dependencies.mediaCacheDirectory, artifactId, files))
-          .then(() => readStoredMedia(dependencies.mediaCacheDirectory, artifactId, kind)))
+        ((await hasStoredRecording(dependencies.mediaCacheDirectory, artifactId))
+          ? null
+          : await downloadPreviewFiles(dependencies.createGithubRestFetcher(githubToken), repository, artifactId)
+              .then((files) => storePreviewFiles(dependencies.mediaCacheDirectory, artifactId, files))
+              .then(() => readStoredMedia(dependencies.mediaCacheDirectory, artifactId, kind)))
       if (storedMedia !== null) {
         return context.body(storedMedia.bytes, 200, {
           'content-type': storedMedia.contentType,
@@ -395,6 +397,8 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
       }
     }
 
+    // A pull request body has no before picture; only the recording does.
+    if (kind === 'before') return context.json({ error: 'This pull request has no before screenshot' }, 404)
     const cacheKey = `${repositoryCacheKey}#${pullRequestNumber}`
     const bodyHtml = await readBodyHtml(cacheKey, () =>
       fetchPullRequestBodyHtml(dependencies.createGraphqlFetcher(githubToken), repository, pullRequestNumber),

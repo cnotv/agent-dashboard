@@ -21,8 +21,13 @@ describe('latestPreviewArtifactBySha', () => {
 })
 
 describe('extractPreviewFiles', () => {
-  it('takes only the screenshot and the video', () => {
+  it('takes only the screenshot, the video and the before picture', () => {
     const zipBytes = zipSync({ 'screenshot.png': new Uint8Array([1]), 'notes.txt': new Uint8Array([2]) })
-    expect(extractPreviewFiles(zipBytes)).toEqual({ image: new Uint8Array([1]), video: null })
+    expect(extractPreviewFiles(zipBytes)).toEqual({ image: new Uint8Array([1]), video: null, before: null })
+  })
+
+  it('takes the base branch screenshot when the recording has one', () => {
+    const zipBytes = zipSync({ 'screenshot.png': new Uint8Array([1]), 'before.png': new Uint8Array([3]) })
+    expect(extractPreviewFiles(zipBytes).before).toEqual(new Uint8Array([3]))
   })
 })

@@ -1,13 +1,14 @@
 import { unzipSync } from 'fflate'
-import type { Board, MediaKind, RepositoryReference } from '@dashi/contracts'
+import type { Board, PreviewMediaKind, RepositoryReference } from '@dashi/contracts'
 import { previewArtifactListSchema } from './schema.ts'
 import type { GithubRestFetcher } from '../github/types.ts'
 import type { PreviewArtifactsBySha, PreviewFiles } from './types.ts'
 
 // The names the shared pr-preview workflow in agent-base uploads.
 export const previewArtifactName = 'pr-preview'
-export const previewFileNames: Record<MediaKind, string> = { image: 'screenshot.png', video: 'video.webm' }
-export const previewContentTypes: Record<MediaKind, string> = { image: 'image/png', video: 'video/webm' }
+export const previewFileNames: Record<PreviewMediaKind, string> = { image: 'screenshot.png', video: 'video.webm', before: 'before.png' }
+export const previewContentTypes: Record<PreviewMediaKind, string> = { image: 'image/png', video: 'video/webm', before: 'image/png' }
+export const previewMediaKinds: PreviewMediaKind[] = ['image', 'video', 'before']
 
 const maximumArtifactBytes = 50 * 1024 * 1024
 
@@ -65,9 +66,10 @@ export const withPreviewMedia = (board: Board, artifactsBySha: PreviewArtifactsB
 })
 
 /**
- * Takes the screenshot and the video out of a recording's zip.
+ * Takes the screenshot, the video and the base branch's screenshot out of a recording's zip.
  * @param zipBytes The zip GitHub served.
- * @returns The two files, each null when missing or too large.
+ * @returns The files, each null when missing or too large; recordings made before the base
+ * branch was captured have no before picture.
  */
 export const extractPreviewFiles = (zipBytes: Uint8Array): PreviewFiles => {
   const wantedNames = Object.values(previewFileNames)
@@ -76,15 +78,15 @@ export const extractPreviewFiles = (zipBytes: Uint8Array): PreviewFiles => {
   const files = unzipSync(zipBytes, {
     filter: (file) => wantedNames.includes(file.name) && file.originalSize <= maximumArtifactBytes,
   })
-  return { image: files[previewFileNames.image] ?? null, video: files[previewFileNames.video] ?? null }
+  return { image: files[previewFileNames.image] ?? null, video: files[previewFileNames.video] ?? null, before: files[previewFileNames.before] ?? null }
 }
 
 /**
- * Downloads a recording's zip and takes its two files out.
+ * Downloads a recording's zip and takes its files out.
  * @param fetchGithub The REST caller.
  * @param repository The repository.
  * @param artifactId The artifact to download.
- * @returns The screenshot and the video; throws when GitHub refuses or the zip is too large.
+ * @returns The recording's files; throws when GitHub refuses or the zip is too large.
  */
 export const downloadPreviewFiles = async (
   fetchGithub: GithubRestFetcher,
