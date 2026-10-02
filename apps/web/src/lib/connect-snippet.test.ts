@@ -8,8 +8,8 @@ describe('connectSnippet', () => {
       extraKnownMarketplaces: { cnotv: { source: { source: 'github', repo: 'cnotv/agent-base' } } },
       enabledPlugins: { 'workflow@cnotv': true },
       env: {
-        AGENT_DASHBOARD_URL: 'https://agents.example.com',
-        AGENT_DASHBOARD_TOKEN: 'adt_example',
+        DASHI_URL: 'https://agents.example.com',
+        DASHI_TOKEN: 'adt_example',
         CLAUDE_CODE_ENABLE_TELEMETRY: '1',
         OTEL_METRICS_EXPORTER: 'otlp',
         OTEL_EXPORTER_OTLP_PROTOCOL: 'http/json',

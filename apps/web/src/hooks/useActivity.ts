@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { CreatedMachineToken, MachineTokenKind, MachineTokenSummary } from '@agent-dashboard/contracts'
+import type { CreatedMachineToken, MachineTokenKind, MachineTokenSummary } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 import { usePolledResource } from './usePolledResource'
 

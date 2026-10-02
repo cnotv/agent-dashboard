@@ -1,5 +1,5 @@
 import { Card, Flex, Link, Text, Tooltip } from '@radix-ui/themes'
-import type { SessionsOverview } from '@agent-dashboard/contracts'
+import type { SessionsOverview } from '@dashi/contracts'
 import { Link as RouterLink } from 'react-router'
 import { ChartLegend } from '@/components/charts/ChartLegend'
 import { formatDuration, sessionStateLabels } from '@/lib/presentation'

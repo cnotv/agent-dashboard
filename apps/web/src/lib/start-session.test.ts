@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { StartOptions } from '@agent-dashboard/contracts'
+import type { StartOptions } from '@dashi/contracts'
 import { runnerLaunchAgentCommands, runnerTryCommands } from './runner-setup'
 import { defaultTargetFor, suggestedWorkflowFor, targetAvailabilityFor } from './start-session'
 
@@ -45,16 +45,23 @@ describe('runner setup commands', () => {
 
   it('downloads the runner from the dashboard and runs it with its token', () => {
     expect(runnerTryCommands(input)).toEqual([
-      'mkdir -p ~/agent-dashboard',
-      'curl -fsSL https://dashi.example/api/runner/script -o ~/agent-dashboard/runner.ts',
-      'AGENT_DASHBOARD_URL=https://dashi.example AGENT_DASHBOARD_RUNNER_TOKEN=adr_secret node ~/agent-dashboard/runner.ts',
+      'mkdir -p ~/dashi',
+      'curl -fsSL https://dashi.example/api/runner/script -o ~/dashi/runner.ts',
+      'DASHI_URL=https://dashi.example DASHI_RUNNER_TOKEN=adr_secret node ~/dashi/runner.ts',
     ])
   })
 
   it('installs a login agent readable by this user only', () => {
     const commands = runnerLaunchAgentCommands(input)
-    expect(commands).toContain('<key>AGENT_DASHBOARD_RUNNER_TOKEN</key><string>adr_secret</string>')
-    expect(commands).toContain('chmod 600 ~/Library/LaunchAgents/dev.agent-dashboard.runner.plist')
+    expect(commands).toContain('<key>DASHI_RUNNER_TOKEN</key><string>adr_secret</string>')
+    expect(commands).toContain('chmod 600 ~/Library/LaunchAgents/dev.dashi.runner.plist')
     expect(commands).toContain('launchctl bootstrap gui/$(id -u)')
+  })
+
+  it('removes the runner installed under the name from before Dashi, so only one polls', () => {
+    const commands = runnerLaunchAgentCommands(input)
+    expect(commands).toContain('launchctl bootout gui/$(id -u)/dev.agent-dashboard.runner 2>/dev/null')
+    expect(commands).toContain('rm -f ~/Library/LaunchAgents/dev.agent-dashboard.runner.plist')
+    expect(commands.indexOf('dev.agent-dashboard.runner')).toBeLessThan(commands.indexOf('launchctl bootstrap'))
   })
 })

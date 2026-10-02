@@ -1,6 +1,6 @@
 import { FileTextIcon, GlobeIcon, Link2Icon } from '@radix-ui/react-icons'
 import { Badge, Card, Flex, IconButton, Link, Separator, Text, Tooltip } from '@radix-ui/themes'
-import type { BoardCard, IssueSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import type { BoardCard, IssueSummary, RepositoryReference } from '@dashi/contracts'
 import { gitHubPullRequestUrl } from '@/lib/presentation'
 import { GateIndicator } from './GateIndicator'
 import { PullRequestActions } from './PullRequestActions'

@@ -31,7 +31,7 @@ const settingsResult = resolveRuntimeSettings({
 })
 
 if (!settingsResult.ok) {
-  process.stderr.write(`agent-dashboard: ${settingsResult.reason}\n`)
+  process.stderr.write(`dashi: ${settingsResult.reason}\n`)
   process.exit(1)
 }
 
@@ -87,7 +87,7 @@ app.get('*', serveStatic({ path: join(webRoot, 'index.html') }))
 const server = serve({ fetch: app.fetch, hostname: settings.host, port: settings.port }, (address) => {
   const signIn = settings.githubSignIn === null ? 'off' : settings.signInRequired ? 'required' : 'optional'
   process.stdout.write(
-    `agent-dashboard (${settings.mode}) on port ${address.port}, open ${settings.publicUrl} (vault: ${vault.readState().mode}, GitHub sign-in: ${signIn})\n`,
+    `dashi (${settings.mode}) on port ${address.port}, open ${settings.publicUrl} (vault: ${vault.readState().mode}, GitHub sign-in: ${signIn})\n`,
   )
 })
 

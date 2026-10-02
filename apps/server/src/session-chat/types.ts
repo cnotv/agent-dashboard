@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { AgentSessionState, ChatDelivery, SessionChat } from '@agent-dashboard/contracts'
+import type { AgentSessionState, ChatDelivery, SessionChat } from '@dashi/contracts'
 import type { deliveryReportSchema, runnerChatReportSchema } from './schema.ts'
 
 export type RunnerChatReport = z.infer<typeof runnerChatReportSchema>

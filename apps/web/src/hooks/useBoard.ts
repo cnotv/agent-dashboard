@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Board, RepositoryReference } from '@agent-dashboard/contracts'
+import type { Board, RepositoryReference } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 import { errorMessageOf, parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 

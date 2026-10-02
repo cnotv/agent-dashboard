@@ -1,5 +1,5 @@
 {
-  "name": "@agent-dashboard/server",
+  "name": "@dashi/server",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "@agent-dashboard/contracts": "workspace:*",
+    "@dashi/contracts": "workspace:*",
     "@types/node": "^22.18.0",
     "vitest": "^3.2.0"
   }

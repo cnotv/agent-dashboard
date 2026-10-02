@@ -1,19 +1,22 @@
-# The cloud deployment. HTTPS for AGENT_DASHBOARD_DOMAIN comes from the reverse proxy already
+# The cloud deployment. HTTPS for DASHI_DOMAIN comes from the reverse proxy already
 # running on the server, which forwards the domain to the port published here; see "Deploy to
 # the cloud" in the README. Every other setting comes from .env, which the deploy workflow
 # writes.
+# The project name keeps the app's name from before the rename to Dashi: Docker Compose names
+# the data volume after it, so a new name would start an empty dashboard.
+name: agent-dashboard
 services:
   dashboard:
     build: .
-    image: agent-dashboard:cloud
+    image: dashi:cloud
     env_file: .env
     environment:
-      AGENT_DASHBOARD_MODE: cloud
-      AGENT_DASHBOARD_HOST: 0.0.0.0
-      AGENT_DASHBOARD_PUBLIC_URL: https://${AGENT_DASHBOARD_DOMAIN:?set AGENT_DASHBOARD_DOMAIN in .env}
+      DASHI_MODE: cloud
+      DASHI_HOST: 0.0.0.0
+      DASHI_PUBLIC_URL: https://${DASHI_DOMAIN:-${AGENT_DASHBOARD_DOMAIN:?set DASHI_DOMAIN in .env}}
     # Published on a private address only: the proxy reaches it, the internet does not.
     ports:
-      - "${AGENT_DASHBOARD_PUBLISH_ADDRESS:-127.0.0.1}:${AGENT_DASHBOARD_PUBLISH_PORT:-4317}:4317"
+      - "${DASHI_PUBLISH_ADDRESS:-${AGENT_DASHBOARD_PUBLISH_ADDRESS:-127.0.0.1}}:${DASHI_PUBLISH_PORT:-${AGENT_DASHBOARD_PUBLISH_PORT:-4317}}:4317"
     volumes:
       - dashboard-data:/data
     restart: unless-stopped

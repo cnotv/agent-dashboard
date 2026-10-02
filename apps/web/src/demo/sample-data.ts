@@ -1,4 +1,4 @@
-import type { RepositoryReference, SecretSummary, SignedInUser } from '@agent-dashboard/contracts'
+import type { RepositoryReference, SecretSummary, SignedInUser } from '@dashi/contracts'
 
 export const demoUser: SignedInUser = { login: 'demo', avatarUrl: '' }
 

@@ -102,7 +102,7 @@ describe('laptop starts', () => {
     const { app } = createTestApp({}, { signInRequired: true })
     const scriptResponse = await app.request(getRequest('/api/runner/script'))
     expect(scriptResponse.status).toBe(200)
-    expect(await scriptResponse.text()).toContain('AGENT_DASHBOARD_RUNNER_TOKEN')
+    expect(await scriptResponse.text()).toContain('DASHI_RUNNER_TOKEN')
     expect((await app.request(getRequest('/api/session-starts'))).status).toBe(401)
   })
 })

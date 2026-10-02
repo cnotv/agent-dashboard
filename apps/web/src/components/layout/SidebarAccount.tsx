@@ -1,6 +1,6 @@
 import { ExitIcon, GitHubLogoIcon } from '@radix-ui/react-icons'
 import { Avatar, Button, Flex, IconButton, Text, Tooltip } from '@radix-ui/themes'
-import type { SessionState } from '@agent-dashboard/contracts'
+import type { SessionState } from '@dashi/contracts'
 
 interface Props {
   sessionState: SessionState

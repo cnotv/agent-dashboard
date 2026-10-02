@@ -1,5 +1,5 @@
 import { Button, Flex, HoverCard, Link, Text } from '@radix-ui/themes'
-import type { CheckGate, GateSummary } from '@agent-dashboard/contracts'
+import type { CheckGate, GateSummary } from '@dashi/contracts'
 import { gateRingGroupOf } from '@/lib/gate-ring'
 import { gateOverallColors, gateOverallLabels, gateRingColors, gateStateLabels } from '@/lib/presentation'
 import { GateRing } from './GateRing'

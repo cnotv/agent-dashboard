@@ -1,4 +1,4 @@
-import type { CheckGate } from '@agent-dashboard/contracts'
+import type { CheckGate } from '@dashi/contracts'
 import { gateRingSegments } from '@/lib/gate-ring'
 import { gateRingColors } from '@/lib/presentation'
 

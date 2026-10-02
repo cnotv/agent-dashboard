@@ -1,5 +1,5 @@
 import { unzipSync } from 'fflate'
-import type { Board, MediaKind, RepositoryReference } from '@agent-dashboard/contracts'
+import type { Board, MediaKind, RepositoryReference } from '@dashi/contracts'
 import { previewArtifactListSchema } from './schema.ts'
 import type { GithubRestFetcher } from '../github/types.ts'
 import type { PreviewArtifactsBySha, PreviewFiles } from './types.ts'

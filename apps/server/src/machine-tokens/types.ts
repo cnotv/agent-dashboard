@@ -1,4 +1,4 @@
-import type { CreatedMachineToken, MachineTokenSummary } from '@agent-dashboard/contracts'
+import type { CreatedMachineToken, MachineTokenSummary } from '@dashi/contracts'
 
 export interface MachineTokenStore {
   createToken: (label: string) => CreatedMachineToken

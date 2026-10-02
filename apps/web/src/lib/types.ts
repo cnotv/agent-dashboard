@@ -24,7 +24,7 @@ import type {
   StartOptions,
   UsageReport,
   VaultState,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 
 export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky' | 'orange' | 'purple'
 

@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { NetlifyStatus } from '@agent-dashboard/contracts'
+import type { NetlifyStatus } from '@dashi/contracts'
 import type { githubRepositorySchema, netlifySiteSchema } from './schema.ts'
 
 export type NetlifySite = z.infer<typeof netlifySiteSchema>

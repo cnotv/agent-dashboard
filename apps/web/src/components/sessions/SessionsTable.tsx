@@ -1,7 +1,7 @@
 import { ChatBubbleIcon } from '@radix-ui/react-icons'
 import { Badge, Card, IconButton, Link, Text, Tooltip } from '@radix-ui/themes'
 import { createColumnHelper } from '@tanstack/react-table'
-import type { AgentSessionSummary } from '@agent-dashboard/contracts'
+import type { AgentSessionSummary } from '@dashi/contracts'
 import { SortableTable } from '@/components/tables/SortableTable'
 import type { sortableTableFeatures } from '@/components/tables/sortable-table-features'
 import {

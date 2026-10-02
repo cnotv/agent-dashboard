@@ -1,4 +1,4 @@
-import type { NetlifyStatus, RepositoryReference } from '@agent-dashboard/contracts'
+import type { NetlifyStatus, RepositoryReference } from '@dashi/contracts'
 import { githubRepositorySchema, netlifyErrorSchema, netlifySiteSchema, netlifySitesSchema } from './schema.ts'
 import type { GithubRepositoryDetails, NetlifyEnableResult, NetlifyFetcher, NetlifySite } from './types.ts'
 import type { GithubRestFetcher } from '../github/types.ts'

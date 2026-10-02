@@ -8,7 +8,7 @@ import type {
   SessionStart,
   SessionState,
   VaultState,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 import { repositoryKey } from '@/lib/presentation'
 import { chatKeyOf } from '@/lib/session-chat'
 import type { DashboardApi, DemoPullRequestOutcome } from '@/lib/types'

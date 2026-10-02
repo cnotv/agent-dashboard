@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CheckGate } from '@agent-dashboard/contracts'
+import type { CheckGate } from '@dashi/contracts'
 import { gateRingSegments } from './gate-ring'
 
 const gateIn = (state: CheckGate['state']): CheckGate => ({ name: state, state, url: null })

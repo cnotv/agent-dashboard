@@ -1,5 +1,5 @@
 import { Hono, type Context } from 'hono'
-import type { SessionStart } from '@agent-dashboard/contracts'
+import type { SessionStart } from '@dashi/contracts'
 import { effectiveState } from '../activity/aggregate.ts'
 import type { ActivityStore } from '../activity/types.ts'
 import { limitTo, readJsonBody } from '../app/http.ts'

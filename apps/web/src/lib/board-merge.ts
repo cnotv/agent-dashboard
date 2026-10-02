@@ -1,4 +1,4 @@
-import type { Board, BoardCard } from '@agent-dashboard/contracts'
+import type { Board, BoardCard } from '@dashi/contracts'
 import type { RepositoryBoardColumn } from './types'
 
 const lastUpdateOf = (card: BoardCard): string =>

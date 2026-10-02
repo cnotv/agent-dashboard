@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Board, BoardCard, IssueSummary } from '@agent-dashboard/contracts'
+import type { Board, BoardCard, IssueSummary } from '@dashi/contracts'
 import { mergeBoards } from './board-merge'
 
 const issueUpdatedAt = (issueNumber: number, updatedAt: string): IssueSummary => ({

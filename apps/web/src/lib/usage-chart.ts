@@ -1,4 +1,4 @@
-import type { TokenTotals, UsageByDay } from '@agent-dashboard/contracts'
+import type { TokenTotals, UsageByDay } from '@dashi/contracts'
 
 const dayMilliseconds = 24 * 60 * 60_000
 

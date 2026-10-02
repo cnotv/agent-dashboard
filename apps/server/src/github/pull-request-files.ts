@@ -1,4 +1,4 @@
-import type { ChangedFile, RepositoryReference } from '@agent-dashboard/contracts'
+import type { ChangedFile, RepositoryReference } from '@dashi/contracts'
 import { githubErrorSchema, pullRequestFilesPageSchema } from './schema.ts'
 import type { GithubRestFetcher, PullRequestFileNode, PullRequestFilesResult } from './types.ts'
 

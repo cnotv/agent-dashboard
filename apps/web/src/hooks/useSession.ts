@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { SessionState } from '@agent-dashboard/contracts'
+import type { SessionState } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 
 /**

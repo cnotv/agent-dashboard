@@ -1,4 +1,4 @@
-import type { SecretDefinition, SecretSummary, SecretTestResult, VaultMode, VaultState } from '@agent-dashboard/contracts'
+import type { SecretDefinition, SecretSummary, SecretTestResult, VaultMode, VaultState } from '@dashi/contracts'
 
 export interface EncryptedValue {
   ciphertext: string

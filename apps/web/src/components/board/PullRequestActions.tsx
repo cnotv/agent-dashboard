@@ -1,7 +1,7 @@
 import { CheckCircledIcon, CrossCircledIcon } from '@radix-ui/react-icons'
 import { AlertDialog, Button, Flex, IconButton, Tooltip } from '@radix-ui/themes'
 import { useState } from 'react'
-import type { PullRequestSummary, RepositoryReference } from '@agent-dashboard/contracts'
+import type { PullRequestSummary, RepositoryReference } from '@dashi/contracts'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'
 

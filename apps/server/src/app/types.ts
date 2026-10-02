@@ -1,4 +1,4 @@
-import type { RepositoryReference } from '@agent-dashboard/contracts'
+import type { RepositoryReference } from '@dashi/contracts'
 import type { ActivityDependencies } from '../activity/types.ts'
 import type { AuthDependencies, DashboardSession } from '../auth/types.ts'
 import type { GithubRestFetcher, GithubRestRequest, GraphqlFetcher } from '../github/types.ts'

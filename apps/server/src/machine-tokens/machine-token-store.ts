@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { MachineTokenKind, MachineTokenSummary } from '@agent-dashboard/contracts'
+import type { MachineTokenKind, MachineTokenSummary } from '@dashi/contracts'
 import type { MachineTokenStore } from './types.ts'
 
 // The prefix makes a leaked token recognisable to secret scanners and to a person reading a

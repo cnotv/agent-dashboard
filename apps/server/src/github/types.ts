@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { PullRequestFiles } from '@agent-dashboard/contracts'
+import type { PullRequestFiles } from '@dashi/contracts'
 import type { boardResponseSchema, issueNodeSchema, pullRequestFileSchema, pullRequestNodeSchema, rollupContextSchema } from './schema.ts'
 
 export type BoardResponse = z.infer<typeof boardResponseSchema>

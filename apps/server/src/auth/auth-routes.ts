@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
-import type { SessionState } from '@agent-dashboard/contracts'
+import type { SessionState } from '@dashi/contracts'
 import type { AppEnvironment } from '../app/types.ts'
 import { buildAuthorizeUrl, isAllowedLogin } from './github-auth.ts'
 import { createRandomToken } from './pkce.ts'
@@ -20,7 +20,7 @@ const pendingSignInSeconds = 10 * 60
  */
 export const authCookieNamesFor = (secureCookies: boolean): AuthCookieNames => {
   const prefix = secureCookies ? '__Host-' : ''
-  return { session: `${prefix}agent_dashboard_session`, pendingSignIn: `${prefix}agent_dashboard_sign_in` }
+  return { session: `${prefix}dashi_session`, pendingSignIn: `${prefix}dashi_sign_in` }
 }
 
 export const publicApiPaths = ['/api/health', '/api/auth/session', '/api/auth/github/start', '/api/auth/github/callback']

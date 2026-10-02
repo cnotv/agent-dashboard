@@ -1,4 +1,4 @@
-import type { CheckGate } from '@agent-dashboard/contracts'
+import type { CheckGate } from '@dashi/contracts'
 
 const netlifyPreviewHostSuffix = '.netlify.app'
 

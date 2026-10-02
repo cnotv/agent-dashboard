@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { SecretSummary, VaultState } from '@agent-dashboard/contracts'
+import type { SecretSummary, VaultState } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 
 const readVaultSnapshot = () => Promise.all([dashboardApi.readVault(), dashboardApi.listSecrets()])

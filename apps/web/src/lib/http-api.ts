@@ -1,4 +1,4 @@
-import type { MachineTokenKind } from '@agent-dashboard/contracts'
+import type { MachineTokenKind } from '@dashi/contracts'
 import type { ChatTarget, DashboardApi } from './types'
 
 const readErrorMessage = async (response: Response): Promise<string> => {

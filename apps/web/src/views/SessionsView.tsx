@@ -1,7 +1,7 @@
 import { Callout, Flex, Grid, SegmentedControl } from '@radix-ui/themes'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import type { AgentSessionState } from '@agent-dashboard/contracts'
+import type { AgentSessionState } from '@dashi/contracts'
 import { StatTile } from '@/components/charts/StatTile'
 import { SessionChatDrawer } from '@/components/sessions/SessionChatDrawer'
 import { SessionStartsList } from '@/components/sessions/SessionStartsList'

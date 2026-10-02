@@ -1,4 +1,4 @@
-import type { SessionStart } from '@agent-dashboard/contracts'
+import type { SessionStart } from '@dashi/contracts'
 
 type StartSubject = Pick<SessionStart, 'repository' | 'issueNumber' | 'pullRequestNumber'>
 

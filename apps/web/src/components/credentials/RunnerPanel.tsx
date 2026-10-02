@@ -106,7 +106,7 @@ export const RunnerPanel = () => {
                     <Tabs.Content value="service">
                       <Text as="p" size="2" color="gray" my="2">
                         Installs it as a login agent that starts with the Mac and restarts if it stops. Its log is
-                        ~/agent-dashboard/runner.log.
+                        ~/dashi/runner.log.
                       </Text>
                       <CopyableSnippet snippet={runnerLaunchAgentCommands(setupInput)} />
                     </Tabs.Content>

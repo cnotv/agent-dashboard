@@ -8,7 +8,7 @@ import type {
   IssueSummary,
   PullRequestSummary,
   RepositoryReference,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 
 const branchIssuePattern = /^(?:feat|fix|docs|refactor|test|chore)\/(\d+)-/
 

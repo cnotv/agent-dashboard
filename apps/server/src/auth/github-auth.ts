@@ -35,7 +35,7 @@ export const buildAuthorizeUrl = (settings: GitHubSignInSettings, state: string,
 /**
  * Tells whether a GitHub login is on the allowlist, ignoring case as GitHub does.
  * @param login The login GitHub returned.
- * @param allowedLogins The logins from AGENT_DASHBOARD_ALLOWED_USERS.
+ * @param allowedLogins The logins from DASHI_ALLOWED_USERS.
  * @returns True when the login may sign in.
  */
 export const isAllowedLogin = (login: string, allowedLogins: string[]): boolean =>
@@ -51,7 +51,7 @@ export const createGitHubAuthClient = (settings: GitHubSignInSettings, fetchReso
   exchangeCode: async (code, codeVerifier) => {
     const tokenResponse = await fetchResource(githubTokenUrl, {
       method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'agent-dashboard' },
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'dashi' },
       body: JSON.stringify({
         client_id: settings.clientId,
         client_secret: settings.clientSecret,
@@ -68,7 +68,7 @@ export const createGitHubAuthClient = (settings: GitHubSignInSettings, fetchReso
   },
   readUser: async (accessToken) => {
     const userResponse = await fetchResource(githubUserUrl, {
-      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/vnd.github+json', 'User-Agent': 'agent-dashboard' },
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/vnd.github+json', 'User-Agent': 'dashi' },
       signal: AbortSignal.timeout(15000),
     })
     if (!userResponse.ok) throw new Error(`GitHub answered ${userResponse.status} when reading the signed-in user`)

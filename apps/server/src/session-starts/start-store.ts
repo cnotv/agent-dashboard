@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import type { RepositoryReference, SessionStart, SessionStartState, StartTarget } from '@agent-dashboard/contracts'
+import type { RepositoryReference, SessionStart, SessionStartState, StartTarget } from '@dashi/contracts'
 import { sessionStartRequestSchema } from './schema.ts'
 import type { RoutineStore, SessionStartStore } from './types.ts'
 

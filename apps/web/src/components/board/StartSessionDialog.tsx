@@ -9,7 +9,7 @@ import type {
   SessionStart,
   StartTarget,
   StartWorkflow,
-} from '@agent-dashboard/contracts'
+} from '@dashi/contracts'
 import { useStartOptions } from '@/hooks/useSessionStarts'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'

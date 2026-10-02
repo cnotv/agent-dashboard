@@ -6,7 +6,7 @@ export const secretDefinitions: SecretDefinitionWithTester[] = [
     label: 'GitHub token',
     description: 'Reads issues, pull requests, check runs and workflow artifacts when nobody is signed in with GitHub.',
     tokenPageUrl: 'https://github.com/settings/personal-access-tokens/new',
-    tester: { url: 'https://api.github.com/user', credentialHeader: 'bearer', extraHeaders: { 'User-Agent': 'agent-dashboard' } },
+    tester: { url: 'https://api.github.com/user', credentialHeader: 'bearer', extraHeaders: { 'User-Agent': 'dashi' } },
   },
   {
     name: 'anthropic-api-key',
@@ -34,6 +34,6 @@ export const secretDefinitions: SecretDefinitionWithTester[] = [
     label: 'Netlify token',
     description: 'Shows whether Netlify builds a repository, and creates the site from the Issues board when it does not.',
     tokenPageUrl: 'https://app.netlify.com/user/applications#personal-access-tokens',
-    tester: { url: 'https://api.netlify.com/api/v1/user', credentialHeader: 'bearer', extraHeaders: { 'User-Agent': 'agent-dashboard' } },
+    tester: { url: 'https://api.netlify.com/api/v1/user', credentialHeader: 'bearer', extraHeaders: { 'User-Agent': 'dashi' } },
   },
 ]

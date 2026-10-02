@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { PullRequestSummary } from '@agent-dashboard/contracts'
+import type { PullRequestSummary } from '@dashi/contracts'
 import { createHttpApi } from './http-api'
 
 describe('pullRequestMediaUrl', () => {
   it('names the head commit so the server can find its recording', () => {
     const httpApi = createHttpApi('https://agents.example.com')
-    expect(httpApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'agent-dashboard' }, { ...samplePullRequest, number: 7, headSha: 'fedc9876' }, 'video')).toBe(
-      'https://agents.example.com/api/repositories/cnotv/agent-dashboard/pulls/7/media/video?sha=fedc9876',
+    expect(httpApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'dashi' }, { ...samplePullRequest, number: 7, headSha: 'fedc9876' }, 'video')).toBe(
+      'https://agents.example.com/api/repositories/cnotv/dashi/pulls/7/media/video?sha=fedc9876',
     )
-    expect(httpApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'agent-dashboard' }, { ...samplePullRequest, number: 7, headSha: null }, 'image')).toBe(
-      'https://agents.example.com/api/repositories/cnotv/agent-dashboard/pulls/7/media/image',
+    expect(httpApi.pullRequestMediaUrl({ owner: 'cnotv', name: 'dashi' }, { ...samplePullRequest, number: 7, headSha: null }, 'image')).toBe(
+      'https://agents.example.com/api/repositories/cnotv/dashi/pulls/7/media/image',
     )
   })
 })
@@ -22,13 +22,13 @@ describe('mergePullRequest', () => {
       return new Response(null, { status: 204 })
     })
     await createHttpApi('').mergePullRequest(
-      { owner: 'cnotv', name: 'agent-dashboard' },
+      { owner: 'cnotv', name: 'dashi' },
       { ...samplePullRequest, number: 7, title: 'feat: thing (#6)', headSha: 'a'.repeat(40) },
     )
     vi.unstubAllGlobals()
     expect(sentRequests).toEqual([
       expect.objectContaining({
-        url: '/api/repositories/cnotv/agent-dashboard/pulls/7/merge',
+        url: '/api/repositories/cnotv/dashi/pulls/7/merge',
         init: expect.objectContaining({ method: 'POST', body: JSON.stringify({ title: 'feat: thing (#6)', headSha: 'a'.repeat(40) }) }),
       }),
     ])
@@ -38,7 +38,7 @@ describe('mergePullRequest', () => {
 const samplePullRequest: PullRequestSummary = {
   number: 1,
   title: 'feat: thing',
-  url: 'https://github.com/cnotv/agent-dashboard/pull/1',
+  url: 'https://github.com/cnotv/dashi/pull/1',
   isDraft: false,
   headRefName: 'feat/1-thing',
   headSha: null,

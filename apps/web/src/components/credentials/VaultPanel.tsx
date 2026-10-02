@@ -1,7 +1,7 @@
 import { LockClosedIcon, LockOpen1Icon } from '@radix-ui/react-icons'
 import { Button, Callout, Flex, Text, TextField } from '@radix-ui/themes'
 import { useState, type FormEvent } from 'react'
-import type { VaultState } from '@agent-dashboard/contracts'
+import type { VaultState } from '@dashi/contracts'
 import { useToast } from '@/hooks/useToast'
 
 interface VaultPanelProps {

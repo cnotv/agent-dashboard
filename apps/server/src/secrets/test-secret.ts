@@ -1,4 +1,4 @@
-import type { SecretTestResult } from '@agent-dashboard/contracts'
+import type { SecretTestResult } from '@dashi/contracts'
 import type { SecretDefinitionWithTester, SecretTester } from './types.ts'
 
 const testTimeoutMilliseconds = 8000

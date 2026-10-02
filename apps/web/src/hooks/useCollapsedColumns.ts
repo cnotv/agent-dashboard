@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { IssueStatus } from '@agent-dashboard/contracts'
+import type { IssueStatus } from '@dashi/contracts'
 import { parseCollapsedStatuses, toggleCollapsedStatus } from '@/lib/board-columns'
 
 const storageKey = 'dashi.board.collapsed-columns'

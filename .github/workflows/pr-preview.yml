@@ -12,7 +12,7 @@ jobs:
   pr-preview:
     uses: cnotv/agent-base/.github/workflows/pr-preview.yml@6c77cda4a80ab9e7fb5b88ce142a6e3359bfa9a2 # main
     with:
-      start-command: VITE_DEMO_MODE=1 pnpm --filter @agent-dashboard/web exec vite --port 5318 --strictPort
+      start-command: VITE_DEMO_MODE=1 pnpm --filter @dashi/web exec vite --port 5318 --strictPort
       port: 5318
       default-route: /sessions
       settle-ms: 2000
