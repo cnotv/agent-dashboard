@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'
 import { parseRepositoryKey, repositoryKey } from '@/lib/presentation'
 import { routineFailureAdviceFor, routinesPageUrl } from '@/lib/session-starts'
+import { CollapsibleSteps } from './CollapsibleSteps'
 import { CopyableSnippet } from './CopyableSnippet'
 
 // The routine only sees the fire text inside a block marked untrusted, so its own prompt has to
@@ -49,9 +50,10 @@ const TestOutcome = ({ testResult }: { testResult: RoutineTestResult }) =>
   )
 
 /**
- * The Claude cloud routines panel: the numbered steps that make, for each repository, the routine
- * that runs sessions started from the board with the laptop off, a Test that fires a tiny real run,
- * and how the last run went. The routine's token is stored in the vault and never shown again.
+ * The Claude cloud routines panel: for each repository, whether it has the routine that runs
+ * sessions started from the board with the laptop off, how its last run went, and a Test that
+ * fires a tiny real run. The numbered steps that make one unfold under it. The routine's token is
+ * stored in the vault and never shown again.
  */
 export const RoutinePanel = () => {
   const toast = useToast()
@@ -61,6 +63,7 @@ export const RoutinePanel = () => {
   const [settings, setSettings] = useState<RoutineSettings | null>(null)
   const [routineId, setRoutineId] = useState('')
   const [routineToken, setRoutineToken] = useState('')
+  const [isSetupOpen, setIsSetupOpen] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [testResult, setTestResult] = useState<RoutineTestResult | null>(null)
   const repositoryKeyShown = chosenKey || (repositories[0] ? repositoryKey(repositories[0]) : '')
@@ -155,6 +158,9 @@ export const RoutinePanel = () => {
               <Badge color="green" radius="full">
                 {settings.routineId}
               </Badge>
+              <Button size="1" variant="soft" onClick={() => void test()} loading={isTesting}>
+                Test the routine
+              </Button>
               <Button size="1" variant="ghost" color="red" onClick={() => void remove()}>
                 Remove
               </Button>
@@ -171,7 +177,12 @@ export const RoutinePanel = () => {
             </Text>
           )}
         </Flex>
-        <Flex direction="column" gap="4" maxWidth="680px">
+        {testResult && !isSetupOpen && <TestOutcome testResult={testResult} />}
+        <CollapsibleSteps
+          label={settings?.configured ? 'Replace the routine' : 'Set up the routine'}
+          isOpen={isSetupOpen}
+          onOpenChange={setIsSetupOpen}
+        >
           <SetupStep stepNumber={1}>
             <Text size="2">
               Open{' '}
@@ -235,7 +246,7 @@ export const RoutinePanel = () => {
             </Flex>
             {testResult && <TestOutcome testResult={testResult} />}
           </SetupStep>
-        </Flex>
+        </CollapsibleSteps>
       </Flex>
     </Card>
   )
