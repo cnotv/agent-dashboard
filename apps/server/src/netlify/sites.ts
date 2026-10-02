@@ -33,7 +33,7 @@ export const githubInstallationIdOf = (sites: NetlifySite[], owner: string): num
 /**
  * Names a new site after its repository, in the form Netlify accepts for a subdomain.
  * @param repository The repository.
- * @returns The site name, such as cnotv-agent-dashboard.
+ * @returns The site name, such as cnotv-dashi.
  */
 export const siteNameFor = (repository: RepositoryReference): string =>
   `${repository.owner}-${repository.name}`

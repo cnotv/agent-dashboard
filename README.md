@@ -225,6 +225,11 @@ GitHub App installations, so the new site is linked through the installation tha
 Netlify site of the same GitHub owner already uses. The first repository of an owner is linked
 once in Netlify itself; the button works for the rest.
 
+A site is matched to its repository by the repository Netlify links it to, which Netlify does
+not follow through a rename on GitHub. After renaming a repository, link its site to the new
+name in Netlify (Site configuration, Build and deploy, Repository, Link to a different
+repository); until then the board offers **Enable Netlify**, which would make a second site.
+
 ## Start a session from the board
 
 Every card without a pull request has a **Start** button (the play icon), so work can be started
