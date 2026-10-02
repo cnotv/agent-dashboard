@@ -147,6 +147,8 @@ export const boardQuery = `
 
 export const githubErrorSchema = z.object({ message: z.string() })
 
+export const createdIssueSchema = z.object({ number: z.number().int().positive(), html_url: z.string().url() })
+
 export const pullRequestFileSchema = z.object({
   filename: z.string(),
   previous_filename: z.string().optional(),

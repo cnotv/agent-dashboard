@@ -7,13 +7,16 @@ import { bearerTokenOf, limitTo, readJsonBody } from '../app/http.ts'
 import type { AppEnvironment } from '../app/types.ts'
 import { findRepository } from '../repos/load-repositories.ts'
 import { sessionNameFor, sessionPromptFor } from './prompt.ts'
-import { routineSettingsBodySchema, runnerReportSchema, sessionStartRequestSchema } from './schema.ts'
+import { attachmentDeliveryFor, attachmentLimitProblem, attachmentLimits } from './attachments.ts'
+import { routineSettingsBodySchema, runnerReportSchema, sessionStartSubmissionSchema } from './schema.ts'
 import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import type { SessionStartDependencies } from './types.ts'
 
 // A runner asks every few seconds, so one silent for this long is taken to be off.
 const runnerOnlineMilliseconds = 30_000
 const createTokenBodySchema = z.object({ label: z.string().trim().min(1).max(80) })
+// Room for the largest attachments a laptop session takes, once base64 and JSON have grown them.
+const sessionStartBodyBytes = 12 * 1024 * 1024
 
 // Reached by the laptop runner rather than a browser, so it carries a runner token instead of a
 // sign-in; the session guard lets this prefix through, and the script itself holds no secret.
@@ -54,7 +57,7 @@ export const createRunnerTokenGuard = (runnerTokens: MachineTokenStore) =>
  * @returns The routes, mounted under /api.
  */
 export const createSessionStartRoutes = (dependencies: SessionStartDependencies) => {
-  const { startStore, routineStore, runnerTokens, vault, repositories, fireRoutine, now } = dependencies
+  const { startStore, routineStore, runnerTokens, vault, repositories, fireRoutine, attachmentRelay, now } = dependencies
   const routes = new Hono<AppEnvironment>()
 
   const repositoryOf = (owner: string, name: string): RepositoryReference | undefined => findRepository(repositories, owner, name)
@@ -70,21 +73,30 @@ export const createSessionStartRoutes = (dependencies: SessionStartDependencies)
     const options: StartOptions = {
       runners: runnerTokens.listTokens().flatMap((runnerToken) => presenceOf(runnerToken.lastUsedAt, runnerToken.label, now())),
       routineConfigured: routineStore.readRoutineId(repository) !== null && vault.readSecretValue(routineTokenSecretName(repository)) !== null,
+      attachmentLimits,
     }
     return context.json(options)
   })
 
   routes.get('/session-starts', (context) => context.json(startStore.listRecentStarts()))
 
-  routes.post('/session-starts', async (context) => {
-    const request = sessionStartRequestSchema.parse(await readJsonBody(context.req.raw))
+  // The attachments are split off before the start is stored, so they never reach the database:
+  // a laptop start's wait in memory for its runner, a routine's go out with the prompt.
+  routes.post('/session-starts', limitTo(sessionStartBodyBytes), async (context) => {
+    const { attachments, ...request } = sessionStartSubmissionSchema.parse(await readJsonBody(context.req.raw))
     const repository = repositoryOf(request.repository.owner, request.repository.name)
     if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
-    if (request.target !== 'cloud-routine') return context.json(startStore.createStart({ ...request, repository }), 201)
+    const limitProblem = attachmentLimitProblem(attachments, request.target)
+    if (limitProblem !== null) return context.json({ error: limitProblem }, 413)
+    if (request.target !== 'cloud-routine') {
+      const queuedStart = startStore.createStart({ ...request, repository })
+      attachmentRelay.hold(queuedStart.startId, attachments)
+      return context.json(queuedStart, 201)
+    }
     const routine = routineOf(repository)
     if (routine === null) return context.json({ error: 'Set up a Claude Code routine for this repository first' }, 412)
     const start = startStore.createStart({ ...request, repository })
-    const fireResult = await fireRoutine(routine.routineId, routine.routineToken, sessionPromptFor(start))
+    const fireResult = await fireRoutine(routine.routineId, routine.routineToken, sessionPromptFor(start, attachments))
     const outcome = fireResult.ok
       ? { state: 'started' as const, sessionUrl: fireResult.sessionUrl, message: null }
       : { state: 'failed' as const, sessionUrl: null, message: fireResult.message }
@@ -139,7 +151,7 @@ export const createSessionStartRoutes = (dependencies: SessionStartDependencies)
  * @param dependencies The start store, the runner tokens and where the script is.
  * @returns The routes, mounted under /api/runner.
  */
-export const createRunnerRoutes = ({ startStore, runnerTokens, runnerScriptPath }: SessionStartDependencies) => {
+export const createRunnerRoutes = ({ startStore, runnerTokens, runnerScriptPath, attachmentRelay }: SessionStartDependencies) => {
   const routes = new Hono<AppEnvironment & { Variables: { runnerLabel: string } }>()
 
   const requireRunnerToken = createRunnerTokenGuard(runnerTokens)
@@ -153,7 +165,14 @@ export const createRunnerRoutes = ({ startStore, runnerTokens, runnerScriptPath 
   routes.post('/claim', requireRunnerToken, (context) => {
     const start = startStore.claimNextLaptopStart(context.get('runnerLabel'))
     if (start === null) return context.body(null, 204)
-    return context.json({ start, prompt: sessionPromptFor(start), sessionName: sessionNameFor(start) })
+    const attachments = attachmentRelay.take(start.startId)
+    const isFileDelivery = attachmentDeliveryFor(start.target) === 'files'
+    return context.json({
+      start,
+      prompt: sessionPromptFor(start, isFileDelivery ? [] : attachments),
+      sessionName: sessionNameFor(start),
+      attachments: isFileDelivery ? attachments : [],
+    })
   })
 
   routes.post('/starts/:startId', requireRunnerToken, limitTo(16 * 1024), async (context) => {

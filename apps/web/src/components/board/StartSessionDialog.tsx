@@ -1,53 +1,19 @@
-import { ExclamationTriangleIcon, ExternalLinkIcon, PlayIcon } from '@radix-ui/react-icons'
-import { Button, Callout, Code, Dialog, Flex, IconButton, Link, RadioCards, Select, Text, TextArea, Tooltip } from '@radix-ui/themes'
+import { ExclamationTriangleIcon, PlayIcon } from '@radix-ui/react-icons'
+import { Button, Code, Dialog, Flex, IconButton, Text, TextArea, Tooltip } from '@radix-ui/themes'
 import { useState, type FormEvent } from 'react'
-import type {
-  HeadlessPermissionMode,
-  IssueSummary,
-  PullRequestSummary,
-  RepositoryReference,
-  SessionStart,
-  StartTarget,
-  StartWorkflow,
-} from '@dashi/contracts'
-import { useStartOptions } from '@/hooks/useSessionStarts'
+import type { IssueSummary, PullRequestSummary, RepositoryReference, SessionStart } from '@dashi/contracts'
+import { useStartChoices } from '@/hooks/useSessionStarts'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'
-import { permissionModeLabels, permissionModeOrder, startTargetLabels, startTargetOrder, startWorkflowOrder } from '@/lib/presentation'
-import { defaultTargetFor, suggestedWorkflowFor, targetAvailabilityFor } from '@/lib/start-session'
+import { suggestedWorkflowFor } from '@/lib/start-session'
+import { StartChoicesFields } from './StartChoicesFields'
+import { StartedSummary } from './StartedSummary'
 
 interface StartSessionDialogProps {
   repository: RepositoryReference
   issue: IssueSummary | null
   conflictingPullRequest?: PullRequestSummary
 }
-
-interface StartChoices {
-  workflow: StartWorkflow
-  target: StartTarget | null
-  permissionMode: HeadlessPermissionMode
-  note: string
-}
-
-const StartedSummary = ({ start }: { start: SessionStart }) => (
-  <Flex direction="column" gap="3">
-    <Text size="2">
-      {start.state === 'queued' ? 'Queued. The laptop runner picks it up within a few seconds of its next check.' : start.message}
-    </Text>
-    {start.sessionUrl && (
-      <Link href={start.sessionUrl} target="_blank" rel="noopener noreferrer" size="2">
-        <Flex gap="1" align="center" asChild>
-          <span>
-            Open the session in Claude <ExternalLinkIcon />
-          </span>
-        </Flex>
-      </Link>
-    )}
-    <Text size="1" color="gray">
-      The Sessions page follows it from here.
-    </Text>
-  </Flex>
-)
 
 /**
  * The Start button on a board card and its dialog: pick a workflow, where the session runs and
@@ -60,15 +26,9 @@ export const StartSessionDialog = ({ repository, issue, conflictingPullRequest }
   const [isOpen, setIsOpen] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [started, setStarted] = useState<SessionStart | null>(null)
-  const [choices, setChoices] = useState<StartChoices>({
-    workflow: conflictingPullRequest ? 'conflicts' : suggestedWorkflowFor(issue?.labels ?? []),
-    target: null,
-    permissionMode: 'auto',
-    note: '',
-  })
-  const { options, errorMessage } = useStartOptions(repository, isOpen)
-  const chosenTarget = choices.target ?? (options ? defaultTargetFor(options) : null)
-  const chosenAvailability = chosenTarget && options ? targetAvailabilityFor(chosenTarget, options) : null
+  const [note, setNote] = useState('')
+  const initialWorkflow = conflictingPullRequest ? 'conflicts' : suggestedWorkflowFor(issue?.labels ?? [])
+  const { choices, setChoices, options, errorMessage, chosenTarget, chosenAvailability } = useStartChoices(repository, isOpen, initialWorkflow, 0)
   const triggerLabel = conflictingPullRequest ? 'Merge conflict: start a session to fix it' : 'Start a session'
   const dialogTitle = conflictingPullRequest
     ? `Fix the conflicts in #${conflictingPullRequest.number}`
@@ -93,7 +53,8 @@ export const StartSessionDialog = ({ repository, issue, conflictingPullRequest }
         workflow: choices.workflow,
         target: chosenTarget,
         permissionMode: choices.permissionMode,
-        note: choices.note,
+        note,
+        attachments: [],
       })
       if (sessionStart.state === 'failed') toast.notifyError(sessionStart.message ?? 'The session did not start')
       setStarted(sessionStart)
@@ -130,93 +91,22 @@ export const StartSessionDialog = ({ repository, issue, conflictingPullRequest }
         ) : (
           <form onSubmit={(submitEvent) => void start(submitEvent)}>
             <Flex direction="column" gap="4">
-              {conflictingPullRequest ? (
+              {conflictingPullRequest && (
                 <Text size="2">
                   The session checks out <Code>{conflictingPullRequest.headRefName}</Code>, brings in the default branch,
                   resolves the conflicts, runs the checks and pushes. It asks you when both sides changed the same logic.
                 </Text>
-              ) : (
-                <label>
-                  <Text as="div" size="2" mb="1" weight="medium">
-                    Workflow
-                  </Text>
-                  <Select.Root
-                    value={choices.workflow}
-                    onValueChange={(value) =>
-                      setChoices({ ...choices, workflow: startWorkflowOrder.find((workflow) => workflow === value) ?? choices.workflow })
-                    }
-                  >
-                    <Select.Trigger />
-                    <Select.Content>
-                      {startWorkflowOrder.map((workflow) => (
-                        <Select.Item key={workflow} value={workflow}>
-                          {workflow}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Root>
-                </label>
               )}
-              <Flex direction="column" gap="1">
-                <Text size="2" weight="medium">
-                  Where it runs
-                </Text>
-                {errorMessage && (
-                  <Callout.Root color="red" size="1">
-                    <Callout.Text>{errorMessage}</Callout.Text>
-                  </Callout.Root>
-                )}
-                <RadioCards.Root
-                  value={chosenTarget ?? undefined}
-                  onValueChange={(value) =>
-                    setChoices({ ...choices, target: startTargetOrder.find((target) => target === value) ?? null })
-                  }
-                  columns={{ initial: '1', sm: '2' }}
-                >
-                  {startTargetOrder.map((target) => {
-                    const availability = options ? targetAvailabilityFor(target, options) : { isAvailable: false, hint: null }
-                    return (
-                      <RadioCards.Item key={target} value={target} disabled={!availability.isAvailable}>
-                        <Flex direction="column" gap="1" width="100%">
-                          <Text size="2" weight="medium">
-                            {startTargetLabels[target].name}
-                          </Text>
-                          <Text size="1" color="gray">
-                            {availability.isAvailable ? startTargetLabels[target].description : availability.hint}
-                          </Text>
-                        </Flex>
-                      </RadioCards.Item>
-                    )
-                  })}
-                </RadioCards.Root>
-                {chosenAvailability?.hint && chosenAvailability.isAvailable && (
-                  <Text size="1" color="amber">
-                    {chosenAvailability.hint}
-                  </Text>
-                )}
-              </Flex>
-              {chosenTarget === 'laptop-headless' && (
-                <label>
-                  <Text as="div" size="2" mb="1" weight="medium">
-                    Permissions
-                  </Text>
-                  <Select.Root
-                    value={choices.permissionMode}
-                    onValueChange={(value) =>
-                      setChoices({ ...choices, permissionMode: permissionModeOrder.find((permissionMode) => permissionMode === value) ?? 'auto' })
-                    }
-                  >
-                    <Select.Trigger />
-                    <Select.Content>
-                      {permissionModeOrder.map((permissionMode) => (
-                        <Select.Item key={permissionMode} value={permissionMode}>
-                          {permissionModeLabels[permissionMode]}
-                        </Select.Item>
-                      ))}
-                    </Select.Content>
-                  </Select.Root>
-                </label>
-              )}
+              <StartChoicesFields
+                choices={choices}
+                onChange={setChoices}
+                options={options}
+                optionsError={errorMessage}
+                chosenTarget={chosenTarget}
+                chosenAvailability={chosenAvailability}
+                attachmentBytes={0}
+                showsWorkflow={!conflictingPullRequest}
+              />
               <label>
                 <Text as="div" size="2" mb="1" weight="medium">
                   Note for the session
@@ -224,8 +114,8 @@ export const StartSessionDialog = ({ repository, issue, conflictingPullRequest }
                 <TextArea
                   maxLength={2000}
                   placeholder="Optional: anything the issue does not say"
-                  value={choices.note}
-                  onChange={(changeEvent) => setChoices({ ...choices, note: changeEvent.target.value })}
+                  value={note}
+                  onChange={(changeEvent) => setNote(changeEvent.target.value)}
                 />
               </label>
               <Flex gap="3" justify="end">

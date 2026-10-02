@@ -11,6 +11,28 @@ describe('createDemoApi', () => {
     expect(board.columns.flatMap((column) => column.cards).length).toBeGreaterThan(0)
   })
 
+  it('opens a new issue in the No pull request column and starts a session on it', async () => {
+    const demoApi = createDemoApi()
+    const [firstRepository] = await demoApi.listRepositories()
+    const createdIssue = await demoApi.createIssue(firstRepository!, { title: 'Show the frame time', body: 'In the corner.' })
+    const board = await demoApi.readBoard(firstRepository!, false)
+    const noPullRequestCards = board.columns.find((column) => column.status === 'no-pull-request')?.cards ?? []
+    expect(noPullRequestCards[0]?.issues[0]).toMatchObject({ number: createdIssue.number, title: 'Show the frame time' })
+    const screenshot = { name: 'corner.png', mediaType: 'image/png', base64: 'aGVsbG8=' }
+    const start = await demoApi.startSession({
+      repository: firstRepository!,
+      issueNumber: createdIssue.number,
+      pullRequestNumber: null,
+      workflow: 'feature',
+      target: 'laptop-remote-control',
+      permissionMode: 'auto',
+      note: 'In the corner.',
+      attachments: [screenshot],
+    })
+    expect(start).toMatchObject({ issueNumber: createdIssue.number, note: 'In the corner.' })
+    expect(JSON.stringify(await demoApi.listSessionStarts())).not.toContain(screenshot.base64)
+  })
+
   it('keeps saved values in memory and shows only the last four characters', async () => {
     const demoApi = createDemoApi()
     await demoApi.saveSecret('openrouter-api-key', 'sk-or-example-9876')

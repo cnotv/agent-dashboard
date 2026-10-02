@@ -20,11 +20,28 @@ import type {
   SecretTestResult,
   SessionsOverview,
   SessionStart,
-  SessionStartRequest,
+  SessionStartSubmission,
+  NewIssueRequest,
+  CreatedIssue,
+  HeadlessPermissionMode,
+  StartAttachment,
+  StartTarget,
+  StartWorkflow,
   StartOptions,
   UsageReport,
   VaultState,
 } from '@dashi/contracts'
+
+export interface StartChoices {
+  workflow: StartWorkflow
+  target: StartTarget | null
+  permissionMode: HeadlessPermissionMode
+}
+
+export interface PickedAttachment {
+  attachment: StartAttachment
+  byteSize: number
+}
 
 export type RadixColor = 'gray' | 'blue' | 'indigo' | 'amber' | 'red' | 'green' | 'jade' | 'sky' | 'orange' | 'purple'
 
@@ -106,7 +123,8 @@ export interface DashboardApi {
   revokeMachineToken: (kind: MachineTokenKind, tokenId: string) => Promise<void>
   readStartOptions: (repository: RepositoryReference) => Promise<StartOptions>
   listSessionStarts: () => Promise<SessionStart[]>
-  startSession: (request: SessionStartRequest) => Promise<SessionStart>
+  startSession: (submission: SessionStartSubmission) => Promise<SessionStart>
+  createIssue: (repository: RepositoryReference, newIssue: NewIssueRequest) => Promise<CreatedIssue>
   readRoutineSettings: (repository: RepositoryReference) => Promise<RoutineSettings>
   saveRoutineSettings: (repository: RepositoryReference, routineId: string, token: string) => Promise<void>
   deleteRoutineSettings: (repository: RepositoryReference) => Promise<void>

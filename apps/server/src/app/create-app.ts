@@ -2,12 +2,13 @@ import { Hono, type Context } from 'hono'
 import { getCookie } from 'hono/cookie'
 import { secureHeaders } from 'hono/secure-headers'
 import { z } from 'zod'
-import type { Board, NetlifyStatus } from '@dashi/contracts'
+import type { Board, CreatedIssue, NetlifyStatus } from '@dashi/contracts'
 import { createActivityRoutes, createIngestRoutes, ingestApiPaths } from '../activity/activity-routes.ts'
 import type { PullRequestFinder } from '../activity/aggregate.ts'
 import { authCookieNamesFor, createAuthRoutes, publicApiPaths } from '../auth/auth-routes.ts'
 import { fetchPullRequestBodyHtml, fetchRepositoryBoard } from '../github/board.ts'
 import { mediaUrlFromBodyHtml } from '../github/media.ts'
+import { createIssue } from '../github/issues.ts'
 import { closePullRequest, mergePullRequest } from '../github/pull-request-actions.ts'
 import { fetchPullRequestFiles } from '../github/pull-request-files.ts'
 import type { PullRequestActionResult } from '../github/types.ts'
@@ -18,6 +19,7 @@ import { activeStatusOf, enableNetlifyForRepository, fetchNetlifySites, findSite
 import { findRepository } from '../repos/load-repositories.ts'
 import { createChatRelay } from '../session-chat/chat-relay.ts'
 import { createRunnerChatRoutes, createSessionChatRoutes } from '../session-chat/session-chat-routes.ts'
+import { createAttachmentRelay } from '../session-starts/attachments.ts'
 import { createRunnerRoutes, createSessionStartRoutes, runnerApiPathPrefix } from '../session-starts/session-start-routes.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
 import { createRedactor } from '../secrets/redact.ts'
@@ -32,12 +34,17 @@ const mediaParamsSchema = z.object({ number: z.coerce.number().int().positive(),
 const commitShaSchema = z.string().regex(/^[0-9a-f]{7,40}$/)
 const pullRequestNumberSchema = z.coerce.number().int().positive()
 const mergeBodySchema = z.object({ title: z.string().trim().min(1).max(256), headSha: z.string().regex(/^[0-9a-f]{40}$/) })
+const newIssueBodySchema = z.object({ title: z.string().trim().min(1).max(256), body: z.string().max(60000).default('') })
 
 // GitHub answers 403 or 404 when the token may read a repository but not write to it; saying
 // which permission is missing saves a trip through the GitHub App settings.
-const writeAccessHint = 'The GitHub App or stored token needs write access to pull requests and contents.'
+const pullRequestWriteHint = 'The GitHub App or stored token needs write access to pull requests and contents.'
+const issueWriteHint = 'The GitHub App or stored token needs write access to issues.'
 
-const actionErrorOf = (result: Extract<PullRequestActionResult, { ok: false }>): { status: 403 | 409; body: { error: string } } =>
+const actionErrorOf = (
+  result: Extract<PullRequestActionResult, { ok: false }>,
+  writeAccessHint: string,
+): { status: 403 | 409; body: { error: string } } =>
   result.status === 403 || result.status === 404
     ? { status: 403, body: { error: `${result.message}. ${writeAccessHint}` } }
     : { status: 409, body: { error: result.message } }
@@ -109,7 +116,13 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
   app.route('/api/auth', createAuthRoutes(auth))
   app.route('/api', createIngestRoutes(activity))
   app.route('/api', createActivityRoutes(activity, findPullRequest))
-  const sessionStartDependencies = { ...dependencies.sessionStarts, vault, repositories, now: dependencies.now }
+  const sessionStartDependencies = {
+    ...dependencies.sessionStarts,
+    attachmentRelay: createAttachmentRelay(dependencies.now),
+    vault,
+    repositories,
+    now: dependencies.now,
+  }
   app.route('/api', createSessionStartRoutes(sessionStartDependencies))
   app.route('/api/runner', createRunnerRoutes(sessionStartDependencies))
   const sessionChatDependencies = {
@@ -238,12 +251,27 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     result: PullRequestActionResult,
   ): Response => {
     if (!result.ok) {
-      const actionError = actionErrorOf(result)
+      const actionError = actionErrorOf(result, pullRequestWriteHint)
       return context.json(actionError.body, actionError.status)
     }
     forgetBoardsOf(repository)
     return context.body(null, 204)
   }
+
+  app.post('/api/repositories/:owner/:name/issues', async (context) => {
+    const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))
+    if (repository === undefined) return context.json({ error: 'Unknown repository' }, 404)
+    const newIssue = newIssueBodySchema.parse(await readJsonBody(context.req.raw))
+    const githubToken = githubTokenOf(context.get('session'))
+    if (githubToken === null) return context.json(missingTokenError, 412)
+    const result = await createIssue(dependencies.createGithubRestFetcher(githubToken), repository, newIssue)
+    if (!result.ok) {
+      const actionError = actionErrorOf(result, issueWriteHint)
+      return context.json(actionError.body, actionError.status)
+    }
+    forgetBoardsOf(repository)
+    return context.json<CreatedIssue>(result.issue, 201)
+  })
 
   app.post('/api/repositories/:owner/:name/pulls/:number/merge', async (context) => {
     const repository = findRepository(repositories, context.req.param('owner'), context.req.param('name'))

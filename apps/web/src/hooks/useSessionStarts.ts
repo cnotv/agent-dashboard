@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { RepositoryReference, StartOptions } from '@dashi/contracts'
+import type { RepositoryReference, StartOptions, StartWorkflow } from '@dashi/contracts'
 import { dashboardApi } from '@/lib/api'
 import { errorMessageOf } from '@/lib/presentation'
+import { defaultTargetFor, targetAvailabilityFor } from '@/lib/start-session'
+import type { StartChoices } from '@/lib/types'
 import { usePolledResource } from './usePolledResource'
 
 const startsPollMilliseconds = 10_000
@@ -35,4 +37,21 @@ export const useStartOptions = (repository: RepositoryReference, isOpen: boolean
   }, [repository, isOpen])
 
   return result
+}
+
+/**
+ * Holds the workflow, place to run and permission mode picked in a start dialog, with the
+ * repository's start options and whether the chosen place can take the start.
+ * @param repository The repository the session works on.
+ * @param isOpen Whether the dialog is open; the options are read only while it is.
+ * @param initialWorkflow The workflow picked to begin with.
+ * @param attachmentBytes The size of the files attached to the start.
+ * @returns The choices, their setter, the options, the chosen place and its availability.
+ */
+export const useStartChoices = (repository: RepositoryReference, isOpen: boolean, initialWorkflow: StartWorkflow, attachmentBytes: number) => {
+  const [choices, setChoices] = useState<StartChoices>({ workflow: initialWorkflow, target: null, permissionMode: 'auto' })
+  const { options, errorMessage } = useStartOptions(repository, isOpen)
+  const chosenTarget = choices.target ?? (options ? defaultTargetFor(options) : null)
+  const chosenAvailability = chosenTarget && options ? targetAvailabilityFor(chosenTarget, options, attachmentBytes) : null
+  return { choices, setChoices, options, errorMessage, chosenTarget, chosenAvailability }
 }

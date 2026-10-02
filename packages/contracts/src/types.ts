@@ -277,6 +277,27 @@ export interface SessionStartRequest {
   note: string
 }
 
+// A file sent along with a start. It is never stored: the dashboard hands it to the session and drops it.
+export interface StartAttachment {
+  name: string
+  mediaType: string
+  base64: string
+}
+
+export interface SessionStartSubmission extends SessionStartRequest {
+  attachments: StartAttachment[]
+}
+
+export interface NewIssueRequest {
+  title: string
+  body: string
+}
+
+export interface CreatedIssue {
+  number: number
+  url: string
+}
+
 export interface SessionStart extends SessionStartRequest {
   startId: string
   state: SessionStartState
@@ -293,9 +314,18 @@ export interface RunnerPresence {
   isOnline: boolean
 }
 
+// Laptop sessions get attachments as files; the others only take text, so theirs travel inside
+// the prompt as base64 and have to stay small.
+export interface AttachmentLimits {
+  fileCount: number
+  fileTargetBytes: number
+  inlineTargetBytes: number
+}
+
 export interface StartOptions {
   runners: RunnerPresence[]
   routineConfigured: boolean
+  attachmentLimits: AttachmentLimits
 }
 
 export interface RoutineSettings {

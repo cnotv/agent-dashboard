@@ -25,12 +25,24 @@ export const suggestedWorkflowFor = (labels: IssueLabel[]): StartWorkflow =>
   labels.map((label) => workflowByLabel[label.name.toLowerCase()]).find((workflow) => workflow !== undefined) ?? 'feature'
 
 /**
+ * Tells whether a session takes attachments as files on the laptop, or only as text in its prompt.
+ * @param target Where the session would run.
+ * @returns True for the laptop sessions that read files.
+ */
+export const takesAttachmentFiles = (target: StartTarget): boolean => target === 'laptop-remote-control' || target === 'laptop-headless'
+
+/**
  * Says whether a place to run can take a start now, and what the person should know about it.
  * @param target Where the session would run.
- * @param options The runners seen and whether the repository has a routine.
+ * @param options The runners seen, whether the repository has a routine, and the attachment limits.
+ * @param attachmentBytes The size of the files attached to the start.
  * @returns Whether it can be picked, and a hint when something is missing or late.
  */
-export const targetAvailabilityFor = (target: StartTarget, options: StartOptions): StartTargetAvailability => {
+export const targetAvailabilityFor = (target: StartTarget, options: StartOptions, attachmentBytes: number): StartTargetAvailability => {
+  const allowedBytes = takesAttachmentFiles(target) ? options.attachmentLimits.fileTargetBytes : options.attachmentLimits.inlineTargetBytes
+  if (attachmentBytes > allowedBytes) {
+    return { isAvailable: false, hint: `Takes at most ${Math.floor(allowedBytes / 1024)} KB of attachments` }
+  }
   if (target === 'cloud-routine') {
     return options.routineConfigured
       ? { isAvailable: true, hint: null }

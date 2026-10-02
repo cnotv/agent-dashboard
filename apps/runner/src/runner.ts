@@ -5,7 +5,7 @@
 // sessions steered from the phone, tmux 3.2 or later. Every command is an argument list; nothing
 // goes through a shell.
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -18,10 +18,17 @@ interface RepositoryReference {
   name: string
 }
 
+interface StartAttachment {
+  name: string
+  mediaType: string
+  base64: string
+}
+
 interface ClaimedStart {
   start: { startId: string; repository: RepositoryReference; target: StartTarget; permissionMode: PermissionMode }
   prompt: string
   sessionName: string
+  attachments: StartAttachment[]
 }
 
 interface RunnerSettings {
@@ -100,6 +107,7 @@ interface RunnerPaths {
   clonePath: string
   worktreePath: string
   logPath: string
+  attachmentsPath: string
 }
 
 interface LaunchPlan {
@@ -153,6 +161,23 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 const isOneOf = <Allowed extends string>(allowedValues: Allowed[], value: unknown): value is Allowed =>
   allowedValues.some((allowedValue) => allowedValue === value)
 
+// The same rule the dashboard applies: a plain base name, so writing it cannot leave the folder.
+const isSafeAttachment = (attachment: unknown): attachment is StartAttachment =>
+  isRecord(attachment) &&
+  typeof attachment.name === 'string' &&
+  /^[A-Za-z0-9][A-Za-z0-9._ -]{0,99}$/.test(attachment.name) &&
+  !attachment.name.includes('..') &&
+  typeof attachment.mediaType === 'string' &&
+  typeof attachment.base64 === 'string' &&
+  /^[A-Za-z0-9+/]*={0,2}$/.test(attachment.base64)
+
+const parseAttachments = (attachmentsBody: unknown): StartAttachment[] | null => {
+  if (attachmentsBody === undefined) return []
+  if (!Array.isArray(attachmentsBody)) return null
+  const attachments = attachmentsBody.filter(isSafeAttachment)
+  return attachments.length === attachmentsBody.length ? attachments : null
+}
+
 /**
  * Reads a claim from the dashboard, checking everything in it that reaches a command line.
  * @param claimBody The parsed JSON the dashboard answered with.
@@ -162,12 +187,13 @@ export const parseClaim = (claimBody: unknown): ClaimedStart | null => {
   if (!isRecord(claimBody) || !isRecord(claimBody.start)) return null
   const { start, prompt, sessionName } = claimBody
   const { startId, target, permissionMode, repository: repositoryBody } = start
-  if (!isRecord(repositoryBody)) return null
+  const attachments = parseAttachments(claimBody.attachments)
+  if (!isRecord(repositoryBody) || attachments === null) return null
   const repository = { owner: String(repositoryBody.owner), name: String(repositoryBody.name) }
   if (typeof prompt !== 'string' || typeof sessionName !== 'string' || typeof startId !== 'string') return null
   if (!/^[0-9a-f-]{36}$/.test(startId) || !isSafeRepository(repository)) return null
   if (!isOneOf(laptopTargets, target) || !isOneOf(permissionModes, permissionMode)) return null
-  return { start: { startId, repository, target, permissionMode }, prompt, sessionName }
+  return { start: { startId, repository, target, permissionMode }, prompt, sessionName, attachments }
 }
 
 /**
@@ -183,8 +209,28 @@ export const runnerPathsFor = (runnerHome: string, claimed: ClaimedStart): Runne
     clonePath: join(runnerHome, 'repos', owner, name),
     worktreePath: join(runnerHome, 'worktrees', folderName),
     logPath: join(runnerHome, 'logs', `${folderName}.log`),
+    attachmentsPath: join(runnerHome, 'attachments', folderName),
   }
 }
+
+/**
+ * Adds the paths of a start's attachments to its prompt, once they are written beside the
+ * worktree rather than inside it, so nothing of them is committed.
+ * @param claimed The claimed start.
+ * @param paths Where the start's files live.
+ * @returns The claim with the attachments named in its prompt.
+ */
+export const withAttachmentPaths = (claimed: ClaimedStart, paths: RunnerPaths): ClaimedStart =>
+  claimed.attachments.length === 0
+    ? claimed
+    : {
+        ...claimed,
+        prompt: [
+          claimed.prompt,
+          'Attachments, saved on this laptop; read each with the Read tool:',
+          claimed.attachments.map((attachment) => `- ${join(paths.attachmentsPath, attachment.name)}`).join('\n'),
+        ].join('\n\n'),
+      }
 
 /**
  * Names a start's worktree and log after its repository and the start's short id.
@@ -542,12 +588,21 @@ const reportOutcome = async (settings: RunnerSettings, startId: string, report: 
   })
 }
 
+const writeAttachments = (claimed: ClaimedStart, paths: RunnerPaths): void => {
+  if (claimed.attachments.length === 0) return
+  mkdirSync(paths.attachmentsPath, { recursive: true })
+  claimed.attachments.forEach((attachment) =>
+    writeFileSync(join(paths.attachmentsPath, attachment.name), Buffer.from(attachment.base64, 'base64'), { mode: 0o600 }),
+  )
+}
+
 const startClaimedSession = async (settings: RunnerSettings, claimed: ClaimedStart): Promise<void> => {
   const paths = runnerPathsFor(settings.runnerHome, claimed)
   try {
     prepareClone(claimed.start, paths.clonePath)
     if (claimed.start.target !== 'laptop-cloud') prepareWorktree(paths)
-    const outcome = launch(launchPlanFor(claimed, paths), claimed, paths)
+    writeAttachments(claimed, paths)
+    const outcome = launch(launchPlanFor(withAttachmentPaths(claimed, paths), paths), claimed, paths)
     process.stdout.write(`Started ${claimed.sessionName}: ${outcome.message}\n`)
     await reportOutcome(settings, claimed.start.startId, { state: 'started', ...outcome })
   } catch (startError) {
