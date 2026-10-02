@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { RepositoryReference, SessionStart, SessionStartRequest } from '@dashi/contracts'
+import type { RepositoryReference, SessionStart, SessionStartRequest, StartAttachment } from '@dashi/contracts'
 import type { MachineTokenStore } from '../machine-tokens/types.ts'
 import type { Vault } from '../secrets/types.ts'
 import type { runnerReportSchema } from './schema.ts'
@@ -37,7 +37,15 @@ export interface SessionStartServices {
   runnerScriptPath: string
 }
 
+export type AttachmentDelivery = 'files' | 'inline'
+
+export interface AttachmentRelay {
+  hold: (startId: string, attachments: StartAttachment[]) => void
+  take: (startId: string) => StartAttachment[]
+}
+
 export interface SessionStartDependencies extends SessionStartServices {
+  attachmentRelay: AttachmentRelay
   vault: Vault
   repositories: RepositoryReference[]
   now: () => number

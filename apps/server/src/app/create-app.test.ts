@@ -252,6 +252,44 @@ describe('merge and close', () => {
   })
 })
 
+describe('new issues', () => {
+  const issuesPath = '/repos/cnotv/generative-art/issues'
+  const newIssueRequest = (body: unknown = { title: 'Marbles stick to the ramp', body: 'They stop halfway.' }) =>
+    jsonRequest('POST', '/api/repositories/cnotv/generative-art/issues', body)
+
+  it("opens the issue with the reader's token and answers its number and address", async () => {
+    const { app, vault, receivedRestRequests } = createTestApp({}, {}, { now: 0 }, {
+      [issuesPath]: Response.json({ number: 61, html_url: 'https://github.com/cnotv/generative-art/issues/61' }, { status: 201 }),
+    })
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(newIssueRequest())
+    expect(response.status).toBe(201)
+    expect(await response.json()).toEqual({ number: 61, url: 'https://github.com/cnotv/generative-art/issues/61' })
+    expect(receivedRestRequests).toContainEqual({
+      path: issuesPath,
+      method: 'POST',
+      body: { title: 'Marbles stick to the ramp', body: 'They stop halfway.' },
+    })
+  })
+
+  it('says the App needs write access to issues when GitHub forbids it', async () => {
+    const { app, vault } = createTestApp({}, {}, { now: 0 }, {
+      [issuesPath]: Response.json({ message: 'Resource not accessible by integration' }, { status: 403 }),
+    })
+    vault.saveSecret('github-token', sampleToken)
+    const response = await app.request(newIssueRequest())
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: expect.stringContaining('write access to issues') })
+  })
+
+  it('refuses an empty title and a repository that is not configured', async () => {
+    const { app, vault } = createTestApp()
+    vault.saveSecret('github-token', sampleToken)
+    expect((await app.request(newIssueRequest({ title: '  ', body: '' }))).status).toBe(400)
+    expect((await app.request(jsonRequest('POST', '/api/repositories/someone/else/issues', { title: 'x' }))).status).toBe(404)
+  })
+})
+
 describe('pull request files', () => {
   const filesPath = '/api/repositories/cnotv/generative-art/pulls/7/files'
   const githubFilesPath = '/repos/cnotv/generative-art/pulls/7/files?per_page=100&page=1'

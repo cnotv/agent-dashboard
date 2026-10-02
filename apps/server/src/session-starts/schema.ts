@@ -15,7 +15,24 @@ export const sessionStartRequestSchema = z.object({
   workflow: startWorkflowSchema,
   target: z.enum(['laptop-remote-control', 'laptop-headless', 'laptop-cloud', 'cloud-routine']),
   permissionMode: z.enum(['auto', 'acceptEdits', 'dontAsk']).default('auto'),
-  note: z.string().trim().max(2000).default(''),
+  note: z.string().trim().max(20000).default(''),
+})
+
+// The runner writes each name as a file name, so it is a plain base name and nothing else.
+export const startAttachmentSchema = z.object({
+  name: z
+    .string()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._ -]{0,99}$/)
+    .refine((name) => !name.includes('..')),
+  mediaType: z.string().regex(/^[a-z]+\/[A-Za-z0-9.+-]{1,100}$/),
+  base64: z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/),
+})
+
+export const sessionStartSubmissionSchema = sessionStartRequestSchema.extend({
+  attachments: z
+    .array(startAttachmentSchema)
+    .default([])
+    .refine((attachments) => new Set(attachments.map((attachment) => attachment.name)).size === attachments.length, 'Attachment names repeat'),
 })
 
 export const runnerReportSchema = z.object({

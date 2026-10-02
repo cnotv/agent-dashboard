@@ -4,7 +4,12 @@ import { runnerLaunchAgentCommands, runnerTryCommands } from './runner-setup'
 import { defaultTargetFor, suggestedWorkflowFor, targetAvailabilityFor } from './start-session'
 
 const onlineRunner = { label: 'Mac mini', lastSeenAt: '2026-09-30T10:00:00Z', isOnline: true }
-const optionsWith = (overrides: Partial<StartOptions>): StartOptions => ({ runners: [], routineConfigured: false, ...overrides })
+const optionsWith = (overrides: Partial<StartOptions>): StartOptions => ({
+  runners: [],
+  routineConfigured: false,
+  attachmentLimits: { fileCount: 5, fileTargetBytes: 8 * 1024 * 1024, inlineTargetBytes: 48 * 1024 },
+  ...overrides,
+})
 
 describe('suggestedWorkflowFor', () => {
   it('reads the workflow from the first label it knows', () => {
@@ -15,21 +20,31 @@ describe('suggestedWorkflowFor', () => {
 })
 
 describe('targetAvailabilityFor', () => {
+  it('turns a session away when the attachments are larger than it takes', () => {
+    const options = optionsWith({ runners: [onlineRunner], routineConfigured: true })
+    expect(targetAvailabilityFor('laptop-remote-control', options, 100 * 1024)).toEqual({ isAvailable: true, hint: null })
+    expect(targetAvailabilityFor('cloud-routine', options, 100 * 1024)).toEqual({
+      isAvailable: false,
+      hint: 'Takes at most 48 KB of attachments',
+    })
+    expect(targetAvailabilityFor('laptop-cloud', options, 100 * 1024).isAvailable).toBe(false)
+  })
+
   it('needs a routine for the cloud routine', () => {
-    expect(targetAvailabilityFor('cloud-routine', optionsWith({})).isAvailable).toBe(false)
-    expect(targetAvailabilityFor('cloud-routine', optionsWith({ routineConfigured: true }))).toEqual({ isAvailable: true, hint: null })
+    expect(targetAvailabilityFor('cloud-routine', optionsWith({}), 0).isAvailable).toBe(false)
+    expect(targetAvailabilityFor('cloud-routine', optionsWith({ routineConfigured: true }), 0)).toEqual({ isAvailable: true, hint: null })
   })
 
   it('queues for a runner that is set up but offline, and refuses when none is set up', () => {
-    expect(targetAvailabilityFor('laptop-headless', optionsWith({}))).toEqual({
+    expect(targetAvailabilityFor('laptop-headless', optionsWith({}), 0)).toEqual({
       isAvailable: false,
       hint: 'Set up the laptop runner under Credentials',
     })
-    expect(targetAvailabilityFor('laptop-headless', optionsWith({ runners: [{ ...onlineRunner, isOnline: false }] }))).toEqual({
+    expect(targetAvailabilityFor('laptop-headless', optionsWith({ runners: [{ ...onlineRunner, isOnline: false }] }), 0)).toEqual({
       isAvailable: true,
       hint: expect.stringContaining('waits'),
     })
-    expect(targetAvailabilityFor('laptop-remote-control', optionsWith({ runners: [onlineRunner] }))).toEqual({ isAvailable: true, hint: null })
+    expect(targetAvailabilityFor('laptop-remote-control', optionsWith({ runners: [onlineRunner] }), 0)).toEqual({ isAvailable: true, hint: null })
   })
 })
 

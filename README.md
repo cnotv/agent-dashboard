@@ -46,10 +46,11 @@ Create the App once at <https://github.com/settings/apps/new>:
    `http://localhost:4317/api/auth/github/callback` as a second one to sign in locally too.
 3. Keep **Expire user authorization tokens** on. Leave **Request user authorization during
    installation** off, and untick **Webhook: Active**.
-4. **Repository permissions**: read-only for Actions, Checks, Commit statuses and Issues; **read
-   and write** for Contents and Pull requests, which the Merge and Close buttons need (Metadata
-   is added on its own). Leave those two read-only to keep the dashboard unable to change
-   anything; the buttons then show GitHub's refusal.
+4. **Repository permissions**: read-only for Actions, Checks and Commit statuses; **read and
+   write** for Contents and Pull requests, which the Merge and Close buttons need, and for
+   Issues, which **New issue** needs (Metadata is added on its own). Leave those three
+   read-only to keep the dashboard unable to change anything; the buttons then show GitHub's
+   refusal.
 5. **Only on this account**, then create it. Copy the **Client ID** and generate a **client
    secret**.
 6. **Install App** on your account, for the repositories in `config/repos.json`. The board can
@@ -252,6 +253,24 @@ same dialog for the `conflicts` workflow: the session checks out that pull reque
 brings in the default branch, resolves the conflicts, runs the checks and pushes, and asks you
 when both sides changed the same logic. It opens with `/workflow:start conflicts <pull request link>`. **Sessions**
 lists the starts, with the session's link or what the runner said.
+
+### New issue
+
+**New issue**, on Sessions and on the board, starts work that has no issue yet: pick the
+repository, write a title and what it is about, attach files (or paste a screenshot into the
+text), then the same workflow and place to run as **Start**. It opens the issue on GitHub as you,
+then starts the session on it with the text as its note.
+
+Attachments are never stored. They travel with the start and are dropped once handed over: a
+laptop session steered from the phone or unattended gets them as files under
+`~/dashi/attachments/<repository>-<start>`, beside the worktree so nothing of them is committed,
+and its first message names their paths; a session that only takes text (Claude cloud from the
+laptop, or a routine) gets them as base64 inside its first message, so those take at most 48 KB
+of attachments, against 8 MB and five files for the laptop. The issue lists only their names. A
+laptop start waits in memory for its runner for up to fifteen minutes; a restart of the
+dashboard before then drops its attachments.
+Behind a proxy that limits request bodies (plain Nginx stops at 1 MB), raise the limit to
+about 12 MB, `client_max_body_size 12m`, or larger attachments are refused before they arrive.
 
 ### The laptop runner
 

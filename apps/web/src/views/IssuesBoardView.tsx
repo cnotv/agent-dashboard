@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router'
 import { BoardCardItem } from '@/components/board/BoardCardItem'
 import { NetlifyControl } from '@/components/board/NetlifyControl'
+import { NewIssueDialog } from '@/components/board/NewIssueDialog'
 import { useBoards, useRepositories } from '@/hooks/useBoard'
 import { useCollapsedColumns } from '@/hooks/useCollapsedColumns'
 import { mergeBoards } from '@/lib/board-merge'
@@ -71,11 +72,10 @@ export const IssuesBoardView = () => {
             Updated {new Date(oldestFetchedAt).toLocaleTimeString()}
           </Text>
         )}
-        {!showsAllRepositories && selectedRepository && (
-          <Flex ml="auto">
-            <NetlifyControl repository={selectedRepository} />
-          </Flex>
-        )}
+        <Flex ml="auto" gap="3" align="center">
+          {!showsAllRepositories && selectedRepository && <NetlifyControl repository={selectedRepository} />}
+          <NewIssueDialog defaultRepository={showsAllRepositories ? null : selectedRepository} />
+        </Flex>
       </Flex>
 
       {loadError && (

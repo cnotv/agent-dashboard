@@ -1,5 +1,5 @@
 import type { z } from 'zod'
-import type { IssueSummary, PullRequestFiles, PullRequestSummary } from '@dashi/contracts'
+import type { CreatedIssue, IssueSummary, PullRequestFiles, PullRequestSummary } from '@dashi/contracts'
 import type {
   boardResponseSchema,
   closedIssueNodeSchema,
@@ -19,7 +19,7 @@ export type PullRequestFileNode = z.infer<typeof pullRequestFileSchema>
 export type GraphqlFetcher = (query: string, variables: Record<string, string | number>) => Promise<unknown>
 
 export interface GithubRestRequest {
-  method: 'GET' | 'PUT' | 'PATCH'
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH'
   body?: unknown
 }
 
@@ -32,6 +32,8 @@ export interface PullRequestToMerge {
 }
 
 export type PullRequestActionResult = { ok: true } | { ok: false; status: number; message: string }
+
+export type IssueCreationResult = { ok: true; issue: CreatedIssue } | { ok: false; status: number; message: string }
 
 export type PullRequestFilesResult = { ok: true; pullRequestFiles: PullRequestFiles } | { ok: false; status: number; message: string }
 

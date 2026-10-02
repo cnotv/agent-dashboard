@@ -63,7 +63,8 @@ export const createHttpApi = (apiBaseUrl: string): DashboardApi => {
     readStartOptions: (repository) =>
       requestJson(`/api/start-options?owner=${encodeURIComponent(repository.owner)}&name=${encodeURIComponent(repository.name)}`),
     listSessionStarts: () => requestJson('/api/session-starts'),
-    startSession: (request) => sendJson('POST', '/api/session-starts', request),
+    startSession: (submission) => sendJson('POST', '/api/session-starts', submission),
+    createIssue: (repository, newIssue) => sendJson('POST', `${repositoryPath(repository)}/issues`, newIssue),
     readRoutineSettings: (repository) => requestJson(`${repositoryPath(repository)}/routine`),
     saveRoutineSettings: (repository, routineId, token) => sendJson('PUT', `${repositoryPath(repository)}/routine`, { routineId, token }),
     deleteRoutineSettings: (repository) => sendJson('DELETE', `${repositoryPath(repository)}/routine`),

@@ -14,6 +14,7 @@ import {
   runnerPathsFor,
   summariseTranscript,
   tmuxSessionNameFor,
+  withAttachmentPaths,
 } from './runner.ts'
 
 const startId = '0123abcd-0000-4000-8000-000000000000'
@@ -47,6 +48,29 @@ describe('parseClaim', () => {
     expect(parseClaim(claimBody({ permissionMode: 'bypassPermissions' }))).toBeNull()
     expect(parseClaim(claimBody({ startId: '../../x' }))).toBeNull()
     expect(parseClaim({ start: null })).toBeNull()
+  })
+})
+
+describe('attachments', () => {
+  const screenshot = { name: 'ramp.png', mediaType: 'image/png', base64: 'aGVsbG8=' }
+
+  it('reads attachments from a claim and refuses names that could leave their folder', () => {
+    expect(parseClaim({ ...claimBody(), attachments: [screenshot] })?.attachments).toEqual([screenshot])
+    expect(parseClaim(claimBody())?.attachments).toEqual([])
+    expect(parseClaim({ ...claimBody(), attachments: [{ ...screenshot, name: '../../.zshrc' }] })).toBeNull()
+    expect(parseClaim({ ...claimBody(), attachments: [{ ...screenshot, base64: 'not base64!' }] })).toBeNull()
+    expect(parseClaim({ ...claimBody(), attachments: 'ramp.png' })).toBeNull()
+  })
+
+  it('names the saved attachments in the prompt, beside the worktree', () => {
+    const claimed = parseClaim({ ...claimBody(), attachments: [screenshot] })
+    if (claimed === null) throw new Error('The test claim did not parse')
+    const paths = runnerPathsFor('/Users/me/dashi', claimed)
+    expect(paths.attachmentsPath).toBe('/Users/me/dashi/attachments/generative-art-0123abcd')
+    expect(withAttachmentPaths(claimed, paths).prompt).toBe(
+      `${claimed.prompt}\n\nAttachments, saved on this laptop; read each with the Read tool:\n\n- /Users/me/dashi/attachments/generative-art-0123abcd/ramp.png`,
+    )
+    expect(withAttachmentPaths(claimOf(), paths).prompt).toBe(claimOf().prompt)
   })
 })
 

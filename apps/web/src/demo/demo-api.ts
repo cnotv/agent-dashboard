@@ -1,5 +1,7 @@
 import type {
+  BoardColumn,
   ChatMessage,
+  IssueSummary,
   MachineTokenKind,
   MachineTokenSummary,
   NetlifyStatus,
@@ -23,6 +25,18 @@ import {
 import { applyDemoPullRequestOutcomes, demoMediaUrls, sampleBoardColumns, samplePullRequestFiles } from './sample-board'
 import { demoUser, sampleRepositories, sampleSecrets } from './sample-data'
 
+// The same limits the server answers with, so the dialog behaves as it would against one.
+const demoAttachmentLimits = { fileCount: 5, fileTargetBytes: 8 * 1024 * 1024, inlineTargetBytes: 48 * 1024 }
+// Above every sample issue's number, so an issue opened in demo mode never takes one of theirs.
+const firstDemoIssueNumber = 100
+
+const withCreatedIssues = (columns: BoardColumn[], createdIssues: IssueSummary[]): BoardColumn[] =>
+  columns.map((column) =>
+    column.status === 'no-pull-request'
+      ? { ...column, cards: [...createdIssues.map((issue) => ({ issues: [issue], pullRequest: null, status: column.status })), ...column.cards] }
+      : column,
+  )
+
 const demoNetlifySite = (repository: RepositoryReference): NetlifyStatus => {
   const siteName = `${repository.owner}-${repository.name}`
   return { state: 'active', siteName, siteUrl: `https://${siteName}.netlify.app`, adminUrl: `https://app.netlify.com/projects/${siteName}` }
@@ -45,6 +59,7 @@ export const createDemoApi = (): DashboardApi => {
     pullRequestOutcomes: Map<number, DemoPullRequestOutcome>
     netlifyRepositoryKeys: Set<string>
     chatMessages: Map<string, ChatMessage[]>
+    createdIssues: Map<string, IssueSummary[]>
   } = {
     secrets: sampleSecrets.map((secret) => ({ ...secret })),
     machineTokens: { ingest: sampleIngestTokens.map((token) => ({ ...token })), runner: sampleRunnerTokens.map((token) => ({ ...token })) },
@@ -53,6 +68,7 @@ export const createDemoApi = (): DashboardApi => {
     pullRequestOutcomes: new Map(),
     netlifyRepositoryKeys: new Set(['cnotv/example']),
     chatMessages: new Map(),
+    createdIssues: new Map(),
   }
   const chatMessagesOf = (chatKey: string): ChatMessage[] => demoMemory.chatMessages.get(chatKey) ?? sampleChatMessages
 
@@ -76,7 +92,10 @@ export const createDemoApi = (): DashboardApi => {
     listRepositories: async () => sampleRepositories,
     readBoard: async (repository) => ({
       repository,
-      columns: applyDemoPullRequestOutcomes(sampleBoardColumns, demoMemory.pullRequestOutcomes, new Date().toISOString()),
+      columns: withCreatedIssues(
+        applyDemoPullRequestOutcomes(sampleBoardColumns, demoMemory.pullRequestOutcomes, new Date().toISOString()),
+        demoMemory.createdIssues.get(repositoryKey(repository)) ?? [],
+      ),
       fetchedAt: new Date().toISOString(),
     }),
     mergePullRequest: async (_repository, pullRequest) => {
@@ -130,9 +149,26 @@ export const createDemoApi = (): DashboardApi => {
     readStartOptions: async (repository) => ({
       runners: [{ label: 'Mac mini', lastSeenAt: new Date().toISOString(), isOnline: true }],
       routineConfigured: demoMemory.routineRepositoryKeys.has(repositoryKey(repository)),
+      attachmentLimits: demoAttachmentLimits,
     }),
+    createIssue: async (repository, newIssue) => {
+      const createdIssues = demoMemory.createdIssues.get(repositoryKey(repository)) ?? []
+      const issueNumber = firstDemoIssueNumber + [...demoMemory.createdIssues.values()].flat().length
+      const url = `https://github.com/${repository.owner}/${repository.name}/issues/${issueNumber}`
+      const issue: IssueSummary = {
+        number: issueNumber,
+        title: newIssue.title,
+        url,
+        updatedAt: new Date().toISOString(),
+        closedAt: null,
+        labels: [],
+        linkedPullRequestNumbers: [],
+      }
+      demoMemory.createdIssues = new Map([...demoMemory.createdIssues, [repositoryKey(repository), [issue, ...createdIssues]]])
+      return { number: issueNumber, url }
+    },
     listSessionStarts: async () => demoMemory.sessionStarts,
-    startSession: async (request) => {
+    startSession: async ({ attachments, ...request }) => {
       const now = new Date().toISOString()
       const start: SessionStart = {
         ...request,
@@ -140,7 +176,7 @@ export const createDemoApi = (): DashboardApi => {
         state: 'started',
         runnerLabel: request.target === 'cloud-routine' ? null : 'Mac mini',
         sessionUrl: null,
-        message: 'Demo mode: nothing was started',
+        message: attachments.length === 0 ? 'Demo mode: nothing was started' : 'Demo mode: nothing was started, and its attachments stayed in this page',
         createdAt: now,
         updatedAt: now,
       }
