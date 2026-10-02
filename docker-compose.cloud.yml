@@ -13,10 +13,10 @@ services:
     environment:
       DASHI_MODE: cloud
       DASHI_HOST: 0.0.0.0
-      DASHI_PUBLIC_URL: https://${DASHI_DOMAIN:?set DASHI_DOMAIN in .env}
+      DASHI_PUBLIC_URL: https://${DASHI_DOMAIN:-${AGENT_DASHBOARD_DOMAIN:?set DASHI_DOMAIN in .env}}
     # Published on a private address only: the proxy reaches it, the internet does not.
     ports:
-      - "${DASHI_PUBLISH_ADDRESS:-127.0.0.1}:${DASHI_PUBLISH_PORT:-4317}:4317"
+      - "${DASHI_PUBLISH_ADDRESS:-${AGENT_DASHBOARD_PUBLISH_ADDRESS:-127.0.0.1}}:${DASHI_PUBLISH_PORT:-${AGENT_DASHBOARD_PUBLISH_PORT:-4317}}:4317"
     volumes:
       - dashboard-data:/data
     restart: unless-stopped
