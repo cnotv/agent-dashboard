@@ -1,12 +1,14 @@
 import { GitHubLogoIcon } from '@radix-ui/react-icons'
 import { Button, Callout, Card, Flex, Heading, Text } from '@radix-ui/themes'
-import { useSearchParams } from 'react-router'
+import { useLocation, useSearchParams } from 'react-router'
 import { signInErrorMessages } from '@/lib/presentation'
+import { rememberReturnPath } from '@/lib/return-after-sign-in'
 import { DashiLogo } from './DashiLogo'
 
 /** The full-page sign-in shown when the dashboard requires GitHub sign-in, with the reason a previous attempt failed. */
 export const SignInScreen = ({ signInUrl }: { signInUrl: string }) => {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const signInError = searchParams.get('sign-in-error')
   const errorMessage = signInError === null ? null : (signInErrorMessages[signInError] ?? signInErrorMessages.failed)
 
@@ -30,7 +32,7 @@ export const SignInScreen = ({ signInUrl }: { signInUrl: string }) => {
             </Callout.Root>
           )}
           <Button size="3" asChild>
-            <a href={signInUrl}>
+            <a href={signInUrl} onClick={() => rememberReturnPath(`${location.pathname}${location.search}`)}>
               <GitHubLogoIcon />
               Sign in with GitHub
             </a>

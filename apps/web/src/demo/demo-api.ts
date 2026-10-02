@@ -210,6 +210,25 @@ export const createDemoApi = (): DashboardApi => {
         ? { ok: true, sessionUrl: 'https://claude.ai/code' }
         : { ok: false, message: 'Save a routine id and token first' },
     readRunnerScriptInfo: async () => ({ sha256: '0'.repeat(64), byteLength: 0, sourcePath: 'apps/runner/src/runner.ts' }),
+    readCliScriptInfo: async () => ({ sha256: '0'.repeat(64), byteLength: 0, sourcePath: 'apps/cli/src/dashi.ts' }),
+    describePairing: async (userCode) => ({
+      userCode: userCode.toUpperCase(),
+      hostname: 'Studio-MacBook-Pro.local',
+      platform: 'macos',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    }),
+    approvePairing: async (approval) => {
+      const created = [
+        { kind: 'ingest' as const, summary: { tokenId: `demo-ingest-${approval.userCode}`, label: approval.label, createdAt: new Date().toISOString(), lastUsedAt: null } },
+        ...(approval.withRunner
+          ? [{ kind: 'runner' as const, summary: { tokenId: `demo-runner-${approval.userCode}`, label: approval.label, createdAt: new Date().toISOString(), lastUsedAt: null } }]
+          : []),
+      ]
+      demoMemory.machineTokens = created.reduce(
+        (tokens, { kind, summary }) => ({ ...tokens, [kind]: [...tokens[kind], summary] }),
+        demoMemory.machineTokens,
+      )
+    },
     readRoutineSettings: async (repository) => {
       const configured = demoMemory.routineRepositoryKeys.has(repositoryKey(repository))
       return { configured, routineId: configured ? 'trig_01DemoRoutine' : null }

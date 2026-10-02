@@ -9,6 +9,7 @@ import { ToastProvider } from '@/components/layout/ToastProvider'
 import { useColorScheme } from '@/hooks/useColorScheme'
 import { CredentialsView } from '@/views/CredentialsView'
 import { IssuesBoardView } from '@/views/IssuesBoardView'
+import { PairView } from '@/views/PairView'
 import { SessionsView } from '@/views/SessionsView'
 import { UsageView } from '@/views/UsageView'
 
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
       { path: 'issues', element: <IssuesBoardView />, handle: { title: 'Issues' } },
       { path: 'usage', element: <UsageView />, handle: { title: 'Usage' } },
       { path: 'credentials', element: <CredentialsView />, handle: { title: 'Credentials' } },
+      { path: 'pair', element: <PairView />, handle: { title: 'Connect a machine' } },
     ],
   },
 ])

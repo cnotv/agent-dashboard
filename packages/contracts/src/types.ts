@@ -342,7 +342,7 @@ export interface SessionStartDetails {
   firstMessage: string
 }
 
-export interface RunnerScriptInfo {
+export interface ServedScriptInfo {
   sha256: string
   byteLength: number
   sourcePath: string
@@ -386,3 +386,41 @@ export interface SessionChat {
   deliveries: ChatDelivery[]
   updatedAt: string | null
 }
+
+export type MachinePlatform = 'macos' | 'linux'
+
+export interface PairingRequest {
+  hostname: string
+  platform: MachinePlatform
+}
+
+// The poll secret goes only to the CLI that asked; the code is what the person sees and approves.
+export interface CreatedPairing {
+  pairingId: string
+  userCode: string
+  pollSecret: string
+  approvePath: string
+  expiresAt: string
+}
+
+export interface PairingDescription {
+  userCode: string
+  hostname: string
+  platform: MachinePlatform
+  expiresAt: string
+}
+
+export interface PairingApproval {
+  userCode: string
+  label: string
+  withRunner: boolean
+}
+
+export type PairingPoll = { state: 'pending' } | { state: 'approved'; label: string; ingestToken: string; runnerToken: string | null }
+
+export interface MachineIdentity {
+  kind: MachineTokenKind
+  label: string
+  lastUsedAt: string | null
+}
+

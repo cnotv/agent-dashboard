@@ -18,6 +18,7 @@ export interface AppDependencies {
   createGithubRestFetcher: (token: string) => GithubRestFetcher
   createNetlifyFetcher: (token: string) => NetlifyFetcher
   mediaCacheDirectory: string
+  cliScriptPath: string
   allowedHostNames: string[]
   boardCacheMilliseconds: number
   now: () => number

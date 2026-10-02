@@ -8,7 +8,7 @@ import type {
   RoutineSettings,
   RoutineTestResult,
   RunnerPresence,
-  RunnerScriptInfo,
+  ServedScriptInfo,
   SessionStart,
   SessionStartDetails,
   SessionStartRequest,
@@ -222,7 +222,7 @@ export const createRunnerRoutes = ({ startStore, runnerTokens, runnerScriptPath,
 
   routes.get('/script-info', async (context) => {
     const script = await readFile(runnerScriptPath)
-    return context.json<RunnerScriptInfo>({
+    return context.json<ServedScriptInfo>({
       sha256: createHash('sha256').update(script).digest('hex'),
       byteLength: script.byteLength,
       sourcePath: runnerSourcePath,

@@ -85,6 +85,7 @@ export const createTestApp = (
     },
     createNetlifyFetcher: () => async () => new Response('{}', { status: 404 }),
     mediaCacheDirectory: mkdtempSync(join(tmpdir(), 'dashi-media-')),
+    cliScriptPath: fileURLToPath(new URL('../../../cli/src/dashi.ts', import.meta.url)),
     allowedHostNames: ['localhost', '127.0.0.1'],
     boardCacheMilliseconds: 60_000,
     now: () => clock.now,

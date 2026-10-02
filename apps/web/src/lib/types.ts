@@ -9,14 +9,17 @@ import type {
   MachineTokenSummary,
   MediaKind,
   MachineTokenKind,
+  MachinePlatform,
   NetlifyStatus,
+  PairingApproval,
+  PairingDescription,
   PullRequestFiles,
   PullRequestSummary,
   SessionChat,
   RepositoryReference,
   RoutineSettings,
   RoutineTestResult,
-  RunnerScriptInfo,
+  ServedScriptInfo,
   SessionStartDetails,
   SecretSummary,
   SessionState,
@@ -62,13 +65,19 @@ export interface StartTargetAvailability {
   hint: string | null
 }
 
-export type RunnerPlatform = 'macos' | 'linux'
+export interface ScriptDownloadInput {
+  dashboardUrl: string
+  scriptPath: string
+  fileName: string
+  scriptSha256: string
+  platform: MachinePlatform
+}
 
 export interface RunnerSetupInput {
   dashboardUrl: string
   runnerToken: string
   scriptSha256: string
-  platform: RunnerPlatform
+  platform: MachinePlatform
 }
 
 export interface LogoParticle {
@@ -135,7 +144,10 @@ export interface DashboardApi {
   readSessionStart: (startId: string) => Promise<SessionStartDetails>
   retrySessionStart: (startId: string) => Promise<SessionStart>
   testRoutine: (repository: RepositoryReference) => Promise<RoutineTestResult>
-  readRunnerScriptInfo: () => Promise<RunnerScriptInfo>
+  readRunnerScriptInfo: () => Promise<ServedScriptInfo>
+  readCliScriptInfo: () => Promise<ServedScriptInfo>
+  describePairing: (userCode: string) => Promise<PairingDescription>
+  approvePairing: (approval: PairingApproval) => Promise<void>
   readRoutineSettings: (repository: RepositoryReference) => Promise<RoutineSettings>
   saveRoutineSettings: (repository: RepositoryReference, routineId: string, token: string) => Promise<void>
   deleteRoutineSettings: (repository: RepositoryReference) => Promise<void>
