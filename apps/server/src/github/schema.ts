@@ -32,9 +32,7 @@ export const pullRequestNodeSchema = z.object({
       z.object({
         commit: z.object({
           oid: z.string(),
-          statusCheckRollup: z
-            .object({ contexts: z.object({ nodes: z.array(rollupContextSchema.nullable()) }) })
-            .nullable(),
+          statusCheckRollup: z.object({ contexts: z.object({ nodes: z.array(rollupContextSchema.nullable()) }) }).nullable(),
         }),
       }),
     ),
@@ -69,15 +67,51 @@ export const pullRequestBodyHtmlResponseSchema = z.object({
 
 export const graphqlErrorsSchema = z.object({ errors: z.array(z.object({ message: z.string() })).min(1) })
 
+// A closed issue reads the pull requests that reference it in full, so its card can keep the
+// merged one's preview, recording and files.
+export const closingPullRequestNodeSchema = pullRequestNodeSchema.extend({ merged: z.boolean() })
+
+export const closedIssueNodeSchema = issueNodeSchema.extend({
+  closedByPullRequestsReferences: z.object({ nodes: z.array(closingPullRequestNodeSchema) }),
+})
+
 export const boardResponseSchema = z.object({
   data: z.object({
     repository: z.object({
       issues: z.object({ nodes: z.array(issueNodeSchema) }),
-      closedIssues: z.object({ nodes: z.array(issueNodeSchema) }),
+      closedIssues: z.object({ nodes: z.array(closedIssueNodeSchema) }),
       pullRequests: z.object({ nodes: z.array(pullRequestNodeSchema) }),
     }),
   }),
 })
+
+const pullRequestFields = `
+  number
+  title
+  url
+  isDraft
+  headRefName
+  reviewDecision
+  mergeable
+  body
+  updatedAt
+  commits(last: 1) {
+    nodes {
+      commit {
+        oid
+        statusCheckRollup {
+          contexts(first: 100) {
+            nodes {
+              __typename
+              ... on CheckRun { name status conclusion detailsUrl }
+              ... on StatusContext { context state targetUrl }
+            }
+          }
+        }
+      }
+    }
+  }
+`
 
 export const boardQuery = `
   query Board($owner: String!, $name: String!) {
@@ -101,37 +135,11 @@ export const boardQuery = `
           updatedAt
           closedAt
           labels(first: 10) { nodes { name color } }
-          closedByPullRequestsReferences(first: 5, includeClosedPrs: true) { nodes { number } }
+          closedByPullRequestsReferences(first: 5, includeClosedPrs: true) { nodes { ${pullRequestFields} merged } }
         }
       }
       pullRequests(first: 50, states: OPEN, orderBy: { field: UPDATED_AT, direction: DESC }) {
-        nodes {
-          number
-          title
-          url
-          isDraft
-          headRefName
-          reviewDecision
-          mergeable
-          body
-          updatedAt
-          commits(last: 1) {
-            nodes {
-              commit {
-                oid
-                statusCheckRollup {
-                  contexts(first: 100) {
-                    nodes {
-                      __typename
-                      ... on CheckRun { name status conclusion detailsUrl }
-                      ... on StatusContext { context state targetUrl }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+        nodes { ${pullRequestFields} }
       }
     }
   }

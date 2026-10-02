@@ -3,7 +3,7 @@ import { deployPreviewUrlFromGates, previewPageUrl } from '../netlify/deploy-pre
 import { mediaPresenceFromMarkdown } from './media.ts'
 import { boardQuery, boardResponseSchema, graphqlErrorsSchema, pullRequestBodyHtmlQuery, pullRequestBodyHtmlResponseSchema } from './schema.ts'
 import { buildBoard, gateStateFromCheckRun, gateStateFromStatusContext, summariseGates } from './status.ts'
-import type { GraphqlFetcher, IssueNode, PullRequestNode, RollupContext } from './types.ts'
+import type { ClosedIssue, ClosedIssueNode, GraphqlFetcher, IssueNode, PullRequestNode, RollupContext } from './types.ts'
 
 const githubGraphqlUrl = 'https://api.github.com/graphql'
 
@@ -24,8 +24,9 @@ export const gateFromRollupContext = (context: RollupContext): CheckGate =>
  */
 export const mapPullRequestNode = (node: PullRequestNode): PullRequestSummary => {
   const headCommit = node.commits.nodes[0]?.commit ?? null
-  const gates = (headCommit?.statusCheckRollup?.contexts.nodes ?? [])
-    .flatMap((context) => (context === null ? [] : [gateFromRollupContext(context)]))
+  const gates = (headCommit?.statusCheckRollup?.contexts.nodes ?? []).flatMap((context) =>
+    context === null ? [] : [gateFromRollupContext(context)],
+  )
   return {
     number: node.number,
     title: node.title,
@@ -58,6 +59,19 @@ export const mapIssueNode = (node: IssueNode): IssueSummary => ({
   labels: node.labels.nodes,
   linkedPullRequestNumbers: node.closedByPullRequestsReferences.nodes.map((reference) => reference.number),
 })
+
+/**
+ * Turns a closed issue from the board query into its summary and the pull request that closed it.
+ * @param node The closed issue from GitHub, with the pull requests that reference it.
+ * @returns The summary, and the most recently updated merged pull request, or null when the issue
+ * was closed by hand.
+ */
+export const mapClosedIssueNode = (node: ClosedIssueNode): ClosedIssue => {
+  const mergedPullRequest = node.closedByPullRequestsReferences.nodes
+    .filter((reference) => reference.merged)
+    .toSorted((first, second) => second.updatedAt.localeCompare(first.updatedAt))[0]
+  return { issue: mapIssueNode(node), pullRequest: mergedPullRequest === undefined ? null : mapPullRequestNode(mergedPullRequest) }
+}
 
 /**
  * Creates a GraphQL caller that reads GitHub with one token.
@@ -101,7 +115,7 @@ export const fetchRepositoryBoard = async (fetchGraphql: GraphqlFetcher, reposit
   const { issues, closedIssues, pullRequests } = parsedResponse.data.data.repository
   return buildBoard(
     repository,
-    { open: issues.nodes.map(mapIssueNode), closed: closedIssues.nodes.map(mapIssueNode) },
+    { open: issues.nodes.map(mapIssueNode), closed: closedIssues.nodes.map(mapClosedIssueNode) },
     pullRequests.nodes.map(mapPullRequestNode),
     new Date().toISOString(),
   )

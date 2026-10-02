@@ -1,4 +1,13 @@
-import type { BoardCard, BoardColumn, CheckGate, IssueLabel, IssueSummary, MediaKind, PullRequestFiles } from '@dashi/contracts'
+import type {
+  BoardCard,
+  BoardColumn,
+  CheckGate,
+  IssueLabel,
+  IssueSummary,
+  MediaKind,
+  PullRequestFiles,
+  PullRequestSummary,
+} from '@dashi/contracts'
 import type { DemoPullRequestOutcome } from '@/lib/types'
 
 // Served from apps/web/public so demo mode has a recording to open without any server.
@@ -15,12 +24,6 @@ const issueOf = (issueNumber: number, title: string, linkedPullRequestNumbers: n
   closedAt: null,
   labels,
   linkedPullRequestNumbers,
-})
-
-const closedIssueOf = (issueNumber: number, title: string, closedAt: string, closingPullRequestNumbers: number[]): BoardCard => ({
-  issues: [{ ...issueOf(issueNumber, title, closingPullRequestNumbers), updatedAt: closedAt, closedAt }],
-  pullRequest: null,
-  status: 'closed',
 })
 
 const runUrl = (runNumber: number): string => `https://github.com/cnotv/example/runs/${runNumber}`
@@ -40,6 +43,35 @@ const passingGates: CheckGate[] = [
   { name: 'test', state: 'success', url: runUrl(13) },
   { name: 'deploy/netlify', state: 'success', url: 'https://deploy-preview-29--cnotv-example.netlify.app' },
 ]
+
+const mergedGates: CheckGate[] = [
+  { name: 'lint', state: 'success', url: runUrl(21) },
+  { name: 'test', state: 'success', url: runUrl(22) },
+  { name: 'deploy/netlify', state: 'success', url: 'https://deploy-preview-26--cnotv-example.netlify.app' },
+]
+
+const mergedPullRequest: PullRequestSummary = {
+  number: 26,
+  title: 'feat: frame rate counter (#4)',
+  url: 'https://github.com/cnotv/example/pull/26',
+  isDraft: false,
+  headRefName: 'feat/4-frame-rate',
+  headSha: '89abcdef',
+  reviewDecision: 'APPROVED',
+  mergeable: 'UNKNOWN',
+  body: 'Closes #4\n\nPreview route: /stats',
+  updatedAt: '2026-09-25T16:20:00Z',
+  gates: mergedGates,
+  gateSummary: { passed: 3, failed: 0, pending: 0, total: 3, overallState: 'passing' },
+  media: { hasImage: true, hasVideo: true },
+  previewUrl: 'https://deploy-preview-26--cnotv-example.netlify.app/stats',
+}
+
+const closedIssueOf = (issueNumber: number, title: string, closedAt: string, pullRequest: PullRequestSummary | null): BoardCard => ({
+  issues: [{ ...issueOf(issueNumber, title, pullRequest === null ? [] : [pullRequest.number]), updatedAt: closedAt, closedAt }],
+  pullRequest,
+  status: 'closed',
+})
 
 export const sampleBoardColumns: BoardColumn[] = [
   {
@@ -135,15 +167,16 @@ export const sampleBoardColumns: BoardColumn[] = [
   {
     status: 'closed',
     cards: [
-      closedIssueOf(4, 'Show the frame rate in the corner', '2026-09-25T16:20:00Z', [26]),
-      closedIssueOf(3, 'Marbles fall through the floor on Safari', '2026-09-22T09:05:00Z', []),
+      closedIssueOf(4, 'Show the frame rate in the corner', '2026-09-25T16:20:00Z', mergedPullRequest),
+      closedIssueOf(3, 'Marbles fall through the floor on Safari', '2026-09-22T09:05:00Z', null),
     ],
   },
 ]
 
 /**
  * Shows the board as it would look after demo merges and closes: a merged pull request closes its
- * issues, as the Closes lines would on GitHub, moving each to the Closed column, and a closed one
+ * issues, as the Closes lines would on GitHub, moving each to the Closed column with that pull
+ * request, and a closed one
  * leaves each of its issues behind on a card of its own with no pull request.
  * @param columns The sample board's columns.
  * @param outcomes What happened to each changed pull request, by number.
@@ -161,7 +194,11 @@ export const applyDemoPullRequestOutcomes = (
       const outcome = card.pullRequest ? outcomes.get(card.pullRequest.number) : undefined
       if (outcome === undefined) return [card]
       if (outcome === 'merged') {
-        return card.issues.map((issue) => ({ issues: [{ ...issue, closedAt: now, updatedAt: now }], pullRequest: null, status: 'closed' }))
+        return card.issues.map((issue) => ({
+          issues: [{ ...issue, closedAt: now, updatedAt: now }],
+          pullRequest: card.pullRequest,
+          status: 'closed',
+        }))
       }
       return card.issues.map((issue) => ({ issues: [issue], pullRequest: null, status: 'no-pull-request' }))
     })

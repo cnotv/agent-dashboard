@@ -54,7 +54,70 @@
             "closedByPullRequestsReferences": {
               "nodes": [
                 {
-                  "number": 5
+                  "number": 3,
+                  "title": "feat: first try",
+                  "url": "https://github.com/cnotv/generative-art/pull/3",
+                  "isDraft": false,
+                  "headRefName": "feat/4-first-try",
+                  "reviewDecision": "APPROVED",
+                  "mergeable": "UNKNOWN",
+                  "body": "Closes #4",
+                  "updatedAt": "2026-09-21T10:00:00Z",
+                  "commits": {
+                    "nodes": [
+                      {
+                        "commit": {
+                          "oid": "feedface",
+                          "statusCheckRollup": {
+                            "contexts": {
+                              "nodes": [
+                                {
+                                  "__typename": "StatusContext",
+                                  "context": "deploy/netlify",
+                                  "state": "SUCCESS",
+                                  "targetUrl": "https://deploy-preview-5--cnotv-generative-art.netlify.app"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "merged": false
+                },
+                {
+                  "number": 5,
+                  "title": "feat: frame rate counter (#4)",
+                  "url": "https://github.com/cnotv/generative-art/pull/5",
+                  "isDraft": false,
+                  "headRefName": "feat/4-frame-rate",
+                  "reviewDecision": "APPROVED",
+                  "mergeable": "UNKNOWN",
+                  "body": "Closes #4\n\nPreview route: /stats",
+                  "updatedAt": "2026-09-20T10:00:00Z",
+                  "commits": {
+                    "nodes": [
+                      {
+                        "commit": {
+                          "oid": "feedface",
+                          "statusCheckRollup": {
+                            "contexts": {
+                              "nodes": [
+                                {
+                                  "__typename": "StatusContext",
+                                  "context": "deploy/netlify",
+                                  "state": "SUCCESS",
+                                  "targetUrl": "https://deploy-preview-5--cnotv-generative-art.netlify.app"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "merged": true
                 }
               ]
             }

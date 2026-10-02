@@ -163,14 +163,28 @@ describe('buildBoard', () => {
     expect(board.columns[0]?.cards).toHaveLength(1)
   })
 
-  it('puts each closed issue on a card of its own in the last column, never with an open pull request', () => {
+  it('puts each closed issue on a card of its own in the last column, with the merged pull request that closed it', () => {
     const closedIssue = { ...makeIssue(4, [5]), closedAt: '2026-09-20T00:00:00Z' }
+    const closedByHand = { ...makeIssue(3), closedAt: '2026-09-19T00:00:00Z' }
+    const mergedPullRequest = makePullRequest({ number: 5, body: 'Closes #4', previewUrl: 'https://deploy-preview-5--r.netlify.app' })
     const board = buildBoard(
       { owner: 'o', name: 'r' },
-      { open: [], closed: [closedIssue] },
-      [makePullRequest({ number: 5, body: 'Closes #4' })],
+      {
+        open: [],
+        closed: [
+          { issue: closedIssue, pullRequest: mergedPullRequest },
+          { issue: closedByHand, pullRequest: null },
+        ],
+      },
+      [],
       '2026-09-28T00:00:00Z',
     )
-    expect(board.columns.at(-1)).toEqual({ status: 'closed', cards: [{ issues: [closedIssue], pullRequest: null, status: 'closed' }] })
+    expect(board.columns.at(-1)).toEqual({
+      status: 'closed',
+      cards: [
+        { issues: [closedIssue], pullRequest: mergedPullRequest, status: 'closed' },
+        { issues: [closedByHand], pullRequest: null, status: 'closed' },
+      ],
+    })
   })
 })

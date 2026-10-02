@@ -21,9 +21,17 @@ describe('fetchRepositoryBoard', () => {
     ])
     expect(failingPullRequest?.gateSummary.overallState).toBe('failing')
     expect(cardsByStatus['draft']?.map((card) => card.pullRequest?.number)).toEqual([31])
-    expect(cardsByStatus['closed']?.map((card) => card.issues.map((issue) => [issue.number, issue.closedAt, issue.linkedPullRequestNumbers]))).toEqual([
-      [[4, '2026-09-20T10:00:00Z', [5]]],
-    ])
+    expect(
+      cardsByStatus['closed']?.map((card) => card.issues.map((issue) => [issue.number, issue.closedAt, issue.linkedPullRequestNumbers])),
+    ).toEqual([[[4, '2026-09-20T10:00:00Z', [3, 5]]]])
+  })
+
+  it("keeps a closed issue's merged pull request, with its preview, and ignores one that was never merged", async () => {
+    const board = await fetchRepositoryBoard(async () => boardResponseFixture, repository)
+    const closedPullRequest = board.columns.find((column) => column.status === 'closed')?.cards[0]?.pullRequest
+    expect(closedPullRequest?.number).toBe(5)
+    expect(closedPullRequest?.headSha).toBe('feedface')
+    expect(closedPullRequest?.previewUrl).toBe('https://deploy-preview-5--cnotv-generative-art.netlify.app/stats')
   })
 
   it('passes owner and name as variables, never inside the query text', async () => {
