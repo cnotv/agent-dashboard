@@ -63,9 +63,9 @@ export const SessionTimeline = ({ overview, isStale }: { overview: SessionsOverv
 
         {lanes.length === 0 ? (
           <Text size="2" color="gray">
-            No session is running right now. A session appears here once its hooks report to this dashboard:{' '}
+            No session is running right now. A session appears here once its machine reports to this dashboard:{' '}
             <Link asChild>
-              <RouterLink to="/credentials">connect Claude Code</RouterLink>
+              <RouterLink to="/credentials">set up a machine with one command</RouterLink>
             </Link>
             .
           </Text>

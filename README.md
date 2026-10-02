@@ -153,7 +153,47 @@ next message; waiting for you means it stopped to ask, such as for a permission.
 adds up tokens across all repositories, then by repository, pull request or branch, day and
 model. It counts tokens only; subscription sessions have no per-token price to show.
 
-Both are fed by the machines running Claude Code, not read from them:
+Both are fed by the machines running Claude Code, not read from them. The quick way to connect
+one is the `dashi` CLI, below; the steps after it do the same by hand.
+
+### Set up a machine with the dashi CLI
+
+**Credentials, Set up a machine** shows one command for macOS or Linux. It downloads the CLI,
+`apps/cli/src/dashi.ts`, which the dashboard serves from `/api/cli/script`. It checks the file
+against the SHA-256 the page shows (from `/api/cli/script-info`) and stops on a mismatch. Then
+it runs `node ~/dashi/dashi.ts connect <dashboard>`. It needs only Node 22.18 or later: no npm
+and no package to install.
+
+`dashi connect`:
+
+1. Checks for Node, git and Claude Code (and tmux, for the runner), and that the dashboard
+   answers.
+2. Asks the dashboard to pair and prints a code. It opens `/pair?code=…`, where you approve the
+   machine while signed in, name it, and tick whether it also runs the sessions you start from
+   the board. The tokens go from the dashboard straight to the CLI, once; nothing is pasted or
+   shown. A code lasts ten minutes, and its poll secret never leaves the CLI.
+3. Lists the keys it adds to `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR/settings.json`),
+   with the tokens shortened, and asks before writing them. These are the same keys as the
+   manual snippet. It keeps a copy of the old file, leaves every other key alone, and refuses
+   to touch a file that isn't valid JSON.
+4. Installs the `workflow` plugin, then, if ticked, the laptop runner. The runner is checked
+   against its own hash and installed as the macOS login agent or the Linux systemd user
+   service described under [The laptop runner](#the-laptop-runner).
+5. Confirms the dashboard accepts each token.
+
+`--runner` or `--no-runner` answers the runner question up front, and `--yes` answers every
+question with yes. Afterwards:
+
+- `dashi doctor` checks it all again and says how to fix what fails.
+- `dashi runner install|uninstall|status|logs` handles the runner alone.
+- `dashi update` fetches the CLI and runner the dashboard now serves, both checked by hash.
+- `dashi disconnect` revokes this machine's tokens with the tokens themselves, removes the
+  dashboard's variables from the settings, and uninstalls the runner.
+
+Every command it runs is an argument list, never a shell string, and the files holding a token
+are readable by you only. Windows isn't supported yet.
+
+### By hand
 
 1. In **Credentials, Connect Claude Code**, create a token for the machine and merge the
    snippet it shows into that machine's `~/.claude/settings.json`. It enables the `workflow`
@@ -282,7 +322,8 @@ about 12 MB, `client_max_body_size 12m`, or larger attachments are refused befor
 
 ### The laptop runner
 
-The server cannot reach into the laptop, so the laptop asks. Under **Credentials, Laptop runner**,
+The server cannot reach into the laptop, so the laptop asks. `dashi connect` installs it when you
+tick it on the pair page (see [Set up a machine](#set-up-a-machine-with-the-dashi-cli)); by hand, under **Credentials, Laptop runner**,
 create a runner for the machine, pick macOS or Linux, and paste the commands it shows into a
 terminal. The runner is one file, `apps/runner/src/runner.ts`, served by the dashboard from
 `/api/runner/script`; the dialog shows its SHA-256 (from `/api/runner/script-info`), and every
@@ -354,7 +395,12 @@ A button is greyed out when neither has one.
 Locally, the server only listens on loopback and rejects requests whose `Host` header is not
 a loopback name, and mutations from another origin, so a web page elsewhere cannot reach it
 through DNS rebinding. The two ingest routes, `/api/events` and `/api/telemetry/v1/metrics`,
-take an ingest token instead of a sign-in, in both modes. Cloud mode (`DASHI_MODE=cloud`) answers only its own domain,
+take an ingest token instead of a sign-in, in both modes. So do the CLI's routes:
+- creating a pairing, and polling it with its secret
+- `/api/machine/whoami`, where a machine checks or revokes its own token
+- `/api/cli/script`
+
+Approving a pairing, the one step that makes tokens, needs a signed-in person. Cloud mode (`DASHI_MODE=cloud`) answers only its own domain,
 only over https, and only to a signed-in allowlisted GitHub account; it refuses to start
 without all three configured.
 

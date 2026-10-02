@@ -1,5 +1,6 @@
 import { Badge, Button, Card, Code, Flex, Table, Text } from '@radix-ui/themes'
 import { ConnectAgentsPanel } from '@/components/credentials/ConnectAgentsPanel'
+import { MachineSetupPanel } from '@/components/credentials/MachineSetupPanel'
 import { RoutinePanel } from '@/components/credentials/RoutinePanel'
 import { RunnerPanel } from '@/components/credentials/RunnerPanel'
 import { SecretDialog } from '@/components/credentials/SecretDialog'
@@ -35,6 +36,7 @@ export const CredentialsView = () => {
 
   return (
     <Flex direction="column" gap="5" maxWidth="1000px">
+      <MachineSetupPanel />
       {vault.vaultState && (
         <VaultPanel vaultState={vault.vaultState} onSetUp={vault.setUp} onUnlock={vault.unlock} onLock={vault.lock} />
       )}

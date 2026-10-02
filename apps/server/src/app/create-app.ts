@@ -19,6 +19,8 @@ import { activeStatusOf, enableNetlifyForRepository, fetchNetlifySites, findSite
 import { findRepository } from '../repos/load-repositories.ts'
 import { createChatRelay } from '../session-chat/chat-relay.ts'
 import { createRunnerChatRoutes, createSessionChatRoutes } from '../session-chat/session-chat-routes.ts'
+import { createMachineRoutes, machineApiPathPrefixes } from '../machines/machine-routes.ts'
+import { createPairingRelay } from '../machines/pairing-relay.ts'
 import { createAttachmentRelay } from '../session-starts/attachments.ts'
 import { createRunnerRoutes, createSessionStartRoutes, runnerApiPathPrefix } from '../session-starts/session-start-routes.ts'
 import { isAllowedHostHeader, isSameOriginRequest } from '../runtime/settings.ts'
@@ -92,7 +94,8 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     const needsNoSession =
       publicApiPaths.includes(context.req.path) ||
       ingestApiPaths.includes(context.req.path) ||
-      context.req.path.startsWith(runnerApiPathPrefix)
+      context.req.path.startsWith(runnerApiPathPrefix) ||
+      machineApiPathPrefixes.some((pathPrefix) => context.req.path.startsWith(pathPrefix))
     if (auth.signInRequired && session === null && !needsNoSession) {
       return context.json({ error: 'Sign in with GitHub first' }, 401)
     }
@@ -134,6 +137,15 @@ export const createApp = (dependencies: AppDependencies): Hono<AppEnvironment> =
     now: dependencies.now,
   }
   app.route('/api', createSessionChatRoutes(sessionChatDependencies))
+  app.route(
+    '/api',
+    createMachineRoutes({
+      pairingRelay: createPairingRelay(dependencies.now),
+      ingestTokens: activity.ingestTokens,
+      runnerTokens: dependencies.sessionStarts.runnerTokens,
+      cliScriptPath: dependencies.cliScriptPath,
+    }),
+  )
   app.route('/api/runner', createRunnerChatRoutes(sessionChatDependencies))
 
   app.get('/api/health', (context) => context.json({ ok: true }))

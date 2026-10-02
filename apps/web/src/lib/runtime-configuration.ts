@@ -11,3 +11,9 @@ export const readRuntimeConfiguration = (environment: Record<string, string | bo
 })
 
 export const runtimeConfiguration = readRuntimeConfiguration(import.meta.env)
+
+/**
+ * The address machines reach this dashboard at: the API's when it is served apart, else this page's.
+ * @returns The address, without a trailing slash.
+ */
+export const dashboardAddress = (): string => runtimeConfiguration.apiBaseUrl || window.location.origin

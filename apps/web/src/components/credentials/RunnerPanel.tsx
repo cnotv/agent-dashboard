@@ -1,23 +1,17 @@
-import { ExternalLinkIcon } from '@radix-ui/react-icons'
-import { Badge, Button, Card, Code, Dialog, Flex, Heading, Link, SegmentedControl, Table, Tabs, Text, TextField } from '@radix-ui/themes'
+import { Badge, Button, Card, Dialog, Flex, Heading, SegmentedControl, Table, Tabs, Text, TextField } from '@radix-ui/themes'
 import { useState, type FormEvent } from 'react'
-import type { RunnerScriptInfo } from '@dashi/contracts'
+import type { MachinePlatform, ServedScriptInfo } from '@dashi/contracts'
 import { useMachineTokens } from '@/hooks/useActivity'
 import { usePolledResource } from '@/hooks/usePolledResource'
 import { CopyableSnippet } from './CopyableSnippet'
+import { ServedScriptSource } from './ServedScriptSource'
 import { useToast } from '@/hooks/useToast'
 import { dashboardApi } from '@/lib/api'
-import { runtimeConfiguration } from '@/lib/runtime-configuration'
+import { dashboardAddress } from '@/lib/runtime-configuration'
+import { platformLabels, platformOfUserAgent } from '@/lib/machine-setup'
 import { runnerLaunchAgentCommands, runnerReviewCommands, runnerSystemdCommands, runnerTryCommands } from '@/lib/runner-setup'
-import type { RunnerPlatform } from '@/lib/types'
 
-const dashboardUrl = (): string => runtimeConfiguration.apiBaseUrl || window.location.origin
-const sourceRepositoryUrl = 'https://github.com/cnotv/dashi/blob/main'
-
-const platformLabels: Record<RunnerPlatform, string> = { macos: 'macOS', linux: 'Linux' }
-const tmuxInstallOf: Record<RunnerPlatform, string> = { macos: 'brew install tmux', linux: 'sudo apt install tmux' }
-
-const guessedPlatform = (): RunnerPlatform => (navigator.userAgent.includes('Linux') && !navigator.userAgent.includes('Android') ? 'linux' : 'macos')
+const tmuxInstallOf: Record<MachinePlatform, string> = { macos: 'brew install tmux', linux: 'sudo apt install tmux' }
 
 // What the runner does, said plainly, so it can be checked against the source before it is installed.
 const runnerDoesList = [
@@ -28,47 +22,18 @@ const runnerDoesList = [
   'Holds a runner token that can only take and report starts; Revoke below cuts it off.',
 ]
 
-const RunnerSource = ({ scriptInfo, platform }: { scriptInfo: RunnerScriptInfo | null; platform: RunnerPlatform }) => (
-  <Flex direction="column" gap="2">
-    <Text size="2" weight="medium">
-      Before you install
-    </Text>
-    <Text size="2" color="gray">
-      The runner is one file,{' '}
-      <Link href={`${sourceRepositoryUrl}/${scriptInfo?.sourcePath ?? 'apps/runner/src/runner.ts'}`} target="_blank" rel="noopener noreferrer">
-        {scriptInfo?.sourcePath ?? 'apps/runner/src/runner.ts'} <ExternalLinkIcon />
-      </Link>
-      , served by this dashboard as it was deployed. Every command below checks that the file it downloads is exactly this one before
-      anything runs:
-    </Text>
-    <Code size="1" className="runner-hash">
-      SHA-256 {scriptInfo?.sha256 ?? 'loading…'}
-    </Code>
-    <Text size="2" color="gray">
-      What it does:
-    </Text>
-    <ul className="runner-does-list">
-      {runnerDoesList.map((runnerDoes) => (
-        <li key={runnerDoes}>
-          <Text size="2" color="gray">
-            {runnerDoes}
-          </Text>
-        </li>
-      ))}
-    </ul>
-    {scriptInfo && (
-      <>
-        <Text size="2" color="gray">
-          To read it first, without installing anything:
-        </Text>
-        <CopyableSnippet snippet={runnerReviewCommands({ dashboardUrl: dashboardUrl(), scriptSha256: scriptInfo.sha256, platform })} />
-      </>
-    )}
-  </Flex>
+const RunnerSource = ({ scriptInfo, platform }: { scriptInfo: ServedScriptInfo | null; platform: MachinePlatform }) => (
+  <ServedScriptSource
+    scriptName="The runner"
+    scriptInfo={scriptInfo}
+    sourcePath="apps/runner/src/runner.ts"
+    doesList={runnerDoesList}
+    reviewSnippet={scriptInfo && runnerReviewCommands({ dashboardUrl: dashboardAddress(), scriptSha256: scriptInfo.sha256, platform })}
+  />
 )
 
-const InstallCommands = ({ runnerToken, scriptInfo, platform }: { runnerToken: string; scriptInfo: RunnerScriptInfo; platform: RunnerPlatform }) => {
-  const setupInput = { dashboardUrl: dashboardUrl(), runnerToken, scriptSha256: scriptInfo.sha256, platform }
+const InstallCommands = ({ runnerToken, scriptInfo, platform }: { runnerToken: string; scriptInfo: ServedScriptInfo; platform: MachinePlatform }) => {
+  const setupInput = { dashboardUrl: dashboardAddress(), runnerToken, scriptSha256: scriptInfo.sha256, platform }
   return (
     <Tabs.Root defaultValue="service">
       <Tabs.List>
@@ -110,7 +75,7 @@ export const RunnerPanel = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [runnerLabel, setRunnerLabel] = useState('')
   const [runnerToken, setRunnerToken] = useState<string | null>(null)
-  const [platform, setPlatform] = useState<RunnerPlatform>(guessedPlatform)
+  const [platform, setPlatform] = useState<MachinePlatform>(() => platformOfUserAgent(navigator.userAgent))
   const { resource: scriptInfo } = usePolledResource(`runner-script-info-${isOpen}`, () => dashboardApi.readRunnerScriptInfo(), null)
 
   const closeDialog = (nextOpen: boolean): void => {

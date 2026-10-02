@@ -75,6 +75,7 @@ const app = createApp({
   createGithubRestFetcher,
   createNetlifyFetcher,
   mediaCacheDirectory: join(settings.dataDirectory, 'pr-media'),
+  cliScriptPath: join(workspaceRoot, 'apps/cli/src/dashi.ts'),
   allowedHostNames: settings.allowedHostNames,
   boardCacheMilliseconds: 60_000,
   now: Date.now,

@@ -3,10 +3,9 @@ import { useState, type FormEvent } from 'react'
 import { useMachineTokens } from '@/hooks/useActivity'
 import { useToast } from '@/hooks/useToast'
 import { connectSnippet, pluginInstallCommands } from '@/lib/connect-snippet'
-import { runtimeConfiguration } from '@/lib/runtime-configuration'
+import { dashboardAddress } from '@/lib/runtime-configuration'
 import { CopyableSnippet } from './CopyableSnippet'
 
-const dashboardUrl = (): string => runtimeConfiguration.apiBaseUrl || window.location.origin
 
 /** The Connect Claude Code panel: issues a machine's ingest token, shows it once in a settings snippet, and lists tokens to revoke. */
 export const ConnectAgentsPanel = () => {
@@ -32,7 +31,7 @@ export const ConnectAgentsPanel = () => {
     submitEvent.preventDefault()
     try {
       const createdToken = await createIngestToken(tokenLabel)
-      setSnippet(connectSnippet({ dashboardUrl: dashboardUrl(), ingestToken: createdToken.token }))
+      setSnippet(connectSnippet({ dashboardUrl: dashboardAddress(), ingestToken: createdToken.token }))
     } catch (createError) {
       toast.notifyError(createError)
     }

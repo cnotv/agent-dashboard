@@ -79,6 +79,14 @@ describe('createDemoApi', () => {
     expect((await demoApi.listMachineTokens('runner')).map((runnerToken) => runnerToken.label)).not.toContain('Desk')
   })
 
+  it('approves a pairing with the tokens asked for', async () => {
+    const demoApi = createDemoApi()
+    const description = await demoApi.describePairing('abcd-2345')
+    await demoApi.approvePairing({ userCode: description.userCode, label: 'Studio', withRunner: false })
+    expect((await demoApi.listMachineTokens('ingest')).map((ingestToken) => ingestToken.label)).toContain('Studio')
+    expect((await demoApi.listMachineTokens('runner')).map((runnerToken) => runnerToken.label)).not.toContain('Studio')
+  })
+
   it('points media at the bundled demo recording', () => {
     const demoApi = createDemoApi()
     const [pullRequest] = sampleBoardColumns

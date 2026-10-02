@@ -779,3 +779,19 @@ body {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.pair-card {
+  width: 100%;
+  max-width: 560px;
+}
+
+.pairing-code input {
+  font-family: var(--code-font-family);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.platform-choice {
+  align-self: flex-start;
+  min-width: 240px;
+}

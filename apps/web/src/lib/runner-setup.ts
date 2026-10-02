@@ -1,4 +1,5 @@
-import type { RunnerPlatform, RunnerSetupInput } from './types'
+import { checkedDownloadCommands, inSubshell } from './machine-setup'
+import type { RunnerSetupInput } from './types'
 
 const launchAgentLabel = 'dev.dashi.runner'
 // The label the runner had before the app was renamed to Dashi; its agent is removed on install so
@@ -6,23 +7,14 @@ const launchAgentLabel = 'dev.dashi.runner'
 const previousLaunchAgentLabel = 'dev.agent-dashboard.runner'
 const systemdUnitPath = '~/.config/systemd/user/dashi-runner.service'
 
-const hashCheckCommandOf: Record<RunnerPlatform, string> = { macos: 'shasum -a 256 -c -', linux: 'sha256sum -c -' }
-
-// The commands run inside one subshell with set -e, so a failed download or a hash that does not
-// match stops them there without closing the terminal they were pasted into.
-const inSubshell = (commands: string[]): string => ['(', 'set -e', ...commands, ')'].join('\n')
-
 /**
  * The commands that download the runner and stop unless it is byte for byte the script whose
  * SHA-256 the dashboard showed.
  * @param input The dashboard address, the script's hash and the platform.
  * @returns One command per line.
  */
-export const runnerDownloadCommands = ({ dashboardUrl, scriptSha256, platform }: Pick<RunnerSetupInput, 'dashboardUrl' | 'scriptSha256' | 'platform'>): string[] => [
-  'mkdir -p ~/dashi',
-  `curl -fsSL ${dashboardUrl}/api/runner/script -o ~/dashi/runner.ts`,
-  `echo "${scriptSha256}  $HOME/dashi/runner.ts" | ${hashCheckCommandOf[platform]}`,
-]
+export const runnerDownloadCommands = (input: Pick<RunnerSetupInput, 'dashboardUrl' | 'scriptSha256' | 'platform'>): string[] =>
+  checkedDownloadCommands({ ...input, scriptPath: '/api/runner/script', fileName: 'runner.ts' })
 
 /**
  * The commands that download and check the runner, then open it to read before installing anything.

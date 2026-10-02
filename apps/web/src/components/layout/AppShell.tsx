@@ -1,8 +1,10 @@
 import { ActivityLogIcon, BarChartIcon, DashboardIcon, LockClosedIcon } from '@radix-ui/react-icons'
 import { Box, Callout, Flex, Heading, Text } from '@radix-ui/themes'
-import { NavLink, Outlet, useMatches } from 'react-router'
+import { useEffect } from 'react'
+import { NavLink, Outlet, useMatches, useNavigate } from 'react-router'
 import { useSession } from '@/hooks/useSession'
 import { useToast } from '@/hooks/useToast'
+import { takeReturnPath } from '@/lib/return-after-sign-in'
 import { runtimeConfiguration } from '@/lib/runtime-configuration'
 import { SidebarAccount } from './SidebarAccount'
 import { SignInScreen } from './SignInScreen'
@@ -26,6 +28,14 @@ export const AppShell = () => {
     .at(-1)
   const { notifyError } = useToast()
   const { sessionState, signOut, signInUrl } = useSession(notifyError)
+  const navigate = useNavigate()
+  const signedInUser = sessionState?.user ?? null
+
+  useEffect(() => {
+    if (signedInUser === null) return
+    const returnPath = takeReturnPath()
+    if (returnPath !== null) void navigate(returnPath, { replace: true })
+  }, [signedInUser, navigate])
 
   if (sessionState === null) return null
   if (sessionState.signInRequired && sessionState.user === null) return <SignInScreen signInUrl={signInUrl} />
