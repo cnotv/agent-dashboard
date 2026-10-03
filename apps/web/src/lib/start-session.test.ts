@@ -80,6 +80,16 @@ describe('runner setup commands', () => {
     expect(commands.indexOf('shasum')).toBeLessThan(commands.indexOf('launchctl bootstrap gui/$(id -u)'))
   })
 
+  it('checks the plist, then waits for an older runner to stop before loading the new one', () => {
+    const commands = runnerLaunchAgentCommands(input)
+    const bootoutAt = commands.indexOf('launchctl bootout gui/$(id -u)/dev.dashi.runner')
+    const waitAt = commands.indexOf('launchctl print gui/$(id -u)/dev.dashi.runner >/dev/null 2>&1 || break')
+    const bootstrapAt = commands.indexOf('launchctl bootstrap gui/$(id -u)')
+    expect(commands.indexOf('plutil -lint ~/Library/LaunchAgents/dev.dashi.runner.plist')).toBeLessThan(bootoutAt)
+    expect(bootoutAt).toBeLessThan(waitAt)
+    expect(waitAt).toBeLessThan(bootstrapAt)
+  })
+
   it('removes the runner installed under the name from before Dashi, so only one polls', () => {
     const commands = runnerLaunchAgentCommands(input)
     expect(commands).toContain('launchctl bootout gui/$(id -u)/dev.agent-dashboard.runner 2>/dev/null || true')

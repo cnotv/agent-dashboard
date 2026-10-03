@@ -61,8 +61,13 @@ export const runnerLaunchAgentCommands = (input: RunnerSetupInput): string => {
     '</dict></plist>',
     'EOF',
     `chmod 600 ${plistPath}`,
+    `plutil -lint ${plistPath}`,
     `launchctl bootout gui/$(id -u)/${previousLaunchAgentLabel} 2>/dev/null || true; rm -f ~/Library/LaunchAgents/${previousLaunchAgentLabel}.plist`,
-    `launchctl bootout gui/$(id -u)/${launchAgentLabel} 2>/dev/null || true; launchctl bootstrap gui/$(id -u) ${plistPath}`,
+    `launchctl bootout gui/$(id -u)/${launchAgentLabel} 2>/dev/null || true`,
+    // bootout returns before launchd has removed the old job, and bootstrapping a label it still
+    // holds fails with "Bootstrap failed: 5", so wait until the job is gone.
+    `for attempt in 1 2 3 4 5 6 7 8 9 10; do launchctl print gui/$(id -u)/${launchAgentLabel} >/dev/null 2>&1 || break; sleep 1; done`,
+    `launchctl bootstrap gui/$(id -u) ${plistPath}`,
   ])
 }
 

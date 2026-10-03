@@ -332,7 +332,8 @@ command checks the download against it before anything runs, stopping on a misma
 **read it first** snippet downloads and checks it and opens it in `less`, installing nothing.
 
 - **macOS**: a login agent that starts with the Mac and restarts if it stops; its log is
-  `~/dashi/runner.log`.
+  `~/dashi/runner.log`. Install it from Terminal on the Mac itself, since launchd starts login agents
+  only inside a GUI login, not over SSH. `launchctl print gui/$(id -u)/dev.dashi.runner` shows its state.
 - **Linux**: a systemd user service, `~/.config/systemd/user/dashi-runner.service`, with the token
   in `~/dashi/runner.env` (mode 600) rather than in the unit; its log is
   `journalctl --user -u dashi-runner`, and `loginctl enable-linger $USER` keeps it running after

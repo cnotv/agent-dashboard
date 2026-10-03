@@ -43,7 +43,8 @@ const InstallCommands = ({ runnerToken, scriptInfo, platform }: { runnerToken: s
       <Tabs.Content value="service">
         {platform === 'macos' ? (
           <Text as="p" size="2" color="gray" my="2">
-            Installs it as a login agent that starts with the Mac and restarts if it stops. Its log is ~/dashi/runner.log.
+            Installs it as a login agent that starts with the Mac and restarts if it stops. Its log is ~/dashi/runner.log. Run it in
+            Terminal on the Mac itself: launchd starts login agents only inside a GUI login, not over SSH.
           </Text>
         ) : (
           <Text as="p" size="2" color="gray" my="2">

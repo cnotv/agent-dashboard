@@ -9,6 +9,7 @@ import {
   doctorReport,
   installedRunnerTokenOf,
   isSupportedNode,
+  launchAgentStartSteps,
   mergeClaudeSettings,
   parseArguments,
   platformOf,
@@ -136,6 +137,19 @@ describe('readSettingsFile', () => {
     expect(installedRunnerTokenOf('linux', { ...paths, runnerEnvPath: join(state.folder, 'runner.env') })).toBe(runnerToken)
     writeFileSync(join(state.folder, 'runner.plist'), plist?.content ?? '')
     expect(installedRunnerTokenOf('macos', { ...paths, launchAgentPath: join(state.folder, 'runner.plist') })).toBe(runnerToken)
+  })
+})
+
+describe('launchAgentStartSteps', () => {
+  it('checks the plist, stops both labels, then waits on the current one before loading it', () => {
+    const steps = launchAgentStartSteps(501, '/Users/dev/Library/LaunchAgents/dev.dashi.runner.plist')
+    expect(steps.lint).toEqual(['plutil', '-lint', '/Users/dev/Library/LaunchAgents/dev.dashi.runner.plist'])
+    expect(steps.bootouts).toEqual([
+      ['launchctl', 'bootout', 'gui/501/dev.agent-dashboard.runner'],
+      ['launchctl', 'bootout', 'gui/501/dev.dashi.runner'],
+    ])
+    expect(steps.isLoaded).toEqual(['launchctl', 'print', 'gui/501/dev.dashi.runner'])
+    expect(steps.bootstrap).toEqual(['launchctl', 'bootstrap', 'gui/501', '/Users/dev/Library/LaunchAgents/dev.dashi.runner.plist'])
   })
 })
 
