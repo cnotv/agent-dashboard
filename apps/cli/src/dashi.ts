@@ -466,14 +466,53 @@ const runnerSearchPath = (nodePath: string): string =>
     .filter((folder, index, folders) => folders.indexOf(folder) === index)
     .join(':')
 
+/**
+ * The launchctl calls that (re)start the runner's login agent, as argument lists: check the plist,
+ * stop the agents of this and the pre-rename label, wait until launchd has let go of the job, then
+ * load it. bootout returns before the old job is gone, and bootstrapping a label launchd still
+ * holds fails with "Bootstrap failed: 5", hence the wait.
+ * @param userId The user's numeric id, whose GUI session the agent runs in.
+ * @param launchAgentPath The plist.
+ * @returns The calls, in order.
+ */
+export const launchAgentStartSteps = (userId: number, launchAgentPath: string) => {
+  const domain = `gui/${userId}`
+  return {
+    lint: ['plutil', '-lint', launchAgentPath],
+    bootouts: [previousLaunchAgentLabel, launchAgentLabel].map((label) => ['launchctl', 'bootout', `${domain}/${label}`]),
+    isLoaded: ['launchctl', 'print', `${domain}/${launchAgentLabel}`],
+    bootstrap: ['launchctl', 'bootstrap', domain, launchAgentPath],
+  }
+}
+
+const runArgumentList = ([program = '', ...args]: string[]): { ok: boolean; output: string } => runQuietly(program, args)
+
+const waitUntilUnloaded = (isLoaded: string[], secondsLeft: number): void => {
+  if (secondsLeft === 0 || !runArgumentList(isLoaded).ok) return
+  spawnSync('sleep', ['1'])
+  waitUntilUnloaded(isLoaded, secondsLeft - 1)
+}
+
+const startLaunchAgent = (paths: CliPaths): void => {
+  const steps = launchAgentStartSteps(process.getuid?.() ?? 0, paths.launchAgentPath)
+  const lint = runArgumentList(steps.lint)
+  if (!lint.ok) throw new Error(`The runner's login agent file is not a valid plist: ${lint.output}`)
+  steps.bootouts.forEach((bootout) => runArgumentList(bootout))
+  rmSync(join(dirname(paths.launchAgentPath), `${previousLaunchAgentLabel}.plist`), { force: true })
+  waitUntilUnloaded(steps.isLoaded, 10)
+  const bootstrap = runArgumentList(steps.bootstrap)
+  if (!bootstrap.ok) {
+    throw new Error(
+      `launchctl could not start the runner: ${bootstrap.output}\n` +
+        '     If an older runner was still stopping, run dashi runner install again. Run it in Terminal on the Mac itself:\n' +
+        '     launchd starts login agents only inside a GUI login, not over SSH.',
+    )
+  }
+}
+
 const startRunnerService = (platform: Platform, paths: CliPaths): void => {
   if (platform === 'macos') {
-    const domain = `gui/${process.getuid?.() ?? ''}`
-    runQuietly('launchctl', ['bootout', `${domain}/${previousLaunchAgentLabel}`])
-    rmSync(join(dirname(paths.launchAgentPath), `${previousLaunchAgentLabel}.plist`), { force: true })
-    runQuietly('launchctl', ['bootout', `${domain}/${launchAgentLabel}`])
-    const bootstrap = runQuietly('launchctl', ['bootstrap', domain, paths.launchAgentPath])
-    if (!bootstrap.ok) throw new Error(`launchctl could not start the runner: ${bootstrap.output}`)
+    startLaunchAgent(paths)
     return
   }
   runQuietly('systemctl', ['--user', 'daemon-reload'])
